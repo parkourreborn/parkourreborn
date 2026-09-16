@@ -8,7 +8,7 @@ const pages = [
   '/xpcalc',
   '/timetrialhub',
   '/rebornai',
-  '/parkourguessr',
+  '/games/parkourguessr',
   '/incrementalparkour',
   '/bagopensimulator',
   '/map',

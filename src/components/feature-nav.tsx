@@ -34,7 +34,7 @@ const features: Feature[] = [
     title: 'Games',
     bg: images.backgrounds.games.bg,
     items: [
-      { title: 'Parkour Guessr', image: images.backgrounds.games.parkourguessr, href: '/parkourguessr' },
+      { title: 'Parkour Guessr', image: images.backgrounds.games.parkourguessr, href: '/games/parkourguessr' },
       { title: 'Incremental Parkour', image: images.backgrounds.games.incrementalparkour, href: '/incrementalparkour', badge: 'New' },
       { title: 'Bag Opening Simulator', image: images.backgrounds.games.bagopensimulator, href: '/bagopensimulator' },
       { title: 'Parkour MC', image: images.backgrounds.games.parkourmc, href: '/parkourmc' },

@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogPortal, DialogTitle } from '@/components/ui/dialog';
+import type { MapPoint } from '@/lib/guessr';
 
 type MapViewerProps = {
   image: string;
@@ -11,101 +12,297 @@ type MapViewerProps = {
   onClose: () => void;
 };
 
-type Point = {
-  x: number;
-  y: number;
+type MapCanvasProps = {
+  image: string;
+  width?: number;
+  height?: number;
+  value?: MapPoint | null;
+  target?: MapPoint | null;
+  disabled?: boolean;
+  className?: string;
+  alt?: string;
+  onChange?: (point: MapPoint) => void;
+  onZoomChange?: (zoom: number) => void;
+  onLoad?: () => void;
+  onError?: () => void;
 };
 
+export type MapCanvasHandle = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  reset: () => void;
+};
+
+type Drag = { id: number; x: number; y: number; startX: number; startY: number; moved: boolean };
+type Pinch = { distance: number; zoom: number; pan: MapPoint; center: MapPoint };
+
 const maxZoom = 8;
-
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const distance = (a: MapPoint, b: MapPoint) => Math.hypot(a.x - b.x, a.y - b.y);
 
-const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
-
-export default function MapViewer({ image, open, onClose }: MapViewerProps) {
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
-  const [size, setSize] = useState({ width: 0, height: 0 });
-  const [natural, setNatural] = useState({ width: 0, height: 0 });
-  const modalRef = useRef<HTMLDivElement>(null);
+export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas({
+  image,
+  width = 0,
+  height = 0,
+  value = null,
+  target = null,
+  disabled = false,
+  className = '',
+  alt = 'PARKOUR Reborn world map',
+  onChange,
+  onZoomChange,
+  onLoad,
+  onError,
+}, ref) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const pointers = useRef(new Map<number, Point>());
-  const drag = useRef<Point | null>(null);
-  const pinch = useRef<{ distance: number; zoom: number; pan: Point; center: Point } | null>(null);
-  const ready = size.width > 16 && size.height > 16 && natural.width > 0 && natural.height > 0;
+  const layerRef = useRef<HTMLDivElement>(null);
+  const pointers = useRef(new Map<number, MapPoint>());
+  const drag = useRef<Drag | null>(null);
+  const pinch = useRef<Pinch | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<MapPoint>({ x: 0, y: 0 });
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [natural, setNatural] = useState({ width, height });
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const mapWidth = width || natural.width;
+  const mapHeight = height || natural.height;
+  const ready = size.width > 16 && size.height > 16 && mapWidth > 0 && mapHeight > 0;
 
-  const fit = useMemo(() => {
-    if (!ready) return 1;
-    const widthFit = (size.width - 32) / natural.width;
-    const heightFit = (size.height - 96) / natural.height;
-    return Math.max(0.001, Math.min(widthFit, heightFit, 1));
-  }, [natural.height, natural.width, ready, size.height, size.width]);
+  const base = useMemo(() => {
+    if (!ready) return { width: 0, height: 0 };
+    const scale = Math.min(Math.max(1, size.width - 24) / mapWidth, Math.max(1, size.height - 24) / mapHeight);
+    return { width: mapWidth * scale, height: mapHeight * scale };
+  }, [mapHeight, mapWidth, ready, size.height, size.width]);
 
-  const clampPan = useCallback((next: Point, nextZoom = zoom) => {
-    const mapWidth = natural.width * nextZoom;
-    const mapHeight = natural.height * nextZoom;
-    const maxX = Math.max(0, (mapWidth - size.width) / 2 + 80);
-    const maxY = Math.max(0, (mapHeight - size.height) / 2 + 80);
+  const clampPan = useCallback((next: MapPoint, nextZoom = zoom) => {
+    const maxX = Math.max(0, (base.width * nextZoom - size.width) / 2);
+    const maxY = Math.max(0, (base.height * nextZoom - size.height) / 2);
     return { x: clamp(next.x, -maxX, maxX), y: clamp(next.y, -maxY, maxY) };
-  }, [natural.height, natural.width, size.height, size.width, zoom]);
+  }, [base.height, base.width, size.height, size.width, zoom]);
 
-  const setClampedZoom = useCallback((next: number) => {
-    const value = clamp(next, fit, maxZoom);
-    setZoom(value);
-    setPan((current) => clampPan(current, value));
-  }, [clampPan, fit]);
-
-  const setZoomAt = useCallback((next: number, anchor: Point, startZoom = zoom, startPan = pan) => {
-    const value = clamp(next, fit, maxZoom);
-    const ratio = value / startZoom;
+  const changeZoom = useCallback((next: number, anchor: MapPoint = { x: 0, y: 0 }) => {
+    const value = clamp(next, 1, maxZoom);
+    const ratio = value / zoom;
     const nextPan = {
-      x: anchor.x - (anchor.x - startPan.x) * ratio,
-      y: anchor.y - (anchor.y - startPan.y) * ratio,
+      x: anchor.x - (anchor.x - pan.x) * ratio,
+      y: anchor.y - (anchor.y - pan.y) * ratio,
     };
-
     setZoom(value);
     setPan(clampPan(nextPan, value));
-  }, [clampPan, fit, pan, zoom]);
+  }, [clampPan, pan.x, pan.y, zoom]);
 
-  const pointInStage = useCallback((point: Point) => {
-    const rect = stageRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    return { x: point.x - rect.left - rect.width / 2, y: point.y - rect.top - rect.height / 2 };
+  const reset = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => changeZoom(zoom * 1.22),
+    zoomOut: () => changeZoom(zoom / 1.22),
+    reset,
+  }), [changeZoom, reset, zoom]);
+
+  useEffect(() => {
+    onZoomChange?.(zoom);
+  }, [onZoomChange, zoom]);
 
   const measure = useCallback(() => {
     const rect = stageRef.current?.getBoundingClientRect();
     if (rect && rect.width > 0 && rect.height > 0) setSize({ width: rect.width, height: rect.height });
-
-    const img = imageRef.current;
-    if (img?.naturalWidth && img.naturalHeight) setNatural({ width: img.naturalWidth, height: img.naturalHeight });
   }, []);
 
-  const reset = useCallback(() => {
-    if (!ready) return;
-    setZoom(fit);
-    setPan({ x: 0, y: 0 });
-  }, [fit, ready]);
+  useEffect(() => {
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    if (stageRef.current) observer?.observe(stageRef.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [measure]);
+
+  useEffect(() => {
+    reset();
+  }, [image, mapHeight, mapWidth, reset]);
+
+  useEffect(() => {
+    setPan((current) => clampPan(current));
+  }, [clampPan]);
+
+  const pointInStage = (clientX: number, clientY: number) => {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 };
+  };
+
+  const pointOnMap = (clientX: number, clientY: number) => {
+    const rect = layerRef.current?.getBoundingClientRect();
+    if (!rect?.width || !rect.height) return null;
+    const point = { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+    if (point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1) return null;
+    return { x: Number(point.x.toFixed(4)), y: Number(point.y.toFixed(4)) };
+  };
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      changeZoom(zoom * (event.deltaY > 0 ? 0.88 : 1.12), pointInStage(event.clientX, event.clientY));
+    };
+
+    stage.addEventListener('wheel', onWheel, { passive: false });
+    return () => stage.removeEventListener('wheel', onWheel);
+  }, [changeZoom, zoom]);
+
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const point = { x: event.clientX, y: event.clientY };
+    pointers.current.set(event.pointerId, point);
+
+    if (pointers.current.size === 2) {
+      const [a, b] = Array.from(pointers.current.values());
+      pinch.current = {
+        distance: distance(a, b),
+        zoom,
+        pan,
+        center: pointInStage((a.x + b.x) / 2, (a.y + b.y) / 2),
+      };
+      drag.current = null;
+    } else {
+      drag.current = { id: event.pointerId, x: point.x, y: point.y, startX: point.x, startY: point.y, moved: false };
+    }
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    const point = { x: event.clientX, y: event.clientY };
+    pointers.current.set(event.pointerId, point);
+
+    if (pointers.current.size === 2 && pinch.current) {
+      const [a, b] = Array.from(pointers.current.values());
+      const center = pointInStage((a.x + b.x) / 2, (a.y + b.y) / 2);
+      const nextZoom = clamp(pinch.current.zoom * (distance(a, b) / Math.max(1, pinch.current.distance)), 1, maxZoom);
+      const ratio = nextZoom / pinch.current.zoom;
+      const nextPan = {
+        x: center.x - (pinch.current.center.x - pinch.current.pan.x) * ratio,
+        y: center.y - (pinch.current.center.y - pinch.current.pan.y) * ratio,
+      };
+      setZoom(nextZoom);
+      setPan(clampPan(nextPan, nextZoom));
+      return;
+    }
+
+    const current = drag.current;
+    if (!current || current.id !== event.pointerId) return;
+    if (Math.hypot(point.x - current.startX, point.y - current.startY) > 5) current.moved = true;
+    if (current.moved) setPan((value) => clampPan({ x: value.x + point.x - current.x, y: value.y + point.y - current.y }));
+    current.x = point.x;
+    current.y = point.y;
+  };
+
+  const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const current = drag.current;
+    const place = pointers.current.size === 1 && current?.id === event.pointerId && !current.moved && !pinch.current;
+    pointers.current.delete(event.pointerId);
+
+    if (pointers.current.size === 1) {
+      const [id, point] = Array.from(pointers.current.entries())[0];
+      drag.current = { id, x: point.x, y: point.y, startX: point.x, startY: point.y, moved: true };
+    } else {
+      drag.current = null;
+    }
+    pinch.current = null;
+
+    if (place && loaded && !disabled && onChange) {
+      const point = pointOnMap(event.clientX, event.clientY);
+      if (point) onChange(point);
+    }
+  };
+
+  return (
+    <div
+      ref={stageRef}
+      className={`map-canvas ${className}`.trim()}
+      style={{ touchAction: 'none' }}
+      role="application"
+      aria-label={disabled ? 'Parkour Reborn result map' : 'Parkour Reborn guess map. Drag to pan and tap to place a marker.'}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      {(!mapWidth || !mapHeight) && (
+        <img
+          className="map-canvas__probe"
+          src={image}
+          alt=""
+          aria-hidden="true"
+          onLoad={(event) => {
+            setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
+            onLoad?.();
+            measure();
+          }}
+          onError={onError}
+        />
+      )}
+      {ready && (
+        <div
+          ref={layerRef}
+          className="map-canvas__layer"
+          style={{ width: base.width, height: base.height, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
+        >
+          <img
+            className="map-canvas__image"
+            src={image}
+            alt={alt}
+            draggable={false}
+            onLoad={(event) => {
+              if (!width || !height) setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
+              setLoaded(true);
+              onLoad?.();
+              measure();
+            }}
+            onError={() => {
+              setLoadError(true);
+              onError?.();
+            }}
+          />
+          {value && target && (
+            <svg className="map-canvas__line" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
+              <line x1={value.x * mapWidth} y1={value.y * mapHeight} x2={target.x * mapWidth} y2={target.y * mapHeight} />
+            </svg>
+          )}
+          {value && <span className="map-marker map-marker--guess" style={{ left: `${value.x * 100}%`, top: `${value.y * 100}%` }} aria-label="Your guess" />}
+          {target && <span className="map-marker map-marker--target" style={{ left: `${target.x * 100}%`, top: `${target.y * 100}%` }} aria-label="Actual location" />}
+        </div>
+      )}
+      {(!ready || !loaded || loadError) && <span className="map-canvas__loading">{loadError ? 'Could not load map' : 'Loading map...'}</span>}
+    </div>
+  );
+});
+
+export default function MapViewer({ image, open, onClose }: MapViewerProps) {
+  const mapRef = useRef<MapCanvasHandle>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (!open) return;
-
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     requestAnimationFrame(() => {
       modalRef.current?.focus();
-      measure();
-      requestAnimationFrame(measure);
+      mapRef.current?.reset();
     });
-
-    const timer = window.setTimeout(measure, 80);
-
     return () => {
-      window.clearTimeout(timer);
       document.body.style.overflow = previous;
     };
-  }, [measure, open]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,9 +313,9 @@ export default function MapViewer({ image, open, onClose }: MapViewerProps) {
 
       const focusable = modalRef.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
       if (!focusable?.length) return;
-
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
+
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
@@ -132,88 +329,6 @@ export default function MapViewer({ image, open, onClose }: MapViewerProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose, open]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    measure();
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
-    if (stageRef.current) observer?.observe(stageRef.current);
-    window.addEventListener('resize', measure);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', measure);
-    };
-  }, [measure, open]);
-
-  useEffect(() => {
-    if (open && ready) reset();
-  }, [open, ready, reset]);
-
-  useEffect(() => {
-    if (open) return;
-    pointers.current.clear();
-    drag.current = null;
-    pinch.current = null;
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const stage = stageRef.current;
-    if (!stage) return;
-
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      setZoomAt(zoom * (event.deltaY > 0 ? 0.9 : 1.1), pointInStage({ x: event.clientX, y: event.clientY }));
-    };
-
-    stage.addEventListener('wheel', onWheel, { passive: false });
-    return () => stage.removeEventListener('wheel', onWheel);
-  }, [open, pointInStage, setZoomAt, zoom]);
-
-  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const point = { x: event.clientX, y: event.clientY };
-    pointers.current.set(event.pointerId, point);
-
-    if (pointers.current.size === 2) {
-      const [a, b] = Array.from(pointers.current.values());
-      pinch.current = {
-        distance: distance(a, b),
-        zoom,
-        pan,
-        center: pointInStage({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }),
-      };
-      drag.current = null;
-    } else {
-      drag.current = { x: point.x - pan.x, y: point.y - pan.y };
-    }
-  };
-
-  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const point = { x: event.clientX, y: event.clientY };
-    if (!pointers.current.has(event.pointerId)) return;
-    pointers.current.set(event.pointerId, point);
-
-    if (pointers.current.size === 2 && pinch.current) {
-      const [a, b] = Array.from(pointers.current.values());
-      const center = pointInStage({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-      const nextZoom = pinch.current.zoom * (distance(a, b) / pinch.current.distance);
-      const centerDrift = { x: center.x - pinch.current.center.x, y: center.y - pinch.current.center.y };
-      const nextPan = { x: pinch.current.pan.x + centerDrift.x, y: pinch.current.pan.y + centerDrift.y };
-      setZoomAt(nextZoom, center, pinch.current.zoom, nextPan);
-      return;
-    }
-
-    if (drag.current) setPan(clampPan({ x: point.x - drag.current.x, y: point.y - drag.current.y }));
-  };
-
-  const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    pointers.current.delete(event.pointerId);
-    pinch.current = null;
-    drag.current = null;
-  };
-
   if (!open) return null;
 
   return (
@@ -225,9 +340,9 @@ export default function MapViewer({ image, open, onClose }: MapViewerProps) {
           <div className="tt-dialog__head map-modal__bar">
             <DialogTitle asChild><h2>Map</h2></DialogTitle>
             <div className="map-modal__tools">
-              <Button type="button" onClick={() => setClampedZoom(zoom * 1.18)}>Zoom In</Button>
-              <Button type="button" onClick={() => setClampedZoom(zoom / 1.18)}>Zoom Out</Button>
-              <Button type="button" onClick={reset}>Reset</Button>
+              <Button type="button" onClick={() => mapRef.current?.zoomIn()}>Zoom In</Button>
+              <Button type="button" onClick={() => mapRef.current?.zoomOut()}>Zoom Out</Button>
+              <Button type="button" onClick={() => mapRef.current?.reset()}>Reset</Button>
               <span>{Math.round(zoom * 100)}%</span>
             </div>
             <DialogClose asChild>
@@ -236,23 +351,7 @@ export default function MapViewer({ image, open, onClose }: MapViewerProps) {
               </Button>
             </DialogClose>
           </div>
-          <div
-            className="map-modal__stage"
-            ref={stageRef}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-          >
-            <img
-              ref={imageRef}
-              src={image}
-              alt="PARKOUR Reborn world map"
-              draggable={false}
-              onLoad={measure}
-              style={{ transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
-            />
-          </div>
+          <MapCanvas ref={mapRef} image={image} className="map-modal__stage" onZoomChange={setZoom} />
         </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>

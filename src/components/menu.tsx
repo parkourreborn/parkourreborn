@@ -34,6 +34,8 @@ export default function Menu() {
   const navClass = (href: string) => `side-menu__link${pathname === href ? ' side-menu__link--on' : ''}`;
 
   useEffect(() => {
+    if (pathname === '/games/parkourguessr/play') return;
+
     const typing = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
       return target.matches('input, textarea, select, [contenteditable="true"]');
@@ -72,7 +74,9 @@ export default function Menu() {
       document.removeEventListener('keydown', keyboard, true);
       document.removeEventListener('focusin', focus, true);
     };
-  }, []);
+  }, [pathname]);
+
+  if (pathname === '/games/parkourguessr/play') return null;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
