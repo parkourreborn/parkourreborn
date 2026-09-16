@@ -288,10 +288,10 @@ button {
   width: min(640px, calc(100% - 152px));
   padding: 14px 12px 14px 16px;
   transform: translateX(-50%);
-  border: 1px solid var(--hub-accent-line-strong);
-  border-top: 2px solid var(--hub-blue);
-  background: var(--hub-modal-bg);
-  box-shadow: var(--hub-shadow-popover);
+  border: 1px solid var(--hub-game-line);
+  border-radius: 2px;
+  background: #0b1018;
+  box-shadow: var(--hub-shadow-panel);
   color: var(--hub-text);
 }
 
@@ -1551,10 +1551,9 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--hud-panel-line);
-  border-top: 2px solid var(--hub-blue);
-  border-radius: 0;
-  background: var(--hud-panel-bg);
+  border: 1px solid var(--hub-game-line);
+  border-radius: 2px;
+  background: var(--hub-panel-bg);
   box-shadow: var(--hub-shadow-panel);
 }
 
