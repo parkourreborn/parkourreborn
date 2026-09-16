@@ -10,9 +10,9 @@ export const roundCount = 5;
 export class GuessrMapError extends Error {}
 
 const mapSchema = z.object({
-  url: z.string().url(),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
+  imageUrl: z.string().url(),
+  width: z.coerce.number().int().positive(),
+  height: z.coerce.number().int().positive(),
   active: z.literal(true),
 });
 
@@ -52,7 +52,7 @@ export async function getActiveGuessrMap(): Promise<GuessrMap> {
 
   const map = mapSchema.safeParse(maps.docs[0].data());
   if (!map.success) throw new GuessrMapError('Parkour Guessr is unavailable right now.');
-  return { id: maps.docs[0].id, url: map.data.url, width: map.data.width, height: map.data.height };
+  return { id: maps.docs[0].id, url: map.data.imageUrl, width: map.data.width, height: map.data.height };
 }
 
 export async function getPublishedGuessrImages(mapVersionId: string, mode: GuessrMode, difficulty: GuessrDifficulty) {
