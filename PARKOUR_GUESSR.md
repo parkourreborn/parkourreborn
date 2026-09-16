@@ -1,5 +1,7 @@
 # Parkour Guessr setup
 
+New pages must reuse the existing Parkour Reborn Hub shell, hero, fonts, colors, buttons, and panels. Use one main heading and minimal copy. Do not introduce generic blue dashboard bars or unrelated AI-generated styling.
+
 The public Hub uses the same Firebase project as `parkourreborn-admin`. Set `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, and `FIREBASE_ADMIN_PRIVATE_KEY` in the public site's server environment. Use the same project ID and service account permissions as the admin deployment. The private key must remain server-only and can contain escaped `\n` characters. The existing `getAdminDb()` helper is used for every Guessr read and write; no browser Firestore access is needed.
 
 In Firestore, keep exactly one `guessrMaps` document with `active: true`. Its document ID is the map version; its `url`, `width`, and `height` must describe the same image and coordinate space used by the admin editor. The public game never falls back to a bundled map. Publish at least five valid `guessrImages` records for each mode/difficulty combination you want playable, with `status: "published"`, the active `mapVersionId`, an R2 `imageUrl`, and normalized `coordinates`.

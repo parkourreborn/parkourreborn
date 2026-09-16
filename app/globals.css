@@ -3353,22 +3353,20 @@ button {
 .map-marker {
   position: absolute;
   z-index: 2;
-  display: block;
-  width: 18px;
-  height: 18px;
-  border: 3px solid white;
-  border-radius: 50%;
-  box-shadow: 0 0 0 5px rgba(0, 0, 0, 0.28), 0 3px 12px rgba(0, 0, 0, 0.72);
-  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 30px;
+  overflow: visible;
+  transform-origin: bottom center;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.65));
   pointer-events: none;
 }
 
 .map-marker--guess {
-  background: var(--hub-blue);
+  color: #f04459;
 }
 
 .map-marker--target {
-  background: #ff5d67;
+  color: #68df9a;
 }
 
 .map-modal__stage {
@@ -5240,8 +5238,34 @@ button.ai-hex:focus-visible {
 }
 
 .guessr-game__shot {
-  object-fit: cover;
+  background: #000;
   opacity: 0;
+}
+
+.guessr-game__shot.is-blurred {
+  pointer-events: none;
+}
+
+.guessr-game__shot.is-blurred .map-canvas__image {
+  filter: blur(48px);
+}
+
+.guessr-game__image-tools {
+  position: absolute;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 20;
+  display: flex;
+  gap: 5px;
+}
+
+.guessr-game__image-tools button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--hub-border);
+  border-radius: 2px;
+  background: var(--hub-panel);
+  color: var(--hub-text);
 }
 
 .guessr-game__shot.is-ready {
@@ -5321,15 +5345,13 @@ button.ai-hex:focus-visible {
 .guessr-hud small,
 .guessr-hud strong,
 .guessr-game-map__bar,
-.guessr-game-map__foot,
 .guessr-result span {
   font-family: 'IBM Plex Mono', monospace;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
 
-.guessr-hud svg,
-.guessr-game-map__foot svg {
+.guessr-hud svg {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
@@ -5389,9 +5411,10 @@ button.ai-hex:focus-visible {
   bottom: 16px;
   z-index: 30;
   display: grid;
-  width: min(46vw, 620px);
-  height: min(56dvh, 520px);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(34vw, 440px);
+  height: min(40dvh, 360px);
+  grid-template-rows: minmax(0, 1fr) auto;
+  transition: width 180ms ease, height 180ms ease;
   overflow: hidden;
   border: 1px solid var(--hub-border);
   background: var(--hub-bg);
@@ -5407,6 +5430,15 @@ button.ai-hex:focus-visible {
   transform: none;
 }
 
+@media (min-width: 761px) {
+  .guessr-game-map:hover,
+  .guessr-game-map:has(:focus-visible),
+  .guessr-game-map.has-result {
+    width: min(46vw, 620px);
+    height: min(56dvh, 520px);
+  }
+}
+
 .guessr-game-map.is-fullscreen {
   inset: 0;
   width: auto;
@@ -5415,7 +5447,14 @@ button.ai-hex:focus-visible {
 }
 
 .guessr-game-map__bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 3;
   display: flex;
+  opacity: 0;
+  visibility: hidden;
   min-height: 48px;
   align-items: center;
   gap: 10px;
@@ -5423,6 +5462,14 @@ button.ai-hex:focus-visible {
   border-bottom: 1px solid var(--hub-border);
   background: var(--hub-panel-bg);
   font-size: 10px;
+}
+
+.guessr-game-map:hover .guessr-game-map__bar,
+.guessr-game-map:has(:focus-visible) .guessr-game-map__bar,
+.guessr-game-map.is-fullscreen .guessr-game-map__bar,
+.guessr-game-map.has-result .guessr-game-map__bar {
+  opacity: 1;
+  visibility: visible;
 }
 
 .guessr-game-map__bar > strong {
@@ -5468,26 +5515,14 @@ button.ai-hex:focus-visible {
   outline-offset: -2px;
 }
 
-.guessr-game-map__foot {
-  display: flex;
-  min-height: 54px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px 8px 13px;
-  border-top: 1px solid var(--hub-border);
-  background: var(--hub-panel-bg);
+.guessr-game-map__submit {
+  position: absolute;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 3;
 }
 
-.guessr-game-map__foot > span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--hub-muted);
-  font-size: 9px;
-}
-
-.guessr-game-map__foot button,
+.guessr-game-map__submit,
 .guessr-result button,
 .guessr-final button,
 .guessr-final a {
@@ -5680,8 +5715,10 @@ button.ai-hex:focus-visible {
     height: 40px;
   }
 
-  .guessr-game-map__foot {
-    min-height: 62px;
+  .guessr-game-map__bar {
+    top: env(safe-area-inset-top);
+    opacity: 1;
+    visibility: visible;
   }
 
   .guessr-map-launch {
@@ -5708,5 +5745,11 @@ button.ai-hex:focus-visible {
 
   .guessr-game-map__bar > span {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guessr-game-map {
+    transition: none;
   }
 }

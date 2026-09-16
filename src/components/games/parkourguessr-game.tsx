@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Clock, Expand, Flag, RotateCcw, Shrink, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, Expand, Flag, Minus, Plus, RotateCcw, Shrink, Trophy } from 'lucide-react';
+import { MapCanvas } from '@/components/community/mapview';
+import type { MapCanvasHandle } from '@/components/community/mapview';
 import ParkourGuessrMap from '@/components/games/parkourguessr-map';
 import { Button } from '@/components/ui/button';
 import type { GuessrConfig, GuessrDifficulty, GuessrGame, GuessrMode, GuessrRoundResult, MapPoint } from '@/lib/guessr';
 
-type Phase = 'setup' | 'countdown' | 'playing' | 'guessing' | 'result' | 'round-loading' | 'finished' | 'error';
+type Phase = 'setup' | 'countdown' | 'playing' | 'guessing' | 'result' | 'finished' | 'error';
 type NextState = 'idle' | 'loading' | 'ready' | 'error';
 
 const modeName = { classic: 'Classic', graffiti: 'Graffiti' } satisfies Record<GuessrMode, string>;
@@ -24,6 +26,7 @@ const formatTime = (seconds: number) => `${Math.floor(seconds / 60).toString().p
 
 export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMode; difficulty: GuessrDifficulty }) {
   const gameRef = useRef<HTMLDivElement>(null);
+  const shotRef = useRef<MapCanvasHandle>(null);
   const runRef = useRef(0);
   const startedRef = useRef(0);
   const [config, setConfig] = useState<GuessrConfig | null>(null);
@@ -142,10 +145,6 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
   }, [countdown, phase, shotReady]);
 
   useEffect(() => {
-    if (phase === 'round-loading' && shotReady) setPhase('playing');
-  }, [phase, shotReady]);
-
-  useEffect(() => {
     if (phase !== 'result' || result?.complete || !game) return;
     const next = game.rounds[round + 1];
     if (!next) return;
@@ -203,7 +202,8 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
     setNextState('idle');
     setMapFullscreen(false);
     setMapOpen(!window.matchMedia('(max-width: 760px)').matches);
-    setPhase('round-loading');
+    setCountdown(3);
+    setPhase('countdown');
   };
 
   const toggleBrowserFullscreen = () => {
@@ -216,17 +216,19 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
   };
 
   const currentRound = game?.rounds[round];
-  const loadingText = phase === 'setup' ? 'Setting up game...' : phase === 'round-loading' || (phase === 'countdown' && countdown === 0) ? 'Loading round...' : '';
+  const loadingText = phase === 'setup' ? 'Setting up game...' : phase === 'countdown' && countdown === 0 ? 'Loading round...' : '';
 
   return (
     <main ref={gameRef} className="guessr-game">
       {phase !== 'finished' && phase !== 'error' && <h1 className="sr-only">Parkour Guessr</h1>}
       {currentRound && (
-        <img
-          className={`guessr-game__shot${shotReady ? ' is-ready' : ''}`}
-          src={currentRound.imageUrl}
+        <MapCanvas
+          key={`${game?.gameId}-${round}`}
+          ref={shotRef}
+          className={`guessr-game__shot${shotReady ? ' is-ready' : ''}${phase === 'countdown' ? ' is-blurred' : ''}`}
+          image={currentRound.imageUrl}
+          padding={0}
           alt={`Parkour Guessr round ${round + 1}`}
-          draggable={false}
           onLoad={() => setShotReady(true)}
           onError={() => {
             setError('Could not load this round.');
@@ -235,6 +237,11 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
         />
       )}
       <span className="guessr-game__shade" aria-hidden="true" />
+      {phase === 'playing' && <div className="guessr-game__image-tools" role="group" aria-label="Image controls">
+        <Button type="button" size="icon" aria-label="Zoom image out" onClick={() => shotRef.current?.zoomOut()}><Minus /></Button>
+        <Button type="button" size="icon" aria-label="Zoom image in" onClick={() => shotRef.current?.zoomIn()}><Plus /></Button>
+        <Button type="button" size="icon" aria-label="Reset image view" onClick={() => shotRef.current?.reset()}><RotateCcw /></Button>
+      </div>}
 
       <div className="guessr-game__topbar">
         <Button asChild className="guessr-game__exit">
@@ -256,7 +263,7 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
         </div>
       )}
 
-      {(phase === 'setup' || phase === 'round-loading' || phase === 'countdown') && (
+      {(phase === 'setup' || phase === 'countdown') && (
         <div className="guessr-game__loading" role="status">
           {phase === 'countdown' && countdown > 0 ? <strong>{countdown}</strong> : <span>{loadingText}</span>}
         </div>

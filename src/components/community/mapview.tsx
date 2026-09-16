@@ -16,6 +16,7 @@ type MapCanvasProps = {
   image: string;
   width?: number;
   height?: number;
+  padding?: number;
   value?: MapPoint | null;
   target?: MapPoint | null;
   disabled?: boolean;
@@ -44,6 +45,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   image,
   width = 0,
   height = 0,
+  padding = 24,
   value = null,
   target = null,
   disabled = false,
@@ -71,9 +73,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
 
   const base = useMemo(() => {
     if (!ready) return { width: 0, height: 0 };
-    const scale = Math.min(Math.max(1, size.width - 24) / mapWidth, Math.max(1, size.height - 24) / mapHeight);
+    const scale = Math.min(Math.max(1, size.width - padding) / mapWidth, Math.max(1, size.height - padding) / mapHeight);
     return { width: mapWidth * scale, height: mapHeight * scale };
-  }, [mapHeight, mapWidth, ready, size.height, size.width]);
+  }, [mapHeight, mapWidth, padding, ready, size.height, size.width]);
 
   const clampPan = useCallback((next: MapPoint, nextZoom = zoom) => {
     const maxX = Math.max(0, (base.width * nextZoom - size.width) / 2);
@@ -142,7 +144,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     if (!rect?.width || !rect.height) return null;
     const point = { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
     if (point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1) return null;
-    return { x: Number(point.x.toFixed(4)), y: Number(point.y.toFixed(4)) };
+    return point;
   };
 
   useEffect(() => {
@@ -200,14 +202,17 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     const current = drag.current;
     if (!current || current.id !== event.pointerId) return;
     if (Math.hypot(point.x - current.startX, point.y - current.startY) > 5) current.moved = true;
-    if (current.moved) setPan((value) => clampPan({ x: value.x + point.x - current.x, y: value.y + point.y - current.y }));
+    const dx = point.x - current.x;
+    const dy = point.y - current.y;
+    if (current.moved) setPan((value) => clampPan({ x: value.x + dx, y: value.y + dy }));
     current.x = point.x;
     current.y = point.y;
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
     const current = drag.current;
-    const place = pointers.current.size === 1 && current?.id === event.pointerId && !current.moved && !pinch.current;
+    const place = event.type === 'pointerup' && pointers.current.size === 1 && current?.id === event.pointerId && !current.moved && !pinch.current;
     pointers.current.delete(event.pointerId);
 
     if (pointers.current.size === 1) {
@@ -217,6 +222,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       drag.current = null;
     }
     pinch.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
 
     if (place && loaded && !disabled && onChange) {
       const point = pointOnMap(event.clientX, event.clientY);
@@ -230,11 +236,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       className={`map-canvas ${className}`.trim()}
       style={{ touchAction: 'none' }}
       role="application"
-      aria-label={disabled ? 'Parkour Reborn result map' : 'Parkour Reborn guess map. Drag to pan and tap to place a marker.'}
+      aria-label={onChange ? disabled ? 'Parkour Reborn result map' : 'Parkour Reborn guess map. Drag to pan and tap to place a marker.' : `${alt}. Drag to pan and scroll or pinch to zoom.`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onLostPointerCapture={onPointerUp}
     >
       {(!mapWidth || !mapHeight) && (
         <img
@@ -277,8 +284,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
               <line x1={value.x * mapWidth} y1={value.y * mapHeight} x2={target.x * mapWidth} y2={target.y * mapHeight} />
             </svg>
           )}
-          {value && <span className="map-marker map-marker--guess" style={{ left: `${value.x * 100}%`, top: `${value.y * 100}%` }} aria-label="Your guess" />}
-          {target && <span className="map-marker map-marker--target" style={{ left: `${target.x * 100}%`, top: `${target.y * 100}%` }} aria-label="Actual location" />}
+          {[{ point: value, name: 'guess', label: 'Your guess' }, { point: target, name: 'target', label: 'Actual location' }].map(({ point, name, label }) => point && (
+            <svg key={name} className={`map-marker map-marker--${name}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, transform: `translate(-50%, -100%) scale(${1 / zoom})` }} viewBox="0 0 24 30" role="img" aria-label={label}>
+              <path d="M12 29C10 25 2 17 2 11a10 10 0 0 1 20 0c0 6-8 14-10 18Z" fill="currentColor" stroke="#24171c" strokeWidth="2" />
+              <circle cx="12" cy="11" r="4" fill="#24171c" />
+            </svg>
+          ))}
         </div>
       )}
       {(!ready || !loaded || loadError) && <span className="map-canvas__loading">{loadError ? 'Could not load map' : 'Loading map...'}</span>}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Check, LocateFixed, Map, MapPin, Maximize2, Minimize2, Minus, Plus, X } from 'lucide-react';
+import { LocateFixed, Map, Maximize2, Minimize2, Minus, Plus, X } from 'lucide-react';
 import { MapCanvas } from '@/components/community/mapview';
 import type { MapCanvasHandle } from '@/components/community/mapview';
 import { Button } from '@/components/ui/button';
@@ -30,18 +30,18 @@ export default function ParkourGuessrMap({ map, value, target, open, fullscreen,
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || (!fullscreen && !window.matchMedia('(max-width: 760px)').matches)) return;
     const previous = document.activeElement;
     stageRef.current?.focus();
     return () => {
       if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
     };
-  }, [open]);
+  }, [fullscreen, open]);
 
   return (
     <>
       <Button className={`guessr-map-launch${open ? '' : ' is-visible'}`} type="button" onClick={() => onOpenChange(true)}><Map aria-hidden="true" />Open Map</Button>
-      <section className={`guessr-game-map${open ? ' is-open' : ''}${fullscreen ? ' is-fullscreen' : ''}`} aria-label="Guess map" aria-hidden={!open} onKeyDown={(event) => {
+      <section className={`guessr-game-map${open ? ' is-open' : ''}${fullscreen ? ' is-fullscreen' : ''}${target ? ' has-result' : ''}`} aria-label="Guess map" aria-hidden={!open} onKeyDown={(event) => {
         if (event.key !== 'Tab' || (!fullscreen && !window.matchMedia('(max-width: 760px)').matches)) return;
         const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]')).filter((item) => item.getClientRects().length);
         const first = items[0];
@@ -94,10 +94,7 @@ export default function ParkourGuessrMap({ map, value, target, open, fullscreen,
             onError={() => setReady(false)}
           />
         </div>
-        {children || <div className="guessr-game-map__foot">
-          <span role="status">{value ? <Check aria-hidden="true" /> : <MapPin aria-hidden="true" />}{value ? 'Marker placed' : 'Place your guess'}</span>
-          {(!disabled || busy) && <Button type="button" disabled={!value || busy} onClick={onSubmit}>{busy ? 'Submitting...' : 'Make Guess'}</Button>}
-        </div>}
+        {children || <Button className="guessr-game-map__submit" type="button" disabled={disabled || !ready || !value || busy} onClick={onSubmit}>{busy ? 'Submitting...' : 'Make Guess'}</Button>}
       </section>
     </>
   );
