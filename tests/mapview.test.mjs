@@ -33,7 +33,13 @@ test('map dragging survives deferred state updates and never places a guess', ()
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const output = {};
   runInNewContext(code, { exports: output, require: (name) => name === 'react' ? react : name === 'react/jsx-runtime' ? jsx : {} });
-  const canvas = output.MapCanvas({ image: 'map.webp', width: 1000, height: 1000, onChange: (point) => guesses.push(point) });
+  const canvas = output.MapCanvas({ image: 'map.webp', width: 1000, height: 1000, value: { x: 0.5, y: 0.5 }, onChange: (point) => guesses.push(point) });
+  const layer = canvas.props.children[1];
+  assert.equal(layer.props.style.width, 752);
+  assert.equal(layer.props.style.height, 752);
+  assert.equal(layer.props.style.transform.includes('scale'), false);
+  const pin = layer.props.children[2][0];
+  assert.equal(pin.props.style.transform, 'translate(-50%, -100%)');
   refs[1].current = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 400 }) };
   const currentTarget = { setPointerCapture: () => {}, hasPointerCapture: () => true, releasePointerCapture: () => {} };
   const event = (type, x, y) => ({ type, clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', button: 0, currentTarget });

@@ -261,7 +261,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         <div
           ref={layerRef}
           className="map-canvas__layer"
-          style={{ width: base.width, height: base.height, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
+          style={{ width: base.width * zoom, height: base.height * zoom, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px)` }}
         >
           <img
             className="map-canvas__image"
@@ -285,7 +285,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             </svg>
           )}
           {[{ point: value, name: 'guess', label: 'Your guess' }, { point: target, name: 'target', label: 'Actual location' }].map(({ point, name, label }) => point && (
-            <svg key={name} className={`map-marker map-marker--${name}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, transform: `translate(-50%, -100%) scale(${1 / zoom})` }} viewBox="0 0 24 30" role="img" aria-label={label}>
+            <svg key={name} className={`map-marker map-marker--${name}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, transform: 'translate(-50%, -100%)' }} viewBox="0 0 24 30" role="img" aria-label={label}>
               <path d="M12 29C10 25 2 17 2 11a10 10 0 0 1 20 0c0 6-8 14-10 18Z" fill="currentColor" stroke="#24171c" strokeWidth="2" />
               <circle cx="12" cy="11" r="4" fill="#24171c" />
             </svg>

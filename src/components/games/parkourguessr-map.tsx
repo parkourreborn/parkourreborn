@@ -32,9 +32,9 @@ export default function ParkourGuessrMap({ map, value, target, open, fullscreen,
   useEffect(() => {
     if (!open || (!fullscreen && !window.matchMedia('(max-width: 760px)').matches)) return;
     const previous = document.activeElement;
-    stageRef.current?.focus();
+    stageRef.current?.focus({ preventScroll: true });
     return () => {
-      if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
+      if (previous instanceof HTMLElement && previous.isConnected) previous.focus({ preventScroll: true });
     };
   }, [fullscreen, open]);
 
@@ -48,10 +48,10 @@ export default function ParkourGuessrMap({ map, value, target, open, fullscreen,
         const last = items[items.length - 1];
         if (event.shiftKey && document.activeElement === first) {
           event.preventDefault();
-          last?.focus();
+          last?.focus({ preventScroll: true });
         } else if (!event.shiftKey && document.activeElement === last) {
           event.preventDefault();
-          first?.focus();
+          first?.focus({ preventScroll: true });
         }
       }}>
         <div className="guessr-game-map__bar">
