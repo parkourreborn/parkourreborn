@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createHash } from 'crypto';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/server/firebase-admin';
 
 export type RateWindow = {
@@ -60,7 +61,11 @@ export async function checkRateLimit(key: string, windows: RateWindow[]): Promis
       const doc = await transaction.get(ref);
       const slots = (doc.data()?.slots ?? {}) as Record<string, Slot>;
       const result = apply(slots, windows, now);
-      transaction.set(ref, { slots, updatedAt: now }, { merge: true });
+      transaction.set(ref, {
+        slots,
+        updatedAt: now,
+        expiresAt: Timestamp.fromMillis(now + Math.max(...windows.map((window) => window.seconds)) * 1000),
+      }, { merge: true });
       return result;
     });
   } catch {
