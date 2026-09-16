@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 import { AuthProvider } from '@/components/auth-provider';
 import Menu from '@/components/menu';
+import Announcements from '@/components/announcements';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { images } from '@/lib/assets';
 import './globals.css';
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <TooltipProvider>
             <Menu />
+            <Announcements />
             {children}
           </TooltipProvider>
         </AuthProvider>
