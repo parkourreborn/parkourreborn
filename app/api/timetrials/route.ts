@@ -13,6 +13,7 @@ type TrialData = {
   difficulty?: string;
   district?: string;
   sorting?: string | number;
+  active?: unknown;
 };
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ export async function GET() {
   try {
     const docs = await getCollectionDocuments<TrialData>('timetrials');
     const trials = docs
+      .filter((doc) => doc.data.active !== false)
       .map((doc) => cleanTrial(doc.id, doc.data))
       .sort((a, b) => a.sorting - b.sorting || a.name.localeCompare(b.name));
 

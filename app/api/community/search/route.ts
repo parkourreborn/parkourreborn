@@ -6,17 +6,20 @@ import { cleanUrl } from '@/lib/url';
 type GifData = {
   link?: string;
   redirect?: string;
+  active?: unknown;
 };
 
 type LinkData = {
   link?: string;
   description?: string;
+  active?: unknown;
 };
 
 type FileData = {
   link?: string;
   description?: string;
   downloadable?: boolean;
+  active?: unknown;
 };
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +29,9 @@ const sortType = { gif: 0, file: 1, link: 2 } satisfies Record<CommunityResource
 
 async function getDocs<T>(name: string) {
   const snapshot = await getAdminDb().collection(name).get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() as T }));
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, data: doc.data() as T & { active?: unknown } }))
+    .filter((doc) => doc.data.active !== false);
 }
 
 function cleanResource(id: string, type: CommunityResourceType, data: GifData | LinkData | FileData): CommunityResource | null {

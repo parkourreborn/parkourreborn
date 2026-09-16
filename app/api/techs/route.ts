@@ -9,6 +9,7 @@ type MovementData = {
   Steps?: unknown;
   VideoUrl?: unknown;
   TutorialUrl?: unknown;
+  active?: unknown;
 };
 
 export const runtime = 'nodejs';
@@ -38,6 +39,7 @@ export async function GET() {
   try {
     const snapshot = await getAdminDb().collection('movement').get();
     const techs = snapshot.docs
+      .filter((doc) => doc.data().active !== false)
       .map((doc) => cleanEntry(doc.id, doc.data() as MovementData))
       .sort((a, b) => a.name.localeCompare(b.name));
 
