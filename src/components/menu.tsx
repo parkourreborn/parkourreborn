@@ -34,7 +34,7 @@ export default function Menu() {
   const navClass = (href: string) => `side-menu__link${pathname === href ? ' side-menu__link--on' : ''}`;
 
   useEffect(() => {
-    if (pathname === '/games/parkourguessr/play') return;
+    if (pathname === '/games/parkourguessr' || pathname === '/games/parkourguessr/play') return;
 
     const typing = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;

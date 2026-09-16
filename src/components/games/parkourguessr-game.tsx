@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Expand, Shrink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, Expand, Flag, RotateCcw, Shrink, Trophy } from 'lucide-react';
 import ParkourGuessrMap from '@/components/games/parkourguessr-map';
 import { Button } from '@/components/ui/button';
 import type { GuessrConfig, GuessrDifficulty, GuessrGame, GuessrMode, GuessrRoundResult, MapPoint } from '@/lib/guessr';
@@ -109,6 +109,11 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      if (mapOpen && window.matchMedia('(max-width: 760px)').matches && phase !== 'result') {
+        setMapOpen(false);
+        setMapFullscreen(false);
+        return;
+      }
       if (mapFullscreen) {
         setMapFullscreen(false);
         return;
@@ -118,7 +123,7 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mapFullscreen]);
+  }, [mapFullscreen, mapOpen, phase]);
 
   useEffect(() => {
     if (!game || phase === 'finished' || phase === 'error') return;
@@ -215,6 +220,7 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
 
   return (
     <main ref={gameRef} className="guessr-game">
+      {phase !== 'finished' && phase !== 'error' && <h1 className="sr-only">Parkour Guessr</h1>}
       {currentRound && (
         <img
           className={`guessr-game__shot${shotReady ? ' is-ready' : ''}`}
@@ -232,7 +238,7 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
 
       <div className="guessr-game__topbar">
         <Button asChild className="guessr-game__exit">
-          <Link href="/games/parkourguessr">&#8592; Exit</Link>
+          <Link href="/games/parkourguessr"><ArrowLeft aria-hidden="true" />Exit</Link>
         </Button>
         {canFullscreen && (
           <Button type="button" className="guessr-game__fullscreen" aria-label={browserFullscreen ? 'Exit browser fullscreen' : 'Enter browser fullscreen'} onClick={toggleBrowserFullscreen}>
@@ -244,10 +250,9 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
 
       {game && phase !== 'finished' && phase !== 'error' && (
         <div className="guessr-hud">
-          <span><small>Round</small><strong>{round + 1}/{game.roundCount}</strong></span>
-          <span><small>Round score</small><strong>{result?.score ?? '—'}</strong></span>
-          <span><small>Total</small><strong>{totalScore}/2500</strong></span>
-          <span><small>Time</small><strong>{formatTime(elapsed)}</strong></span>
+          <span><Flag aria-hidden="true" /><small className="sr-only">Round</small><strong>{round + 1}/{game.roundCount}</strong></span>
+          <span><Trophy aria-hidden="true" /><small className="sr-only">Total score</small><strong>{totalScore}/2500</strong></span>
+          <span><Clock aria-hidden="true" /><small className="sr-only">Time</small><strong>{formatTime(elapsed)}</strong></span>
         </div>
       )}
 
@@ -272,31 +277,35 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
             setGuess(point);
             setSubmitError('');
           }}
-          onOpenChange={setMapOpen}
+          onOpenChange={(open) => {
+            setMapOpen(open);
+            if (open) setMapFullscreen(window.matchMedia('(max-width: 760px)').matches);
+          }}
           onFullscreenChange={setMapFullscreen}
           onSubmit={() => void submitGuess()}
-        />
-      )}
-
-      {phase === 'result' && result && (
-        <section className="guessr-result" aria-label="Round result">
-          <div><span>Distance</span><strong>{(result.distance * 100).toFixed(result.distance < 0.01 ? 2 : 1)}%</strong></div>
-          <div><span>Round score</span><strong>{result.score}/500</strong></div>
-          <div><span>Total</span><strong>{result.totalScore}/2500</strong></div>
-          {nextState === 'error' && <p>Could not preload the next round.</p>}
-          <Button type="button" disabled={!result.complete && nextState !== 'ready' && nextState !== 'error'} onClick={continueGame}>
-            {result.complete ? 'See Results' : nextState === 'ready' ? 'Continue' : nextState === 'error' ? 'Retry Load' : 'Loading next round...'}
-          </Button>
-        </section>
+        >
+          {phase === 'result' && result && (
+            <section className="guessr-result" aria-label="Round result" role="status">
+              <div><span>Distance</span><strong>{(result.distance * 100).toFixed(result.distance < 0.01 ? 2 : 1)}%</strong></div>
+              <div><span>Round score</span><strong>{result.score}/500</strong></div>
+              <div><span>Total</span><strong>{result.totalScore}/2500</strong></div>
+              {nextState === 'error' && <p>Could not preload the next round.</p>}
+              <Button type="button" disabled={!result.complete && nextState !== 'ready' && nextState !== 'error'} onClick={continueGame}>
+                {result.complete ? 'See Results' : nextState === 'ready' ? 'Continue' : nextState === 'error' ? 'Retry Load' : 'Loading next round...'}
+                <ArrowRight aria-hidden="true" />
+              </Button>
+            </section>
+          )}
+        </ParkourGuessrMap>
       )}
 
       {phase === 'finished' && result?.game && (
         <section className="guessr-final">
-          <span>Game complete</span>
-          <h1>{result.game.totalScore}/2500</h1>
+          <Trophy className="size-6" aria-hidden="true" />
+          <h1><span className="sr-only">Final score: </span>{result.game.totalScore}<small>/2500</small></h1>
           <p>{modeName[result.game.mode]} · {difficultyName[result.game.difficulty]} · {formatTime(result.game.duration)}</p>
           <div>
-            <Button type="button" onClick={() => void startGame()}>Play Again</Button>
+            <Button type="button" onClick={() => void startGame()}><RotateCcw aria-hidden="true" />Play Again</Button>
             <Button asChild variant="secondary"><Link href="/games/parkourguessr">Mode Selection</Link></Button>
           </div>
         </section>
@@ -304,7 +313,6 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
 
       {phase === 'error' && (
         <section className="guessr-final">
-          <span>Unavailable</span>
           <h1>Game stopped</h1>
           <p>{error || 'Parkour Guessr is unavailable right now.'}</p>
           <div>

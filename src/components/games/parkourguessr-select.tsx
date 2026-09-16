@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Check, Crosshair, MapPin, Play, ScanEye, SprayCan, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { GuessrConfig, GuessrDifficulty, GuessrMode } from '@/lib/guessr';
 import { guessrDifficulties } from '@/lib/guessr';
 
 const modeInfo = {
-  classic: { name: 'Classic', text: 'Find the location shown in each scene.' },
-  graffiti: { name: 'Graffiti', text: 'Track down graffiti from around the city.' },
-} satisfies Record<GuessrMode, { name: string; text: string }>;
+  classic: { name: 'Classic', icon: MapPin },
+  graffiti: { name: 'Graffiti', icon: SprayCan },
+};
 
 const difficultyInfo = {
-  normal: { name: 'Normal', text: 'Clearer views and easier landmarks.' },
-  hard: { name: 'Hard', text: 'Tighter shots and fewer obvious clues.' },
-} satisfies Record<GuessrDifficulty, { name: string; text: string }>;
+  normal: { name: 'Normal', text: 'Clear views', icon: ScanEye },
+  hard: { name: 'Hard', text: 'Fewer clues', icon: Crosshair },
+};
 
 export default function ParkourGuessrSelect({ notice }: { notice: string }) {
   const router = useRouter();
@@ -67,67 +68,68 @@ export default function ParkourGuessrSelect({ notice }: { notice: string }) {
 
   return (
     <section className="guessr-select" aria-label="Parkour Guessr game setup">
-      <div className="guessr-select__intro">
-        <span>Five rounds · 2,500 points</span>
-        <p>Study each screenshot, place your marker on the city map, and see how close you got.</p>
-      </div>
-
       {(notice || error) && <p className="guessr-select__notice" role="status">{error || notice}</p>}
 
-      <div className="guessr-select__section">
-        <h2>Mode</h2>
+      <fieldset className="guessr-select__section">
+        <legend>Mode</legend>
         <div className="guessr-mode-grid">
           {(Object.keys(modeInfo) as GuessrMode[]).map((item) => {
             const available = config ? modeAvailable(item) : false;
+            const Icon = modeInfo[item].icon;
             return (
-              <button
+              <Button
                 type="button"
-                className={`guessr-choice${mode === item ? ' is-selected' : ''}`}
+                variant="outline"
+                className={`guessr-choice${mode === item && available ? ' is-selected' : ''}`}
                 key={item}
                 disabled={!config || !available}
                 aria-pressed={mode === item}
                 onClick={() => selectMode(item)}
               >
+                <Icon className="guessr-choice__icon size-6" aria-hidden="true" />
                 <span>{modeInfo[item].name}</span>
-                <p>{modeInfo[item].text}</p>
-                <small>{config ? (available ? 'Available' : 'Not enough published images') : 'Checking availability'}</small>
-              </button>
+                {available && mode === item && <Check className="guessr-choice__check size-4" aria-hidden="true" />}
+                {!available && <small>{config || error ? 'Unavailable' : 'Loading...'}</small>}
+              </Button>
             );
           })}
-          <button type="button" className="guessr-choice" disabled>
+          <Button type="button" variant="outline" className="guessr-choice" disabled>
+            <Users className="guessr-choice__icon size-6" aria-hidden="true" />
             <span>Multiplayer</span>
-            <p>Play against friends in the same set of rounds.</p>
             <small>Coming Soon</small>
-          </button>
+          </Button>
         </div>
-      </div>
+      </fieldset>
 
-      <div className="guessr-select__section">
-        <h2>Difficulty</h2>
+      <fieldset className="guessr-select__section">
+        <legend>Difficulty</legend>
         <div className="guessr-difficulty-grid">
           {guessrDifficulties.map((item) => {
             const availability = choice(mode, item);
+            const Icon = difficultyInfo[item].icon;
             return (
-              <button
+              <Button
                 type="button"
-                className={`guessr-choice guessr-choice--small${difficulty === item ? ' is-selected' : ''}`}
+                variant="outline"
+                className={`guessr-choice guessr-choice--small${difficulty === item && availability?.available ? ' is-selected' : ''}`}
                 key={item}
                 disabled={!availability?.available}
                 aria-pressed={difficulty === item}
                 onClick={() => setDifficulty(item)}
               >
+                <Icon className="guessr-choice__icon size-6" aria-hidden="true" />
                 <span>{difficultyInfo[item].name}</span>
-                <p>{difficultyInfo[item].text}</p>
-                <small>{availability ? `${availability.count} published` : 'Checking availability'}</small>
-              </button>
+                <small>{availability?.available ? difficultyInfo[item].text : config || error ? 'Unavailable' : 'Loading...'}</small>
+                {availability?.available && difficulty === item && <Check className="guessr-choice__check size-4" aria-hidden="true" />}
+              </Button>
             );
           })}
         </div>
-      </div>
+      </fieldset>
 
       <div className="guessr-select__start">
-        <span>{selected?.available ? `${modeInfo[mode].name} · ${difficultyInfo[difficulty].name}` : 'This setup is unavailable'}</span>
-        <Button type="button" disabled={!selected?.available} onClick={start}>Start Game</Button>
+        <span>5 rounds · 2,500 points</span>
+        <Button type="button" disabled={!selected?.available} onClick={start}><Play aria-hidden="true" />Start Game</Button>
       </div>
     </section>
   );
