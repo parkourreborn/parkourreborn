@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import type { NextRequest } from 'next/server';
+import { accountFor } from '@/lib/server/auth';
 import { getAdminAuth } from '@/lib/server/firebase-admin';
 
 export type Session = {
@@ -13,22 +14,15 @@ export type Session = {
 export const sessionCookie = 'discord_session';
 export const sessionMaxAge = 14 * 24 * 60 * 60;
 
-const idFromUid = (uid: string) => uid.replace(/^discord-/, '');
-
-function toSession(token: DecodedIdToken): Session | null {
-  const raw = typeof token.discordId === 'string' ? token.discordId : idFromUid(token.uid);
-  if (!/^[A-Za-z0-9_-]{1,64}$/.test(raw)) return null;
-
-  return {
-    uid: token.uid,
-    discordId: raw,
-    name: typeof token.name === 'string' ? token.name.slice(0, 64) : '',
-  };
+async function toSession(token: DecodedIdToken): Promise<Session | null> {
+  const { data, discordId } = await accountFor(token);
+  if (data.status === 'deactivated' || data.status === 'deleting') return null;
+  return { uid: token.uid, discordId, name: data.displayName || data.discord?.globalName || data.discord?.username || '' };
 }
 
 async function fromCookie(cookie: string) {
   try {
-    return toSession(await getAdminAuth().verifySessionCookie(cookie));
+    return await toSession(await getAdminAuth().verifySessionCookie(cookie, true));
   } catch {
     return null;
   }
@@ -39,7 +33,7 @@ async function fromHeader(header: string | null) {
   if (type !== 'Bearer' || !token) return null;
 
   try {
-    return toSession(await getAdminAuth().verifyIdToken(token));
+    return await toSession(await getAdminAuth().verifyIdToken(token, true));
   } catch {
     return null;
   }

@@ -46,9 +46,10 @@ export function playtime(seconds: number) {
 export function lapTime(seconds: number | null) {
   if (seconds === null) return '--';
 
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds - minutes * 60;
-  return minutes ? `${minutes}:${rest.toFixed(2).padStart(5, '0')}` : rest.toFixed(2);
+  const rounded = Math.round(seconds * 1000) / 1000;
+  const minutes = Math.floor(rounded / 60);
+  const rest = rounded - minutes * 60;
+  return minutes ? `${minutes}:${rest.toFixed(3).padStart(6, '0')}` : rest.toFixed(3);
 }
 
 function readSave(json: string): Bag | null {

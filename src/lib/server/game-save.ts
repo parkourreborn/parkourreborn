@@ -153,11 +153,14 @@ type WriteInput = {
 export async function writeSave({ discordId, name, save, baseRev }: WriteInput) {
   const db = getAdminDb();
   const ref = db.collection('saves').doc(discordId);
+  const userRef = db.collection('users').doc(`discord-${discordId}`);
   const doc = clean(save) as SaveDoc;
   const stats = trialStats(doc);
 
   return db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(ref);
+    const [snapshot, user] = await Promise.all([tx.get(ref), tx.get(userRef)]);
+    const profile = user.data();
+    if (!profile || profile.discord?.id !== discordId || profile.status === 'deactivated' || profile.status === 'deleting') throw new Error('Account unavailable');
     const data = snapshot.data() as SaveRow | undefined;
     const rev = num(data?.rev);
 
@@ -168,7 +171,7 @@ export async function writeSave({ discordId, name, save, baseRev }: WriteInput) 
     tx.set(ref, {
       rev: rev + 1,
       doc,
-      discordName: name,
+      discordName: profile.displayName || name,
       ...summary(doc),
       updatedAt: FieldValue.serverTimestamp(),
     });

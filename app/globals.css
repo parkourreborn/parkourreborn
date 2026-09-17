@@ -2270,15 +2270,11 @@ button {
 .tt-dialog {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
   width: min(920px, 100%);
   max-height: min(860px, calc(100dvh - 36px));
-  overflow: hidden;
-  border: 1px solid var(--hub-game-line-strong);
-  border-radius: 2px;
-  background: var(--hub-modal-bg);
-  box-shadow: var(--hub-shadow-modal);
 }
 
 .account-dialog {
@@ -2293,13 +2289,12 @@ button {
 
 .tt-dialog__head {
   display: flex;
-  min-height: 46px;
-  align-items: center;
+  flex: 0 0 auto;
+  min-height: 38px;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
-  padding: 6px 6px 6px 14px;
-  border-bottom: 1px solid var(--hub-game-line-strong);
-  background: var(--hub-bar-bg);
+  gap: 16px;
+  padding: 0 2px;
 }
 
 .tt-dialog__head h2 {
@@ -2308,23 +2303,30 @@ button {
   overflow: hidden;
   color: var(--hub-text-strong);
   font-family: 'Jura', sans-serif;
-  font-size: clamp(17px, 2.2vw, 21px);
-  font-weight: 700;
-  line-height: 1.1;
+  font-size: clamp(24px, 5vw, 34px);
+  font-weight: 400;
+  line-height: 1;
   text-overflow: ellipsis;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.13em;
   white-space: nowrap;
+  padding-bottom: 9px;
+  background: linear-gradient(90deg, var(--hub-blue), rgba(54, 185, 236, 0)) bottom left / 150px 2px no-repeat;
 }
 
 .tt-dialog__body {
   display: grid;
+  flex: 1 1 auto;
   align-content: start;
   gap: 12px;
   min-height: 0;
-  padding: 14px;
+  padding: 18px 16px 16px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  border: 1px solid var(--hud-panel-line);
+  border-top: 2px solid var(--hub-blue);
+  background: var(--hud-panel-bg);
+  box-shadow: var(--hub-shadow-modal);
 }
 
 .tt-meta {
@@ -2355,10 +2357,10 @@ button {
   min-height: 34px;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--hub-border);
-  border-radius: 2px;
-  background: var(--hub-control-bg);
-  color: var(--hub-muted);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--hud-glyph);
   cursor: pointer;
   transition: border-color 160ms ease, color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
@@ -2400,39 +2402,60 @@ button {
   transform: rotate(-45deg);
 }
 
-.tt-tabs button {
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--hub-border);
-  border-radius: 2px;
-  background: var(--hub-control-bg);
-  color: var(--hub-muted);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: border-color 160ms ease, color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-
 .tt-close:hover,
 .tt-close:focus-visible,
 .tt-copy:hover,
-.tt-copy:focus-visible,
-.tt-tabs button:hover,
-.tt-tabs button.is-on,
-.tt-tabs button[data-state="active"] {
-  border-color: var(--hub-line-strong);
-  background: var(--hub-accent-bg-strong);
-  color: var(--hub-text);
+.tt-copy:focus-visible {
+  background: transparent;
+  color: var(--hub-text-strong);
 }
 
 .tt-tabs {
   display: flex;
   justify-content: flex-start;
-  justify-self: start;
+  width: 100%;
   align-self: start;
-  gap: 8px;
+  gap: 20px;
+  border-bottom: 1px solid var(--hud-hairline);
+}
+
+.tt-tabs button {
+  position: relative;
+  min-height: 40px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--hud-dim);
+  font-family: 'Jura', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.tt-tabs button::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: transparent;
+  content: '';
+}
+
+.tt-tabs button:hover,
+.tt-tabs button.is-on,
+.tt-tabs button[data-state="active"] {
+  color: var(--hub-text-strong);
+}
+
+.tt-tabs button:hover::after,
+.tt-tabs button.is-on::after,
+.tt-tabs button[data-state="active"]::after {
+  background: var(--hub-blue);
 }
 
 .account-head {
@@ -2672,6 +2695,63 @@ button {
   color: var(--hub-blue);
 }
 
+.account-name-edit {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 6px;
+}
+
+.account-name-edit input,
+.account-confirm__copy input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--hub-border-soft);
+  border-radius: 0;
+  outline: 0;
+  background: var(--hud-field-bg);
+  color: var(--hub-text-strong);
+  font-family: 'Jura', sans-serif;
+  font-size: 17px;
+}
+
+.account-name-edit input:focus,
+.account-confirm__copy input:focus {
+  border-color: var(--hub-blue);
+}
+
+.account-name-edit > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.account-name-edit button {
+  min-height: 25px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--hud-nav);
+  font-family: 'Jura', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.account-name-edit button:hover,
+.account-name-edit button:focus-visible {
+  background: transparent;
+  color: var(--hub-text-strong);
+}
+
+.account-name-edit button[type="submit"] {
+  color: var(--hub-blue);
+}
+
 .account-avatar {
   flex: 0 0 auto;
   width: 58px;
@@ -2805,6 +2885,68 @@ button {
 .account-action:disabled {
   cursor: default;
   opacity: 1;
+}
+
+.account-confirm {
+  width: min(460px, 100%);
+}
+
+.account-confirm .account-head__title h2 {
+  font-size: clamp(23px, 5vw, 30px);
+}
+
+.account-confirm__body {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  overflow-y: auto;
+  border: 1px solid var(--hud-panel-line);
+  border-top: 2px solid var(--hub-blue);
+  background: var(--hud-panel-bg);
+  box-shadow: var(--hub-shadow-modal);
+}
+
+.account-confirm__body p {
+  margin: 0;
+  color: var(--hub-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.account-confirm__body .account-error {
+  color: var(--hub-danger);
+}
+
+.account-confirm__copy {
+  display: grid;
+  gap: 14px;
+}
+
+.account-confirm__copy label {
+  color: var(--hub-text-strong);
+  font-family: 'Jura', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.account-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hud-hairline);
+}
+
+.account-confirm__actions .account-action--risk {
+  background: var(--hub-danger-bg);
+  color: var(--hub-danger);
+}
+
+.account-confirm__actions .account-action--risk:disabled {
+  background: transparent;
+  color: var(--hud-danger-text);
 }
 
 .account-empty {
@@ -3013,63 +3155,46 @@ button {
 
 .account-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .account-tile {
-  position: relative;
   display: flex;
-  min-height: 94px;
+  min-width: 0;
+  min-height: 84px;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 10px 12px;
-  overflow: hidden;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid var(--hud-tile-line);
   border-radius: 0;
   background: var(--hud-tile-bg);
   box-shadow: none;
 }
 
-.account-tile::before {
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  left: -1px;
-  height: 2px;
-  background: var(--hub-blue);
-  content: '';
-}
-
-.account-tile::after {
-  width: 64%;
-  height: 1px;
-  background: var(--hud-hairline-soft);
-  content: '';
-}
-
 .account-tile small {
-  color: var(--hub-muted);
+  color: var(--hud-dim);
   font-family: 'Jura', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 1.2;
-  text-align: center;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
 }
 
 .account-tile strong {
   color: var(--hub-text-strong);
   font-family: 'Jura', sans-serif;
-  font-size: 38px;
+  font-size: clamp(22px, 5vw, 30px);
   font-weight: 600;
-  line-height: 0.9;
+  line-height: 1;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 .account-tile-skeleton {
-  height: 94px;
+  height: 84px;
 }
 
 .account-table {
@@ -3096,20 +3221,28 @@ button {
   max-height: 244px;
   overflow: auto;
   overscroll-behavior: contain;
-  border: 0;
-  border-left: 1px solid var(--hud-rail);
+  border: 1px solid var(--hud-tile-line);
   border-radius: 0;
-  background: transparent;
+  background: var(--hud-tile-bg);
 }
 
 .account-table table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.account-table th:first-child {
+  width: 44%;
+}
+
+.account-table th:nth-child(2) {
+  width: 28%;
 }
 
 .account-table th,
 .account-table td {
-  padding: 6px 12px 6px 14px;
+  padding: 6px 10px;
   text-align: left;
   white-space: nowrap;
 }
@@ -3125,15 +3258,17 @@ button {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
+  border-bottom: 1px solid var(--hud-hairline);
 }
 
 .account-table td {
   height: 34px;
-  border-top: 0;
+  border-top: 1px solid var(--hud-hairline);
   color: var(--hud-value);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 12.5px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .account-table td:first-child {
@@ -3144,6 +3279,7 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .account-table th + th,
@@ -3154,10 +3290,9 @@ button {
 .account-note {
   margin: 0;
   padding: 16px 14px;
-  border: 0;
-  border-left: 1px solid var(--hud-rail);
+  border: 1px solid var(--hud-tile-line);
   border-radius: 0;
-  background: transparent;
+  background: var(--hud-tile-bg);
   color: var(--hub-muted);
   font-family: 'Jura', sans-serif;
   font-size: 14px;
@@ -3167,12 +3302,26 @@ button {
 }
 
 .account-note--bad {
-  border-left-color: var(--hub-danger-line);
-  background: transparent;
+  border-color: var(--hub-danger-line);
+  background: var(--hub-danger-bg);
   color: var(--hub-danger);
 }
 
 @media (max-width: 480px) {
+  .account-tile {
+    padding: 10px 8px;
+  }
+
+  .account-table th,
+  .account-table td {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .account-table td {
+    font-size: 11.5px;
+  }
+
   .account-id strong {
     font-size: 20px;
   }
@@ -3321,6 +3470,12 @@ button {
   right: 0;
   left: 0;
   z-index: 2;
+  min-height: 64px;
+  align-items: center;
+  padding: 10px 18px;
+  border-bottom: 2px solid var(--hub-blue);
+  background: var(--hud-panel-bg);
+  box-shadow: var(--hub-shadow-modal);
 }
 
 .map-modal__tools {
@@ -3334,10 +3489,11 @@ button {
 .map-modal__tools button {
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--hub-border);
-  border-radius: 2px;
-  background: var(--hub-control-bg);
-  color: var(--hub-muted);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--hud-nav);
+  font-family: 'Jura', sans-serif;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -3348,9 +3504,8 @@ button {
 
 .map-modal__tools button:hover,
 .map-modal__tools button:focus-visible {
-  border-color: var(--hub-line-strong);
-  background: var(--hub-control-hover-bg);
-  color: var(--hub-text);
+  background: var(--hud-hover-bg);
+  color: var(--hub-text-strong);
 }
 
 .map-modal__tools span {
@@ -3448,7 +3603,7 @@ button {
 
 .map-modal__stage {
   position: absolute;
-  inset: 46px 0 0;
+  inset: 64px 0 0;
   overflow: hidden;
   touch-action: none;
   cursor: grab;
@@ -4967,10 +5122,6 @@ button.ai-hex:focus-visible {
 
   .tech-filters button {
     padding: 0 9px;
-  }
-
-  .tech-dialog {
-    padding: 12px;
   }
 
   .tech-preview {

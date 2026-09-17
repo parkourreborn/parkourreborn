@@ -164,9 +164,36 @@ function Stats() {
 }
 
 export default function AccountModal({ onClose }: AccountModalProps) {
-  const { account, discord, loading, busy, error, logout } = useAuth();
-  const name = discord?.globalName || discord?.username || 'Discord user';
+  const { account, discord, loading, busy, error, logout, updateName, deactivate, deleteAccount } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [confirm, setConfirm] = useState<'deactivate' | 'delete' | null>(null);
+  const [typed, setTyped] = useState('');
+  const [actionError, setActionError] = useState('');
+  const name = account?.displayName || discord?.globalName || discord?.username || 'Discord user';
   const avatar = discord ? discordAvatar(discord) : '';
+
+  const saveName = async () => {
+    setActionError('');
+    try {
+      await updateName(draft);
+      setEditing(false);
+    } catch (nextError) {
+      setActionError(nextError instanceof Error ? nextError.message : 'Could not update your name.');
+    }
+  };
+
+  const finishAction = async () => {
+    setActionError('');
+    try {
+      if (confirm === 'deactivate') await deactivate();
+      if (confirm === 'delete') await deleteAccount(typed);
+      setConfirm(null);
+      onClose();
+    } catch (nextError) {
+      setActionError(nextError instanceof Error ? nextError.message : 'Could not update your account.');
+    }
+  };
 
   useEffect(() => {
     const overflow = document.body.style.overflow;
@@ -178,8 +205,9 @@ export default function AccountModal({ onClose }: AccountModalProps) {
   }, []);
 
   return (
+    <>
     <HubDialog onOpenChange={(next) => {
-      if (!next) onClose();
+      if (!next && !confirm) onClose();
     }}>
       <HubDialogContent
         className="account-dialog"
@@ -219,15 +247,26 @@ export default function AccountModal({ onClose }: AccountModalProps) {
                     {avatar ? <AvatarImage src={avatar} alt="" /> : null}
                     <AvatarFallback>{name.slice(0, 1)}</AvatarFallback>
                   </Avatar>
-                  <span>
-                    <strong>{name}</strong>
-                    <small>@{discord.username}</small>
-                  </span>
-                  <Button className="account-edit" type="button" aria-label="Change username">
-                    <Pencil className="size-3.5" aria-hidden="true" />
-                    <span aria-hidden="true">Edit</span>
-                  </Button>
+                  {editing ? (
+                    <form className="account-name-edit" onSubmit={(event) => { event.preventDefault(); void saveName(); }}>
+                      <input aria-label="Display name" value={draft} maxLength={32} autoFocus onChange={(event) => setDraft(event.target.value)} disabled={busy} />
+                      <div>
+                        <Button type="button" disabled={busy} onClick={() => { setEditing(false); setActionError(''); }}>Cancel</Button>
+                        <Button type="submit" disabled={busy || !draft.trim()}>Save</Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <span><strong>{name}</strong><small>@{discord.username}</small></span>
+                      <Button className="account-edit" type="button" aria-label="Change display name" onClick={() => { setDraft(name); setActionError(''); setEditing(true); }}>
+                        <Pencil className="size-3.5" aria-hidden="true" />
+                        <span aria-hidden="true">Edit</span>
+                      </Button>
+                    </>
+                  )}
                 </div>
+
+                {editing && actionError ? <span className="account-error">{actionError}</span> : null}
 
                 <div className="account-group">
                   <span className="account-group__label">Details</span>
@@ -253,10 +292,10 @@ export default function AccountModal({ onClose }: AccountModalProps) {
                   <Button className="account-action account-action--go" type="button" disabled={busy} onClick={logout}>
                     Log out
                   </Button>
-                  <Button className="account-action" type="button" disabled>
+                  <Button className="account-action" type="button" disabled={busy} onClick={() => { setConfirm('deactivate'); setActionError(''); }}>
                     Deactivate
                   </Button>
-                  <Button className="account-action account-action--risk" type="button" disabled>
+                  <Button className="account-action account-action--risk" type="button" disabled={busy} onClick={() => { setConfirm('delete'); setTyped(''); setActionError(''); }}>
                     Delete account
                   </Button>
                 </div>
@@ -274,5 +313,32 @@ export default function AccountModal({ onClose }: AccountModalProps) {
         </Tabs>
       </HubDialogContent>
     </HubDialog>
+    {confirm ? (
+      <HubDialog onOpenChange={(next) => { if (!next && !busy) setConfirm(null); }}>
+        <HubDialogContent className="account-dialog account-confirm" aria-describedby="account-confirm-text">
+          <header className="account-head"><div className="account-head__title"><DialogTitle asChild><h2>{confirm === 'delete' ? 'Delete account' : 'Deactivate account'}</h2></DialogTitle></div></header>
+          <div className="account-confirm__body">
+            {confirm === 'deactivate' ? (
+              <p id="account-confirm-text">Are you sure you want to deactivate your account? You’ll be logged out. Log in with Discord to reactivate it later.</p>
+            ) : (
+              <div id="account-confirm-text" className="account-confirm__copy">
+                <p>This is permanent and starts instantly. Your account, saves, and scores will be deleted. If you’re unsure, deactivate instead.</p>
+                <p>Admin content and uploads stay with “Deleted account” attribution. Provider backups and logs follow their retention schedules.</p>
+                <label htmlFor="account-delete-confirm">Type DELETE to confirm</label>
+                <input id="account-delete-confirm" value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" autoFocus />
+              </div>
+            )}
+            {actionError ? <p className="account-error">{actionError}</p> : null}
+            <div className="account-confirm__actions">
+              <Button className="account-action" type="button" disabled={busy} onClick={() => setConfirm(null)}>No</Button>
+              <Button className={`account-action ${confirm === 'delete' ? 'account-action--risk' : 'account-action--go'}`} type="button" disabled={busy || (confirm === 'delete' && typed !== 'DELETE')} onClick={() => void finishAction()}>
+                {confirm === 'delete' ? 'Yes, delete' : 'Yes, deactivate'}
+              </Button>
+            </div>
+          </div>
+        </HubDialogContent>
+      </HubDialog>
+    ) : null}
+    </>
   );
 }

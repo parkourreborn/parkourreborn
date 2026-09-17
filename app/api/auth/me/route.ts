@@ -1,6 +1,5 @@
-import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth, getAdminDb } from '@/lib/server/firebase-admin';
+import { getAdminAuth } from '@/lib/server/firebase-admin';
 import { verifyBearer } from '@/lib/server/auth';
 
 const stamp = (value: string | undefined) => {
@@ -10,33 +9,18 @@ const stamp = (value: string | undefined) => {
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await verifyBearer(request.headers.get('authorization'));
-    const [doc, user] = await Promise.all([
-      getAdminDb().collection('users').doc(token.uid).get(),
-      getAdminAuth().getUser(token.uid).catch(() => null),
-    ]);
+    const { token, data } = await verifyBearer(request.headers.get('authorization'));
+    const user = await getAdminAuth().getUser(token.uid);
 
     return NextResponse.json({
-      discord: doc.data()?.discord ?? null,
+      discord: data.discord,
       account: {
         createdAt: stamp(user?.metadata.creationTime),
         lastLogin: stamp(user?.metadata.lastSignInTime),
+        displayName: data.displayName ?? null,
+        nameChangedAt: data.nameChangedAt ?? null,
       },
-    });
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const token = await verifyBearer(request.headers.get('authorization'));
-    await getAdminDb().collection('users').doc(token.uid).set({
-      discord: FieldValue.delete(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    return NextResponse.json({ ok: true });
+    }, { headers: { 'cache-control': 'no-store' } });
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

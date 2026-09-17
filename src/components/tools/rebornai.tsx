@@ -62,7 +62,7 @@ function Row({ entry, who, status }: { entry: ChatEntry; who: Who; status: Assis
 }
 
 export default function RebornAi() {
-  const { discord } = useAuth();
+  const { account, discord } = useAuth();
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<AssistantStatus | null>(null);
@@ -75,7 +75,7 @@ export default function RebornAi() {
 
   const bot: Who = { name: 'Reborn AI', avatar: images.logo.ai, bot: true };
   const you: Who = {
-    name: discord?.globalName || discord?.username || 'You',
+    name: account?.displayName || discord?.globalName || discord?.username || 'You',
     avatar: discord ? discordAvatar(discord) : '',
     bot: false,
   };

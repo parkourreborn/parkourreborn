@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth } from '@/lib/server/firebase-admin';
+import { verifyBearer } from '@/lib/server/auth';
 import { sessionCookie, sessionMaxAge } from '@/lib/server/session';
 
 export const runtime = 'nodejs';
@@ -7,8 +8,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const [type, token] = request.headers.get('authorization')?.split(' ') ?? [];
-    if (type !== 'Bearer' || !token) throw new Error('Missing auth token');
+    await verifyBearer(request.headers.get('authorization'));
+    const token = request.headers.get('authorization')!.slice(7);
 
     const cookie = await getAdminAuth().createSessionCookie(token, { expiresIn: sessionMaxAge * 1000 });
     const response = NextResponse.json({ ok: true });

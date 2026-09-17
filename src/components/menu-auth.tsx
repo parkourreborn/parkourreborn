@@ -8,8 +8,8 @@ import { discordAvatar } from '@/lib/discord';
 
 export default function MenuAuth() {
   const [open, setOpen] = useState(false);
-  const { discord, loading } = useAuth();
-  const name = discord?.globalName || discord?.username || 'Guest';
+  const { account, discord, loading } = useAuth();
+  const name = account?.displayName || discord?.globalName || discord?.username || 'Guest';
   const avatar = discord ? discordAvatar(discord) : '';
   const status = loading ? 'Checking' : discord ? 'Signed in' : 'Signed out';
 

@@ -1,6 +1,8 @@
 export type AccountMeta = {
   createdAt: string | null;
   lastLogin: string | null;
+  displayName: string | null;
+  nameChangedAt: number | null;
 };
 
 const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

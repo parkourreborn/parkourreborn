@@ -1,10 +1,13 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { browserLocalPersistence, onAuthStateChanged, setPersistence, signInWithCustomToken, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { getClientAuth, hasFirebaseConfig } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { DialogTitle } from '@/components/ui/dialog';
+import { HubDialog, HubDialogContent } from '@/components/ui/hub-dialog';
 import type { DiscordProfile } from '@/lib/discord';
 import type { AccountMeta } from '@/lib/pages/account';
 
@@ -15,6 +18,9 @@ type AuthContextValue = {
   loading: boolean;
   busy: boolean;
   error: string;
+  updateName: (name: string) => Promise<void>;
+  deactivate: () => Promise<void>;
+  deleteAccount: (confirm: string) => Promise<void>;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -39,8 +45,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [reactivationPending, setReactivationPending] = useState(false);
 
-  const loadDiscord = async (nextUser: User) => {
+  const clearAccount = useCallback(() => {
+    setUser(null);
+    setDiscord(null);
+    setAccount(null);
+  }, []);
+
+  const accountCall = async (method: 'PATCH' | 'POST' | 'DELETE', body: object) => {
+    const current = getClientAuth().currentUser;
+    if (!current) throw new Error('Log in again.');
+    const token = await current.getIdToken();
+    const response = await fetch('/api/account', {
+      method,
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json().catch(() => ({})) as { error?: string; name?: string; nameChangedAt?: number };
+    if (!response.ok) throw new Error(data.error || 'Could not update your account.');
+    return data;
+  };
+
+  const loadDiscord = useCallback(async (nextUser: User) => {
     const token = await nextUser.getIdToken();
     await fetch('/api/auth/session', { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => {});
 
@@ -48,11 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { authorization: `Bearer ${token}` },
     });
 
+    if (response.status === 401) {
+      await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
+      await signOut(getClientAuth());
+      clearAccount();
+      return;
+    }
     if (!response.ok) throw new Error('Could not load Discord profile');
     const data = await response.json() as { discord: DiscordProfile | null; account: AccountMeta | null };
     setDiscord(data.discord);
     setAccount(data.account);
-  };
+  }, [clearAccount]);
 
   useEffect(() => {
     if (!hasFirebaseConfig) {
@@ -70,9 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           if (nextUser?.isAnonymous) {
             await signOut(auth);
-            setUser(null);
-            setDiscord(null);
-            setAccount(null);
+            clearAccount();
             return;
           }
 
@@ -80,8 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (nextUser) await loadDiscord(nextUser);
           else {
-            setDiscord(null);
-            setAccount(null);
+            clearAccount();
           }
         } catch (nextError) {
           setError(authMessage(nextError));
@@ -100,8 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const response = await fetch('/api/auth/discord/session', { method: 'POST' });
         if (response.ok) {
-          const data = await response.json() as { token: string | null };
-          if (data.token) await signInWithCustomToken(auth, data.token);
+          const data = await response.json() as { token: string | null; reactivate?: boolean };
+          if (data.reactivate) {
+            await signOut(auth);
+            setReactivationPending(true);
+          } else if (data.token) await signInWithCustomToken(auth, data.token);
         }
       } catch (nextError) {
         setError(authMessage(nextError));
@@ -116,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       stop();
     };
-  }, []);
+  }, [clearAccount, loadDiscord]);
 
   const login = async () => {
     if (!hasFirebaseConfig) {
@@ -147,8 +180,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const current = getClientAuth().currentUser;
     if (!current) {
-      setDiscord(null);
-      setAccount(null);
+      await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
+      clearAccount();
       return;
     }
 
@@ -158,9 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
       await signOut(getClientAuth());
-      setUser(null);
-      setDiscord(null);
-      setAccount(null);
+      clearAccount();
     } catch (nextError) {
       setError(authMessage(nextError));
     } finally {
@@ -168,19 +199,103 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const value = useMemo(() => ({
+  const updateName = async (name: string) => {
+    setBusy(true);
+    try {
+      const data = await accountCall('PATCH', { displayName: name });
+      setAccount((current) => current ? { ...current, displayName: data.name ?? current.displayName, nameChangedAt: data.nameChangedAt ?? current.nameChangedAt } : current);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deactivate = async () => {
+    setBusy(true);
+    try {
+      await accountCall('POST', { action: 'deactivate' });
+      await signOut(getClientAuth()).catch(() => {});
+      clearAccount();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteAccount = async (confirm: string) => {
+    setBusy(true);
+    try {
+      await accountCall('DELETE', { confirm });
+      await signOut(getClientAuth()).catch(() => {});
+      clearAccount();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancelReactivation = async () => {
+    setBusy(true);
+    try {
+      const response = await fetch('/api/auth/discord/session', { method: 'DELETE' });
+      if (!response.ok) throw new Error('Could not cancel. Try again.');
+      setReactivationPending(false);
+      setError('');
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'Could not cancel. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reactivate = async () => {
+    setBusy(true);
+    setError('');
+    let issued = false;
+    try {
+      const response = await fetch('/api/auth/discord/session', { method: 'PUT' });
+      const data = await response.json() as { token?: string; error?: string };
+      if (!response.ok || !data.token) throw new Error(data.error || 'Could not reactivate your account.');
+      issued = true;
+      await signInWithCustomToken(getClientAuth(), data.token);
+      setReactivationPending(false);
+    } catch (nextError) {
+      if (issued) setReactivationPending(false);
+      setError(issued ? 'Could not finish login. Log in with Discord again.' : nextError instanceof Error ? nextError.message : 'Could not reactivate your account.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const value: AuthContextValue = {
     user,
     discord,
     account,
     loading,
     busy,
     error,
+    updateName,
+    deactivate,
+    deleteAccount,
     login,
     logout,
     clearError: () => setError(''),
-  }), [account, busy, discord, error, loading, user]);
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>
+    {children}
+    {reactivationPending ? (
+      <HubDialog onOpenChange={(next) => { if (!next && !busy) void cancelReactivation(); }}>
+        <HubDialogContent className="account-dialog account-confirm" aria-describedby={undefined}>
+          <header className="account-head"><div className="account-head__title"><DialogTitle asChild><h2>Reactivate account</h2></DialogTitle></div></header>
+          <div className="account-confirm__body">
+            {error ? <p className="account-error">{error}</p> : null}
+            <div className="account-confirm__actions">
+              <Button className="account-action" type="button" disabled={busy} onClick={() => void cancelReactivation()}>Cancel</Button>
+              <Button className="account-action account-action--go" type="button" disabled={busy} onClick={() => void reactivate()}>Reactivate</Button>
+            </div>
+          </div>
+        </HubDialogContent>
+      </HubDialog>
+    ) : null}
+  </AuthContext.Provider>;
 }
 
 export function useAuth() {
