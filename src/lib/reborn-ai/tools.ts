@@ -247,7 +247,7 @@ export function createToolkit(origin: string) {
   const getResources = () => load('/api/community/search', (data) => (Array.isArray(data) ? data as CommunityResource[] : []));
 
   const getRecords = () => load('/api/wrs', (data) => {
-    const items = (data as { results?: WrItem[] })?.results ?? [];
+    const items = (data as { data?: WrItem[] })?.data ?? [];
 
     return items
       .filter((item): item is WrItem & { trial_name: string; time: number } => Boolean(item.trial_name) && typeof item.time === 'number')
