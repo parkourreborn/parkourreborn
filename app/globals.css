@@ -2277,6 +2277,12 @@ button {
   max-height: min(860px, calc(100dvh - 36px));
 }
 
+@media (max-height: 800px) {
+  .tt-trial-dialog {
+    height: calc(100dvh - 36px);
+  }
+}
+
 .account-dialog {
   position: relative;
   z-index: 1;

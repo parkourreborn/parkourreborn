@@ -80,7 +80,7 @@ function TrialModal({ trial, wr, onClose }: { trial: TimeTrial; wr?: WorldRecord
     <HubDialog onOpenChange={(next) => {
       if (!next) onClose();
     }}>
-      <HubDialogContent className="tt-dialog" aria-label={`${trial.name} route videos`}>
+      <HubDialogContent className="tt-dialog tt-trial-dialog" aria-label={`${trial.name} route videos`}>
         <header className="tt-dialog__head">
           <DialogTitle asChild>
             <h2>{trial.name}</h2>
