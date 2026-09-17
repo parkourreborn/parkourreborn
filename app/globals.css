@@ -2324,7 +2324,6 @@ button {
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--hud-panel-line);
-  border-top: 2px solid var(--hub-blue);
   background: var(--hud-panel-bg);
   box-shadow: var(--hub-shadow-modal);
 }
@@ -2530,7 +2529,6 @@ button {
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--hud-panel-line);
-  border-top: 2px solid var(--hub-blue);
   background: var(--hud-panel-bg);
   box-shadow: var(--hub-shadow-modal);
 }
@@ -2901,7 +2899,6 @@ button {
   padding: 20px;
   overflow-y: auto;
   border: 1px solid var(--hud-panel-line);
-  border-top: 2px solid var(--hub-blue);
   background: var(--hud-panel-bg);
   box-shadow: var(--hub-shadow-modal);
 }
