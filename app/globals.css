@@ -5983,3 +5983,185 @@ button.ai-hex:focus-visible {
     transition: none;
   }
 }
+
+.legal-page {
+  display: grid;
+  gap: 30px;
+  padding: clamp(14px, 3vw, 34px);
+  border: 1px solid var(--hub-line);
+  background: var(--hub-panel);
+  color: var(--hub-text-soft);
+  line-height: 1.7;
+}
+
+.legal-page header {
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--hub-line-strong);
+}
+
+.legal-page__eyebrow {
+  color: var(--hub-blue);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.legal-page h1,
+.legal-page h2 {
+  margin: 0;
+  color: var(--hub-text-strong);
+  font-family: 'Jura', sans-serif;
+}
+
+.legal-page h1 {
+  margin-top: 8px;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.1;
+}
+
+.legal-page h2 {
+  margin-bottom: 10px;
+  font-size: clamp(22px, 3vw, 28px);
+}
+
+.legal-page p,
+.legal-page ul {
+  margin: 0;
+}
+
+.legal-page p + p,
+.legal-page ul + p {
+  margin-top: 12px;
+}
+
+.legal-page li + li {
+  margin-top: 12px;
+}
+
+.legal-page ul {
+  padding-left: 22px;
+}
+
+.legal-page a,
+.analytics-notice a {
+  color: var(--hub-blue);
+  text-underline-offset: 3px;
+}
+
+.legal-page a:hover,
+.analytics-notice a:hover {
+  color: var(--hub-text-strong);
+}
+
+.legal-page code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9em;
+}
+
+.legal-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 20px clamp(16px, 4vw, 44px);
+  border-top: 1px solid var(--hub-line);
+  color: var(--hub-muted);
+  font-size: 13px;
+}
+
+.legal-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+}
+
+.legal-footer a,
+.legal-footer button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.legal-footer a:hover,
+.legal-footer button:hover,
+.legal-footer a:focus-visible,
+.legal-footer button:focus-visible {
+  color: var(--hub-blue);
+  text-decoration: underline;
+}
+
+.analytics-notice {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 28px;
+  width: min(800px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 16px 20px;
+  border: 1px solid var(--hub-line-strong);
+  background: var(--hub-modal-bg);
+  box-shadow: var(--hub-shadow-modal);
+}
+
+.analytics-notice strong {
+  font-family: 'Jura', sans-serif;
+  font-size: 20px;
+}
+
+.analytics-notice p {
+  margin: 4px 0 0;
+  color: var(--hub-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.analytics-notice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.analytics-notice__actions button {
+  padding: 9px 12px;
+  border: 1px solid var(--hub-line-strong);
+  background: var(--hub-control-bg);
+  color: var(--hub-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.analytics-notice__actions button:hover,
+.analytics-notice__actions button:focus-visible {
+  background: var(--hub-control-hover-bg);
+  border-color: var(--hub-blue);
+}
+
+.analytics-notice__actions button:nth-child(2) {
+  background: var(--hub-blue);
+  color: var(--hud-on-accent);
+}
+
+@media (max-width: 640px) {
+  .analytics-notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .analytics-notice__actions button {
+    flex: 1;
+  }
+}

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { Analytics } from '@vercel/analytics/next';
 import { AuthProvider } from '@/components/auth-provider';
+import LegalFooter from '@/components/legal-footer';
 import Menu from '@/components/menu';
 import Announcements from '@/components/announcements';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -82,7 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </TooltipProvider>
         </AuthProvider>
-        <Analytics />
+        <LegalFooter />
       </body>
     </html>
   );

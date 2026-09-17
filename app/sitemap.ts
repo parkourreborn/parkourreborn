@@ -13,6 +13,8 @@ const pages = [
   '/bagopensimulator',
   '/map',
   '/contributions',
+  '/terms',
+  '/privacy',
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
