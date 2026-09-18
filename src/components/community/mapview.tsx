@@ -37,7 +37,7 @@ export type MapCanvasHandle = {
 type Drag = { id: number; x: number; y: number; startX: number; startY: number; moved: boolean };
 type Pinch = { distance: number; zoom: number; pan: MapPoint; center: MapPoint };
 
-const maxZoom = 16;
+const maxZoom = 100;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const distance = (a: MapPoint, b: MapPoint) => Math.hypot(a.x - b.x, a.y - b.y);
 
