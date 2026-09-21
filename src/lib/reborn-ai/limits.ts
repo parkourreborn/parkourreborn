@@ -1,6 +1,6 @@
 export const limits = {
   maxBodyBytes: 64 * 1024,
-  maxHistory: 10,
+  maxHistory: 5,
   maxMessageChars: 1400,
   maxModelRetries: 1,
   maxKnowledgeDocs: 4,

@@ -51,15 +51,18 @@ function recentHistory(messages: ChatMessage[]) {
   return start === -1 ? [] : window.slice(start);
 }
 
-function references(history: ChatMessage[]) {
-  for (const message of history.slice().reverse()) {
-    if (message.role !== 'assistant') continue;
-    const found = Array.from(message.content.matchAll(/(?:trial|movement|recipe|resource)=([^;\]]+)/gi))
-      .map((match) => match[1].trim())
-      .filter(Boolean);
-    if (found.length) return found.slice(-6);
-  }
-  return [];
+function references(history: ChatMessage[], question: string) {
+  const followsCard = /\b(?:it|its|that|this|these|those|them|they|their|one|ones|same|former|latter)\b/i.test(question)
+    || /^(?:and|also|what about|how about)\b/i.test(question.trim());
+  if (!followsCard) return [];
+
+  const previous = history.findLast((message) => message.role === 'assistant');
+  if (!previous) return [];
+
+  return Array.from(previous.content.matchAll(/(?:trial|movement|recipe|resource)=([^;\]]+)/gi))
+    .map((match) => match[1].trim())
+    .filter(Boolean)
+    .slice(-6);
 }
 
 function compactQuery(message: string, refs: string[]) {
@@ -129,10 +132,18 @@ function ambiguity(evidence: Evidence[], question: string, refs: string[]) {
   return '';
 }
 
-function filteredBlocks(blocks: AssistantBlock[], evidence: Evidence[], ambiguous: string) {
-  if (!ambiguous) return blocks.slice(0, limits.maxBlocks);
+function filteredBlocks(blocks: AssistantBlock[], evidence: Evidence[], ambiguous: string, routes: RouteName[]) {
+  const routed = blocks.filter((block) => {
+    if (block.type === 'world_record') return routes.includes('records');
+    if (block.type === 'time_trial') return routes.includes('trials');
+    if (block.type === 'tech') return routes.includes('movement');
+    if (block.type === 'recipe') return routes.includes('crafting');
+    if (block.type === 'link' || block.type === 'gif') return routes.includes('community');
+    return true;
+  });
+  if (!ambiguous) return routed.slice(0, limits.maxBlocks);
   const uncertain = new Set(evidence.filter((item) => hasItems(item.result) && item.result.length > 1).map((item) => item.route));
-  return blocks.filter((block) => {
+  return routed.filter((block) => {
     if (block.type === 'world_record') return !uncertain.has('records');
     if (block.type === 'time_trial') return !uncertain.has('trials');
     if (block.type === 'tech') return !uncertain.has('movement');
@@ -188,7 +199,7 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
   emit({ type: 'status', state: 'thinking' });
   const decision = await routeMessage(question.content, history.slice(0, -1), signal);
   const routedAt = performance.now();
-  const refs = references(history.slice(0, -1));
+  const refs = references(history.slice(0, -1), question.content);
   const query = compactQuery(question.content, refs);
   const toolkit = createToolkit();
   const evidence: Evidence[] = [];
@@ -216,7 +227,7 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
   const fetchedAt = performance.now();
 
   const ambiguous = ambiguity(evidence, question.content, refs);
-  const blocks = filteredBlocks(toolkit.autoBlocks, evidence, ambiguous);
+  const blocks = filteredBlocks(toolkit.autoBlocks, evidence, ambiguous, decision.routes);
   const answerEvidence = ambiguous
     ? evidence.map((item) => ['records', 'trials', 'movement'].includes(item.route) && hasItems(item.result) && item.result.length > 1
       ? { ...item, status: 'empty' as const, result: null }

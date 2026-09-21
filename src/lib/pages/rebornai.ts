@@ -28,6 +28,7 @@ export const chatTime = (at: number) => new Date(at).toLocaleTimeString([], { ho
 
 export function toHistory(entries: ChatEntry[]): ChatMessage[] {
   return entries
+    .slice(-limits.maxHistory)
     .map((entry) => {
       const references = entry.blocks.flatMap((block) => {
         if (block.type === 'time_trial') return [`trial=${block.name}`];
@@ -41,8 +42,7 @@ export function toHistory(entries: ChatEntry[]): ChatMessage[] {
       const room = Math.max(0, limits.maxMessageChars - context.length);
       return { role: entry.role, content: `${room ? entry.content.trim().slice(-room) : ''}${context}`.trim() };
     })
-    .filter((entry) => entry.content)
-    .slice(-limits.maxHistory);
+    .filter((entry) => entry.content);
 }
 
 export async function streamRebornAi(messages: ChatMessage[], signal: AbortSignal, onEvent: (event: ChatEvent) => void) {
