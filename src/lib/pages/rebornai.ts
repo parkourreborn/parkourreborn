@@ -1,4 +1,5 @@
 import type { AssistantBlock, ChatEvent, ChatMessage } from '@/lib/reborn-ai/types';
+import { limits } from '@/lib/reborn-ai/limits';
 
 export type ChatEntry = {
   id: string;
@@ -27,8 +28,21 @@ export const chatTime = (at: number) => new Date(at).toLocaleTimeString([], { ho
 
 export function toHistory(entries: ChatEntry[]): ChatMessage[] {
   return entries
-    .filter((entry) => entry.content.trim())
-    .map((entry) => ({ role: entry.role, content: entry.content.trim() }));
+    .map((entry) => {
+      const references = entry.blocks.flatMap((block) => {
+        if (block.type === 'time_trial') return [`trial=${block.name}`];
+        if (block.type === 'world_record') return [`trial=${block.trial}`];
+        if (block.type === 'tech') return [`movement=${block.name}`];
+        if (block.type === 'recipe') return [`recipe=${block.item}`];
+        if (block.type === 'link' || block.type === 'gif') return [`resource=${block.title}`];
+        return [];
+      });
+      const context = references.length ? `\n[context cards: ${references.join('; ')}]` : '';
+      const room = Math.max(0, limits.maxMessageChars - context.length);
+      return { role: entry.role, content: `${room ? entry.content.trim().slice(-room) : ''}${context}`.trim() };
+    })
+    .filter((entry) => entry.content)
+    .slice(-limits.maxHistory);
 }
 
 export async function streamRebornAi(messages: ChatMessage[], signal: AbortSignal, onEvent: (event: ChatEvent) => void) {
