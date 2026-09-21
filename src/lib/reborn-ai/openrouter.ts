@@ -101,8 +101,9 @@ async function openStream(messages: ModelMessage[], signal?: AbortSignal) {
     stream: true,
     stream_options: { include_usage: true },
     max_tokens: limits.maxOutputTokens,
+    reasoning_effort: 'none',
     temperature: 0.35,
-    provider: { sort: 'throughput' },
+    provider: { sort: 'latency' },
   });
 
   for (let attempt = 0; ; attempt += 1) {
