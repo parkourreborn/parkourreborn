@@ -27,7 +27,7 @@ const features: Feature[] = [
       { title: 'Tech List', image: images.backgrounds.tools.techlist, href: '/techlist' },
       { title: 'XP Calculator', image: images.backgrounds.tools.xpcalc, href: '/xpcalc' },
       { title: 'Time Trial Hub', image: images.backgrounds.tools.timetrialhub, href: '/timetrialhub' },
-      { title: 'Reborn AI', image: images.backgrounds.tools.rebornai, href: '/rebornai' },
+      { title: 'Reborn AI', image: images.backgrounds.tools.rebornai, href: '/rebornai', badge: 'New' },
     ],
   },
   {
@@ -36,8 +36,8 @@ const features: Feature[] = [
     items: [
       { title: 'Parkour Guessr', image: images.backgrounds.games.parkourguessr, href: '/games/parkourguessr', badge: 'New' },
       { title: 'Incremental Parkour', image: images.backgrounds.games.incrementalparkour, href: '/incrementalparkour', badge: 'New' },
-      { title: 'Bag Opening Simulator', image: images.backgrounds.games.bagopensimulator, href: '/bagopensimulator' },
-      { title: 'Parkour MC', image: images.backgrounds.games.parkourmc, href: '/parkourmc' },
+      { title: 'Bag Opening Simulator', image: images.backgrounds.games.bagopensimulator, href: '/bagopensimulator', badge: 'Coming Soon'  },
+      { title: 'Parkour MC', image: images.backgrounds.games.parkourmc, href: '/parkourmc', badge: 'New' },
     ],
   },
   {
@@ -45,7 +45,7 @@ const features: Feature[] = [
     bg: images.backgrounds.community.bg,
     items: [
       { title: 'Map', image: images.backgrounds.community.map, href: '/map' },
-      { title: 'Contributions', image: images.backgrounds.community.contributions, href: '/contributions' },
+      { title: 'Contributions', image: images.backgrounds.community.contributions, href: '/contributions', badge: 'Coming Soon' },
       { title: 'Search', image: images.backgrounds.community.search, href: '/search' },
     ],
   },
