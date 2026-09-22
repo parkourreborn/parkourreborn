@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <main className="hub-shell min-h-screen overflow-x-hidden">
+    <main className="hub-shell overflow-x-hidden">
       <section className="hub-page hub-page--wide">
         <div className="hub-container">
           <div className="tool-topbar">

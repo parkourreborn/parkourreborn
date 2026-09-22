@@ -100,6 +100,10 @@ body {
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   font-family: 'Exo 2', Arial, sans-serif;
 }
@@ -6066,6 +6070,7 @@ button.ai-hex:focus-visible {
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px 24px;
+  margin-top: auto;
   padding: 20px clamp(16px, 4vw, 44px);
   border-top: 1px solid var(--hub-line);
   color: var(--hub-muted);

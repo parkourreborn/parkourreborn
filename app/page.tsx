@@ -55,7 +55,7 @@ const creatorLinks: LinkCard[] = [
 
 export default function Home() {
   return (
-    <main className="hub-shell min-h-screen overflow-x-hidden">
+    <main className="hub-shell overflow-x-hidden">
       <section className="hub-page">
         <div className="hub-container">
           <header className="hero-panel">
