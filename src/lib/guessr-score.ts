@@ -10,6 +10,6 @@ export function mapDistance(a: MapPoint, b: MapPoint, width: number, height: num
 
 export function scoreGuess(guess: MapPoint, target: MapPoint, width: number, height: number) {
   const distance = mapDistance(guess, target, width, height);
-  const score = Math.floor(500 * (1 - clamp((distance - 5) / 745)) ** 2);
+  const score = Math.floor(500 * (1 - clamp((distance - 1) / 749)) ** 2);
   return { distance, score };
 }

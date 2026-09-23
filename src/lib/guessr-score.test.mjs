@@ -7,8 +7,8 @@ test('Guessr distances and scoring', () => {
   const at = (meters) => scoreGuess({ x: meters * 4756 / 1722.3 / 5688, y: 0 }, target, 5688, 4800);
 
   assert.equal(at(0).score, 500);
-  assert.equal(at(5).score, 500);
-  assert.ok(at(5.1).score < 500);
+  assert.equal(at(1).score, 500);
+  assert.ok(at(1.1).score < 500);
   assert.ok(at(100).score < 500 && at(100).score > 0);
   assert.equal(at(750).score, 0);
   assert.equal(at(1000).score, 0);
