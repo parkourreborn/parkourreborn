@@ -39,7 +39,7 @@ const gameSchema = z.object({
       round: z.number().int().positive(),
       roundCount: z.number().int().positive(),
       target: pointSchema,
-      distance: z.number().min(0).max(1),
+      distance: z.number().nonnegative(),
       score: z.number().int().min(0).max(500),
       totalScore: z.number().int().nonnegative(),
       complete: z.boolean(),
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       const previous = game.data.answers.at(-1);
       if (previous?.roundId === body.roundId) {
         if (previous.guess.x !== body.guess.x || previous.guess.y !== body.guess.y) throw new GuessError('That round was already answered.');
-        return previous.result;
+        return { ...previous.result, distance: scoreGuess(previous.guess, previous.result.target, game.data.mapWidth, game.data.mapHeight).distance };
       }
       if (game.data.status !== 'active' || game.data.currentRound >= game.data.roundCount) throw new GuessError('This game is already finished.');
 

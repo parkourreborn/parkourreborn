@@ -7,6 +7,7 @@ import { MapCanvas } from '@/components/community/mapview';
 import type { MapCanvasHandle } from '@/components/community/mapview';
 import ParkourGuessrMap from '@/components/games/parkourguessr-map';
 import { Button } from '@/components/ui/button';
+import { metersPerStud } from '@/lib/guessr-score';
 import type { GuessrConfig, GuessrDifficulty, GuessrGame, GuessrMode, GuessrRoundResult, MapPoint } from '@/lib/guessr';
 
 type Phase = 'setup' | 'countdown' | 'playing' | 'guessing' | 'result' | 'finished' | 'error';
@@ -293,7 +294,7 @@ export default function ParkourGuessrGame({ mode, difficulty }: { mode: GuessrMo
         >
           {phase === 'result' && result && (
             <section className="guessr-result" aria-label="Round result" role="status">
-              <div><span>Distance</span><strong>{(result.distance * 100).toFixed(result.distance < 0.01 ? 2 : 1)}%</strong></div>
+              <div><span>Distance</span><strong>{result.distance.toFixed(1)} meters ({(result.distance / metersPerStud).toFixed(1)} studs)</strong></div>
               <div><span>Round score</span><strong>{result.score}/500</strong></div>
               <div><span>Total</span><strong>{result.totalScore}/2500</strong></div>
               {nextState === 'error' && <p>Could not preload the next round.</p>}

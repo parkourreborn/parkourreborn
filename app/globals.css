@@ -3471,57 +3471,82 @@ button {
   color: var(--hub-text);
 }
 
-.map-modal__bar {
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 2;
-  min-height: 64px;
-  align-items: center;
-  padding: 10px 18px;
-  border-bottom: 2px solid var(--hub-blue);
-  background: var(--hud-panel-bg);
-  box-shadow: var(--hub-shadow-modal);
-}
-
-.map-modal__tools {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.map-modal__tools button {
-  min-height: 36px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--hud-nav);
-  font-family: 'Jura', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: border-color 160ms ease, color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-
-.map-modal__tools button:hover,
-.map-modal__tools button:focus-visible {
-  background: var(--hud-hover-bg);
-  color: var(--hub-text-strong);
-}
-
-.map-modal__tools span {
-  min-width: 52px;
+.map-options,
+.map-measure {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid var(--hub-border);
+  background: var(--hub-panel-bg);
   color: var(--hub-text);
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
+  font-size: 11px;
+}
+
+.map-options {
+  top: calc(env(safe-area-inset-top) + 56px);
+  right: max(9px, env(safe-area-inset-right));
+  display: grid;
+  width: min(260px, calc(100% - 18px));
+  gap: 10px;
+  padding: 12px;
+}
+
+.map-options > strong {
+  text-transform: uppercase;
+}
+
+.map-options > button,
+.map-options li button {
+  min-height: 34px;
+  border: 1px solid var(--hub-border);
+  border-radius: 2px;
+  background: var(--hub-control-bg);
+  color: var(--hub-text);
+}
+
+.map-options > button[aria-pressed="true"] {
+  border-color: var(--hub-accent-line-strong);
+  background: var(--hub-control-active-bg);
+}
+
+.map-options p {
+  margin: 0;
+  color: var(--hub-muted);
+  line-height: 1.5;
+}
+
+.map-options ol {
+  display: grid;
+  max-height: 180px;
+  overflow-y: auto;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-options li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.map-options li button {
+  width: 30px;
+  min-height: 30px;
+}
+
+.map-measure {
+  right: max(9px, env(safe-area-inset-right));
+  bottom: max(9px, env(safe-area-inset-bottom));
+  display: grid;
+  gap: 4px;
+  max-width: calc(100% - 18px);
+  padding: 9px 12px;
+}
+
+.map-measure span {
+  color: var(--hub-muted);
 }
 
 .map-canvas {
@@ -3582,7 +3607,9 @@ button {
   pointer-events: none;
 }
 
-.map-canvas__line line {
+.map-canvas__line line,
+.map-canvas__line polyline {
+  fill: none;
   stroke: rgba(255, 255, 255, 0.92);
   stroke-width: 3;
   stroke-dasharray: 8 6;
@@ -3608,17 +3635,8 @@ button {
   color: #68df9a;
 }
 
-.map-modal__stage {
-  position: absolute;
-  inset: 64px 0 0;
-  overflow: hidden;
-  touch-action: none;
-  cursor: grab;
-  user-select: none;
-}
-
-.map-modal__stage:active {
-  cursor: grabbing;
+.map-marker--measure {
+  color: #36b9ec;
 }
 
 .search-page {
@@ -5093,21 +5111,6 @@ button.ai-hex:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .map-modal__bar h2 {
-    display: none;
-  }
-
-  .map-modal__tools {
-    gap: 6px;
-    overflow-x: auto;
-  }
-
-  .map-modal__tools button {
-    flex: 0 0 auto;
-    padding: 0 10px;
-    font-size: 11px;
-  }
-
   .search-results {
     grid-template-columns: 1fr;
   }
@@ -5797,7 +5800,7 @@ button.ai-hex:focus-visible {
 
 .guessr-result {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   padding: 14px;
   border-top: 1px solid var(--hub-border);
@@ -5807,6 +5810,10 @@ button.ai-hex:focus-visible {
 .guessr-result > div {
   display: grid;
   gap: 3px;
+}
+
+.guessr-result > div:first-child {
+  grid-column: 1 / -1;
 }
 
 .guessr-result span {

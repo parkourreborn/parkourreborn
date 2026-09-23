@@ -1,10 +1,15 @@
 import type { MapPoint } from '@/lib/guessr';
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
+const metersPerPixel = 1722.3 / 4756;
+export const metersPerStud = 0.28;
+
+export function mapDistance(a: MapPoint, b: MapPoint, width: number, height: number) {
+  return Math.hypot((a.x - b.x) * width, (a.y - b.y) * height) * metersPerPixel;
+}
 
 export function scoreGuess(guess: MapPoint, target: MapPoint, width: number, height: number) {
-  const diagonal = Math.hypot(width, height);
-  const distance = diagonal ? clamp(Math.hypot((guess.x - target.x) * width, (guess.y - target.y) * height) / diagonal) : 1;
-  const score = Math.round(500 * (1 - distance) ** 2);
+  const distance = mapDistance(guess, target, width, height);
+  const score = Math.floor(500 * (1 - clamp((distance - 5) / 745)) ** 2);
   return { distance, score };
 }
