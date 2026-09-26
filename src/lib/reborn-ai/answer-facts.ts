@@ -33,6 +33,22 @@ export function simpleDefinitionTerm(question: string) {
   return question.trim().match(/^(?:what is|what's|define)\s+([a-z][a-z0-9 -]*?)[?.!\s]*$/i)?.[1]?.trim().toLowerCase() ?? null;
 }
 
+export function exactKnowledgeExcerpts(question: string, docs: { title: string; aliases: string[]; body: string }[]) {
+  const words = (value: string) => value.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const asked = words(question);
+  const mentions = (name: string) => {
+    const phrase = words(name);
+    return name.trim().length >= 4 && phrase.length > 0 && asked.some((_, index) => phrase.every((word, offset) => asked[index + offset] === word));
+  };
+  return docs.filter((doc) => [doc.title, ...doc.aliases].some(mentions)).slice(0, 2)
+    .map((doc) => doc.body
+      .replace(/^#{1,3}\s+.*$/gm, '')
+      .replace(/^\s*[-*]\s+/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim())
+    .filter((body) => body.length > 0 && body.length <= 600 && !body.includes('|'));
+}
+
 export function safeAnswer(reply: string, question: string, evidence: unknown) {
   const text = reply.trim();
   if (!text || text.length > 1200) return false;

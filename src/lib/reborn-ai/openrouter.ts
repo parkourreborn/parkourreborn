@@ -8,21 +8,36 @@ type Delta = { content?: string | null };
 type Usage = { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
 
 const endpoint = 'https://openrouter.ai/api/v1/chat/completions';
-const fallbackModels = ['google/gemma-4-31b-it:free', 'google/gemma-4-26b-a4b-it:free'];
+const mistralFallback = 'mistralai/mistral-small-3.2-24b-instruct:free';
+const fallbackModels = ['google/gemma-4-31b-it:free', mistralFallback, 'google/gemma-4-26b-a4b-it:free'];
+
+type RateDiagnostic = {
+  providerCode?: string | number;
+  limitSource?: string;
+  remaining?: string;
+  reset?: string;
+  retryAfter?: string;
+};
 
 export class ModelError extends Error {
   status: number;
+  diagnostic?: RateDiagnostic;
 
-  constructor(message: string, status = 0) {
+  constructor(message: string, status = 0, diagnostic?: RateDiagnostic) {
     super(message);
     this.status = status;
+    this.diagnostic = diagnostic;
   }
 }
 
 export function modelNames() {
   const raw = process.env.OPENROUTER_MODELS?.trim() || process.env.OPENROUTER_MODEL?.trim() || '';
   const names = raw.split(',').map((name) => name.trim()).filter(Boolean);
-  return names.length ? names : fallbackModels;
+  if (!names.length) return fallbackModels;
+  // Existing Gemma-only deployments also get an independent free fallback.
+  return names.every((name) => name.startsWith('google/gemma-4-')) && !names.includes(mistralFallback)
+    ? [names[0], mistralFallback, ...names.slice(1)]
+    : names;
 }
 
 export function hasModelKey() {
@@ -92,6 +107,21 @@ function asModelError(error: unknown) {
     : new ModelError(error instanceof Error ? error.message : 'model call failed');
 }
 
+export async function freeModelQuota() {
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/key', {
+      headers: { authorization: `Bearer ${process.env.OPENROUTER_API_KEY?.trim() ?? ''}` },
+      signal: AbortSignal.timeout(2000),
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const body = await response.json() as { data?: { free_model_daily_requests?: { used?: number; limit?: number; remaining?: number } } };
+    return body.data?.free_model_daily_requests ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function openStream(messages: ModelMessage[], signal?: AbortSignal) {
   const names = modelNames();
   const body = JSON.stringify({
@@ -118,10 +148,21 @@ async function openStream(messages: ModelMessage[], signal?: AbortSignal) {
       const responseBody = await response.json().catch(() => null);
       watch.stop();
       const detail = typeof responseBody?.error?.message === 'string' ? responseBody.error.message.slice(0, 500) : '';
-      if (!retryable.has(response.status) || attempt >= limits.maxModelRetries) {
-        throw new ModelError(`model responded ${response.status}${detail ? `: ${detail}` : ''}`, response.status);
+      const metadata = responseBody?.error?.metadata;
+      const diagnostic: RateDiagnostic = {
+        providerCode: typeof metadata?.provider_code === 'string' || typeof metadata?.provider_code === 'number' ? metadata.provider_code : undefined,
+        limitSource: typeof metadata?.limit_source === 'string' ? metadata.limit_source : undefined,
+        remaining: response.headers.get('x-ratelimit-remaining') ?? undefined,
+        reset: response.headers.get('x-ratelimit-reset') ?? undefined,
+        retryAfter: response.headers.get('retry-after') ?? undefined,
+      };
+      const failure = new ModelError(`model responded ${response.status}${detail ? `: ${detail}` : ''}`, response.status, diagnostic);
+      const retrySeconds = Number(diagnostic.retryAfter);
+      const canRetryRateLimit = response.status !== 429 || (Number.isFinite(retrySeconds) && retrySeconds > 0 && retrySeconds <= 5);
+      if (!retryable.has(response.status) || attempt >= limits.maxModelRetries || !canRetryRateLimit) {
+        throw failure;
       }
-      await wait(backoff(attempt, response.headers.get('retry-after')), signal);
+      await wait(backoff(attempt, diagnostic.retryAfter), signal);
     } catch (error) {
       watch.stop();
       const modelError = asModelError(error);

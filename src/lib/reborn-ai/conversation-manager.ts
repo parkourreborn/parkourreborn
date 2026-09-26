@@ -1,9 +1,9 @@
 import 'server-only';
 
 import { z } from 'zod';
-import { compactQuery, safeAnswer, simpleDefinitionTerm, versionDateAnswer } from '@/lib/reborn-ai/answer-facts';
+import { compactQuery, exactKnowledgeExcerpts, safeAnswer, simpleDefinitionTerm, versionDateAnswer } from '@/lib/reborn-ai/answer-facts';
 import { limits } from '@/lib/reborn-ai/limits';
-import { ModelError, modelNames, streamModel } from '@/lib/reborn-ai/openrouter';
+import { freeModelQuota, ModelError, modelNames, streamModel } from '@/lib/reborn-ai/openrouter';
 import type { ModelMessage } from '@/lib/reborn-ai/openrouter';
 import { buildSystemPrompt } from '@/lib/reborn-ai/prompt';
 import { routeMessage } from '@/lib/reborn-ai/router';
@@ -34,9 +34,13 @@ type Evidence = {
 };
 
 const fallbackReply = 'my brain glitched there, ask me again';
-function modelErrorText(error: unknown) {
+function modelErrorText(error: unknown, dailyRemaining?: number) {
   if (!(error instanceof ModelError)) return fallbackReply;
-  if (error.status === 429) return 'the model is rate limiting us, give it a bit';
+  if (error.status === 429) {
+    if (dailyRemaining === 0) return 'openrouter’s free requests for today are used up';
+    if (error.diagnostic?.remaining === '0') return 'openrouter’s short-term free request limit was reached; try again after it resets';
+    return 'the free model providers are busy right now; try again soon';
+  }
   if (error.status >= 500) return 'the model is having a moment, try again';
   return 'reborn ai is not reachable right now';
 }
@@ -161,6 +165,9 @@ function groundedFallback(question: string, evidence: Evidence[], missing: strin
     ));
     parts.push(medal ? `${medal} on ${trial.name} is ${trial[medal]}.` : `i found the current medal times for ${trial.name}.`);
   }
+  const docs = evidence.flatMap((item) => item.source === 'Parkour Reborn guide' && hasItems(item.result)
+    ? item.result as { title: string; aliases: string[]; body: string }[] : []);
+  parts.push(...exactKnowledgeExcerpts(question, docs));
   parts.push(...missing);
   return parts.filter(Boolean).join(' ') || fallbackReply;
 }
@@ -268,7 +275,6 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
   ];
 
   emit({ type: 'status', state: 'writing' });
-  const highRisk = decision.routes.includes('records') || decision.routes.includes('trials');
   let wrote = false;
   let answerModel = '';
   let answerUsage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
@@ -278,26 +284,30 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
     answerModel = answer.model;
     answerUsage = answer.usage;
 
+    const fallback = groundedFallback(question.content, answerEvidence, missing);
     const safe = safeAnswer(answer.content, question.content, answerEvidence.map(({ result }) => result))
       ? answer.content.trim()
-      : highRisk ? groundedFallback(question.content, answerEvidence, missing) : 'i couldn’t verify a reliable answer to that yet.';
+      : fallback === fallbackReply ? 'i couldn’t verify a reliable answer to that yet.' : fallback;
     emit({ type: 'text', delta: safe });
     wrote = Boolean(safe.trim());
   } catch (error) {
     if (signal?.aborted) return;
+    const quota = error instanceof ModelError && error.status === 429 ? await freeModelQuota() : null;
     console.error('reborn-ai answer model failed', {
-      model: modelNames()[0],
+      models: modelNames(),
       routes: decision.routes,
       status: error instanceof ModelError ? error.status : undefined,
       error: error instanceof Error ? error.message : String(error),
+      diagnostic: error instanceof ModelError ? error.diagnostic : undefined,
+      freeModelDailyRequests: quota,
     });
-    if (highRisk) {
-      const safe = groundedFallback(question.content, answerEvidence, missing);
+    const safe = groundedFallback(question.content, answerEvidence, missing);
+    if (safe !== fallbackReply) {
       emit({ type: 'text', delta: safe });
       wrote = Boolean(safe.trim());
     }
     if (!wrote) {
-      emit({ type: 'error', message: modelErrorText(error) });
+      emit({ type: 'error', message: modelErrorText(error, quota?.remaining) });
       return;
     }
   }

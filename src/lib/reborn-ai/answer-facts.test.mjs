@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { compactQuery, safeAnswer, simpleDefinitionTerm, versionDateAnswer } from './answer-facts.ts';
+import { compactQuery, exactKnowledgeExcerpts, safeAnswer, simpleDefinitionTerm, versionDateAnswer } from './answer-facts.ts';
 import { knowledgeExcerpt } from './knowledge-excerpt.ts';
 
 const timeline = await readFile(new URL('../../../knowledge/miscellaneous/update-timeline.md', import.meta.url), 'utf8');
@@ -28,4 +28,13 @@ test('short glossary definitions and unsupported output', () => {
   assert.equal(simpleDefinitionTerm('how do I trimp?'), null);
   assert.equal(safeAnswer('Alpha 1.3 released in 2025.', 'when was 1.3?', [{ body: 'Alpha 1.3: August 30, 2024' }]), false);
   assert.equal(safeAnswer('the knowledge base says trimp is crouching on a slope', 'what is trimp?', []), false);
+});
+
+test('provider outage can still return short exact game facts', () => {
+  const docs = [
+    { title: 'Credits', aliases: ['money'], body: 'Credits are earned through:\n* selling valuables,\n* deliveries,\n* daily rewards.' },
+    { title: 'Momentum', aliases: [], body: 'Not related.' },
+  ];
+  assert.deepEqual(exactKnowledgeExcerpts('how do I get credits?', docs), ['Credits are earned through: selling valuables, deliveries, daily rewards.']);
+  assert.deepEqual(exactKnowledgeExcerpts('what is creditable?', docs), []);
 });
