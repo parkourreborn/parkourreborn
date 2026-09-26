@@ -5,6 +5,7 @@ import { searchTechs } from '@/lib/pages/techlist';
 import { formatTime } from '@/lib/pages/time';
 import { wrVideoURL } from '@/lib/pages/timetrials';
 import { knowledgeRetriever } from '@/lib/reborn-ai/knowledge-retriever';
+import { knowledgeExcerpt } from '@/lib/reborn-ai/knowledge-excerpt';
 import { limits } from '@/lib/reborn-ai/limits';
 import { hideRecipes, parseRecipes, recipeBlock } from '@/lib/reborn-ai/recipes';
 import type { Recipe } from '@/lib/reborn-ai/recipes';
@@ -83,15 +84,15 @@ export function createToolkit() {
 
   async function runKnowledge(args: z.infer<typeof schemas.search_knowledge>) {
     const found = await knowledgeRetriever.search(args.query, args.limit ?? limits.maxKnowledgeDocs);
-    const results: { id: string; title: string; category: string; body: string }[] = [];
+    const results: { id: string; title: string; aliases: string[]; category: string; body: string }[] = [];
     let left = limits.maxKnowledgeChars;
 
     for (const { doc } of found) {
       if (left <= 0) break;
-      const text = doc.category === 'crafting' ? hideRecipes(doc.body) : doc.body;
+      const text = knowledgeExcerpt(doc.category === 'crafting' ? hideRecipes(doc.body) : doc.body, args.query, doc.title);
       const body = text.length > left ? `${text.slice(0, left)}...` : text;
       left -= body.length;
-      results.push({ id: doc.id, title: doc.title, category: doc.category, body });
+      results.push({ id: doc.id, title: doc.title, aliases: doc.aliases, category: doc.category, body });
     }
     if (results.some((result) => result.category === 'crafting')) await suggestRecipes(args.query);
     return results;

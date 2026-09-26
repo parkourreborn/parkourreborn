@@ -4,8 +4,6 @@ category: glossary
 aliases:
   - trimp
   - trimping
-  - slope jump
-  - ramp jump
 tags:
   - glossary
   - movement
@@ -16,4 +14,6 @@ tags:
 
 ## Trimp
 
-A ground/coyote re-entry used to compound or redirect a launch.
+Trimping is a high-speed skim of a valid surface that briefly re-enters grounded/coyote state, letting you compound or redirect a launch. Crouching on a slope is not its defining input.
+
+The exact inputs depend on the setup. No universal step-by-step trimp sequence is documented here.

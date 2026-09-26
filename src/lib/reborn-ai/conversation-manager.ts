@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { z } from 'zod';
+import { compactQuery, safeAnswer, simpleDefinitionTerm, versionDateAnswer } from '@/lib/reborn-ai/answer-facts';
 import { limits } from '@/lib/reborn-ai/limits';
 import { ModelError, modelNames, streamModel } from '@/lib/reborn-ai/openrouter';
 import type { ModelMessage } from '@/lib/reborn-ai/openrouter';
@@ -33,11 +34,6 @@ type Evidence = {
 };
 
 const fallbackReply = 'my brain glitched there, ask me again';
-const queryStopWords = new Set([
-  'about', 'and', 'are', 'can', 'does', 'for', 'from', 'have', 'how', 'its', 'please', 'tell', 'that', 'the',
-  'their', 'this', 'what', 'when', 'where', 'which', 'who', 'with', 'would', 'you', 'your',
-]);
-
 function modelErrorText(error: unknown) {
   if (!(error instanceof ModelError)) return fallbackReply;
   if (error.status === 429) return 'the model is rate limiting us, give it a bit';
@@ -65,15 +61,6 @@ function references(history: ChatMessage[], question: string) {
     .slice(-6);
 }
 
-function compactQuery(message: string, refs: string[]) {
-  const meaningful = message
-    .toLowerCase()
-    .replace(/[^a-z0-9' -]/g, ' ')
-    .split(/\s+/)
-    .filter((word) => word.length > 1 && !queryStopWords.has(word));
-  return Array.from(new Set([...meaningful, ...refs])).join(' ').slice(0, 80).trim() || message.slice(0, 80);
-}
-
 function hasItems(value: unknown): value is unknown[] {
   return Array.isArray(value) && value.length > 0;
 }
@@ -83,7 +70,7 @@ function sourceFor(route: RouteName) {
   if (route === 'trials') return 'Parkour Reborn time trials';
   if (route === 'movement') return 'Parkour Reborn movement list';
   if (route === 'community') return 'Parkour Reborn community library';
-  return 'Parkour Reborn knowledge base';
+  return 'Parkour Reborn guide';
 }
 
 function toolFor(route: RouteName, query: string, message: string) {
@@ -160,15 +147,6 @@ function attachments(blocks: AssistantBlock[]) {
   });
 }
 
-function numericTokens(value: string) {
-  return Array.from(value.matchAll(/\b\d+(?:\.\d+)?\b/g), (match) => match[0]);
-}
-
-function groundedNumbers(reply: string, question: string, evidence: Evidence[]) {
-  const allowed = new Set(numericTokens(`${question}\n${JSON.stringify(evidence.map(({ result, checkedAt }) => ({ result, checkedAt })))}`));
-  return numericTokens(reply).every((number) => allowed.has(number));
-}
-
 function groundedFallback(question: string, evidence: Evidence[], missing: string[]) {
   const parts: string[] = [];
   const records = evidence.find((item) => item.route === 'records' && hasItems(item.result));
@@ -185,6 +163,27 @@ function groundedFallback(question: string, evidence: Evidence[], missing: strin
   }
   parts.push(...missing);
   return parts.filter(Boolean).join(' ') || fallbackReply;
+}
+
+function directKnowledgeAnswer(question: string, evidence: Evidence[]) {
+  const results = evidence.flatMap((item) => item.source === 'Parkour Reborn guide' && hasItems(item.result)
+    ? item.result as { title: string; aliases: string[]; category: string; body: string }[] : []);
+  const timeline = results.find((item) => item.title === 'Update Timeline');
+  const date = timeline && versionDateAnswer(question, timeline.body);
+  if (date) return date;
+
+  const trimp = results.find((item) => item.title === 'Trimp');
+  if (trimp && /\bhow\b.*\btrimp(?:ing)?\b/i.test(question)) {
+    return 'trimping briefly re-enters grounded/coyote state when you skim a valid surface at speed, letting you compound or redirect a launch. i don’t have a verified step-by-step input sequence for it.';
+  }
+
+  const term = simpleDefinitionTerm(question);
+  if (!term) return null;
+  const match = results.find((item) => item.category === 'glossary' && [item.title, ...item.aliases].some((name) => name.toLowerCase() === term));
+  if (!match) return null;
+  const definition = match.body.replace(/^#{1,3}\s+[^\n]+\n+/, '').trim().split(/\n\s*\n/)[0];
+  if (definition.length > 500) return null;
+  return definition.toLowerCase().startsWith(term) ? definition : `${match.title}: ${definition}`;
 }
 
 export async function runConversation(request: ChatRequest, _origin: string, emit: Emit, signal?: AbortSignal) {
@@ -233,13 +232,28 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
       ? { ...item, status: 'empty' as const, result: null }
       : item)
     : evidence;
-  const missing = [
+  const direct = directKnowledgeAnswer(question.content, answerEvidence);
+  if (direct) {
+    emit({ type: 'status', state: 'writing' });
+    emit({ type: 'text', delta: direct });
+    if (blocks.length) emit({ type: 'blocks', blocks });
+    emit({ type: 'done' });
+    return;
+  }
+  const missing = Array.from(new Set([
     ...(ambiguous ? [ambiguous] : []),
     ...(decision.handling === 'unsupported' ? ['i can’t access live player state or perform in-game actions.'] : []),
     ...(decision.handling === 'unclear' && !ambiguous ? ['i need the name of the thing you mean.'] : []),
-    ...evidence.filter((item) => item.status === 'empty').map((item) => `i couldn't find matching ${item.source.toLowerCase()} data.`),
-    ...evidence.filter((item) => item.status === 'unavailable').map((item) => `${item.source} is unavailable right now.`),
-  ];
+    ...evidence.filter((item) => item.status === 'empty').map(() => 'i couldn’t find a match for that part.'),
+    ...evidence.filter((item) => item.status === 'unavailable').map(() => 'i couldn’t check that part right now.'),
+  ]));
+
+  if (decision.routes.length && !answerEvidence.some((item) => item.status === 'ok')) {
+    emit({ type: 'status', state: 'writing' });
+    emit({ type: 'text', delta: missing.join(' ') || 'i couldn’t verify that right now.' });
+    emit({ type: 'done' });
+    return;
+  }
 
   const input = {
     question: question.content,
@@ -260,21 +274,15 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
   let answerUsage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
 
   try {
-    const answer = await streamModel(messages, (delta) => {
-      if (highRisk) return;
-      wrote = true;
-      emit({ type: 'text', delta });
-    }, signal);
+    const answer = await streamModel(messages, () => {}, signal);
     answerModel = answer.model;
     answerUsage = answer.usage;
 
-    if (highRisk) {
-      const safe = answer.content.trim() && groundedNumbers(answer.content, question.content, answerEvidence)
-        ? answer.content
-        : groundedFallback(question.content, answerEvidence, missing);
-      emit({ type: 'text', delta: safe });
-      wrote = Boolean(safe.trim());
-    }
+    const safe = safeAnswer(answer.content, question.content, answerEvidence.map(({ result }) => result))
+      ? answer.content.trim()
+      : highRisk ? groundedFallback(question.content, answerEvidence, missing) : 'i couldn’t verify a reliable answer to that yet.';
+    emit({ type: 'text', delta: safe });
+    wrote = Boolean(safe.trim());
   } catch (error) {
     if (signal?.aborted) return;
     console.error('reborn-ai answer model failed', {

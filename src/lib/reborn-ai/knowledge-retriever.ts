@@ -108,9 +108,7 @@ function tokenize(query: string) {
   return Array.from(new Set(
     query
       .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, ' ')
-      .split(/[\s-]+/)
-      .filter((word) => word.length >= 3 && !stopWords.has(word)),
+      .match(/\b\d+(?:\.\d+)+\b|[a-z][a-z0-9-]*/g)?.filter((word) => (word.length >= 3 || /^\d+(?:\.\d+)+$/.test(word)) && !stopWords.has(word)) ?? [],
   )).slice(0, 8);
 }
 
@@ -127,7 +125,10 @@ class LocalKnowledgeRetriever implements KnowledgeRetriever {
   private index() {
     if (!this.cache) {
       this.cache = loadDocs()
-        .then((docs) => ({ fuse: new Fuse(docs, fuseOptions), docs }))
+        .then((docs) => {
+          const searchable = docs.filter((doc) => doc.category !== 'index');
+          return { fuse: new Fuse(searchable, fuseOptions), docs: searchable };
+        })
         .catch((error) => {
           this.cache = null;
           throw error;
@@ -178,6 +179,9 @@ class LocalKnowledgeRetriever implements KnowledgeRetriever {
 
       const hit = weights.get(doc.id) ?? { doc, score: 0 };
       hit.score += exact * 0.8;
+      const names = [doc.title, ...doc.aliases].map((name) => name.toLowerCase());
+      if (names.some((name) => name.length >= 3 && (clean.toLowerCase() === name || clean.toLowerCase().includes(name)))) hit.score += 6;
+      if (doc.title === 'Update Timeline' && tokens.some((token) => /^\d+(?:\.\d+)+$/.test(token))) hit.score += 6;
       weights.set(doc.id, hit);
     }
 

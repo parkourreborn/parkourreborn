@@ -8,7 +8,7 @@ type Delta = { content?: string | null };
 type Usage = { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
 
 const endpoint = 'https://openrouter.ai/api/v1/chat/completions';
-const fallbackModel = 'openrouter/free';
+const fallbackModels = ['google/gemma-4-31b-it:free', 'google/gemma-4-26b-a4b-it:free'];
 
 export class ModelError extends Error {
   status: number;
@@ -22,7 +22,7 @@ export class ModelError extends Error {
 export function modelNames() {
   const raw = process.env.OPENROUTER_MODELS?.trim() || process.env.OPENROUTER_MODEL?.trim() || '';
   const names = raw.split(',').map((name) => name.trim()).filter(Boolean);
-  return names.length ? names : [fallbackModel];
+  return names.length ? names : fallbackModels;
 }
 
 export function hasModelKey() {
@@ -96,13 +96,13 @@ async function openStream(messages: ModelMessage[], signal?: AbortSignal) {
   const names = modelNames();
   const body = JSON.stringify({
     model: names[0],
-    ...(names.length > 1 ? { models: names } : {}),
+    ...(names.length > 1 ? { models: names.slice(1) } : {}),
     messages,
     stream: true,
     stream_options: { include_usage: true },
     max_tokens: limits.maxOutputTokens,
     reasoning_effort: 'none',
-    temperature: 0.35,
+    temperature: 0.1,
     provider: { sort: 'latency' },
   });
 
@@ -143,6 +143,7 @@ export async function streamModel(
   let buffer = '';
   let model = '';
   let usage: Usage | undefined;
+  let truncated = false;
 
   try {
     while (true) {
@@ -157,7 +158,7 @@ export async function streamModel(
         const payload = line.trim().startsWith('data:') ? line.trim().slice(5).trim() : '';
         if (!payload || payload === '[DONE]') continue;
 
-        let event: { error?: { code?: number; message?: string }; choices?: { delta?: Delta }[]; model?: string; usage?: Usage };
+        let event: { error?: { code?: number; message?: string }; choices?: { delta?: Delta; finish_reason?: string | null }[]; model?: string; usage?: Usage };
         try {
           event = JSON.parse(payload) as typeof event;
         } catch {
@@ -166,6 +167,7 @@ export async function streamModel(
         if (event.error) throw new ModelError(event.error.message || 'model stream failed', event.error.code ?? 0);
         if (event.model) model = event.model;
         if (event.usage) usage = event.usage;
+        if (event.choices?.[0]?.finish_reason === 'length') truncated = true;
         const delta = event.choices?.[0]?.delta?.content;
         if (delta) {
           content += delta;
@@ -178,6 +180,8 @@ export async function streamModel(
   } finally {
     watch.stop();
   }
+
+  if (truncated) throw new ModelError('model answer was cut off');
 
   return { content, model, usage };
 }
