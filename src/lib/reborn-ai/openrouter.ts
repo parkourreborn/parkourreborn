@@ -115,10 +115,11 @@ async function openStream(messages: ModelMessage[], signal?: AbortSignal) {
         return { body: response.body, watch };
       }
 
+      const responseBody = await response.json().catch(() => null);
       watch.stop();
-      await response.body?.cancel().catch(() => {});
+      const detail = typeof responseBody?.error?.message === 'string' ? responseBody.error.message.slice(0, 500) : '';
       if (!retryable.has(response.status) || attempt >= limits.maxModelRetries) {
-        throw new ModelError(`model responded ${response.status}`, response.status);
+        throw new ModelError(`model responded ${response.status}${detail ? `: ${detail}` : ''}`, response.status);
       }
       await wait(backoff(attempt, response.headers.get('retry-after')), signal);
     } catch (error) {

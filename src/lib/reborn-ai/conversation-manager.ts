@@ -2,7 +2,7 @@ import 'server-only';
 
 import { z } from 'zod';
 import { limits } from '@/lib/reborn-ai/limits';
-import { ModelError, streamModel } from '@/lib/reborn-ai/openrouter';
+import { ModelError, modelNames, streamModel } from '@/lib/reborn-ai/openrouter';
 import type { ModelMessage } from '@/lib/reborn-ai/openrouter';
 import { buildSystemPrompt } from '@/lib/reborn-ai/prompt';
 import { routeMessage } from '@/lib/reborn-ai/router';
@@ -277,6 +277,12 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
     }
   } catch (error) {
     if (signal?.aborted) return;
+    console.error('reborn-ai answer model failed', {
+      model: modelNames()[0],
+      routes: decision.routes,
+      status: error instanceof ModelError ? error.status : undefined,
+      error: error instanceof Error ? error.message : String(error),
+    });
     if (highRisk) {
       const safe = groundedFallback(question.content, answerEvidence, missing);
       emit({ type: 'text', delta: safe });
