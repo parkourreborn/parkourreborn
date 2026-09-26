@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { chatRequestSchema, runConversation } from '@/lib/reborn-ai/conversation-manager';
 import { limits, rateLimits } from '@/lib/reborn-ai/limits';
-import { hasModelKey } from '@/lib/reborn-ai/openrouter';
+import { hasModelConfig } from '@/lib/reborn-ai/openrouter';
 import type { ChatEvent } from '@/lib/reborn-ai/types';
 import { checkRateLimit, clientKey } from '@/lib/server/rate-limit';
 
@@ -22,7 +22,7 @@ const sseHeaders = {
 };
 
 export async function POST(request: NextRequest) {
-  if (!hasModelKey()) return NextResponse.json({ error: 'Reborn AI is not configured' }, { status: 503 });
+  if (!hasModelConfig()) return NextResponse.json({ error: 'Reborn AI is not configured' }, { status: 503 });
 
   const declared = Number(request.headers.get('content-length') ?? 0);
   if (declared > limits.maxBodyBytes) return NextResponse.json({ error: 'Message is too big' }, { status: 413 });

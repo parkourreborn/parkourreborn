@@ -84,7 +84,7 @@ function deterministic(message: string): RouteDecision {
   if (/\b(world record|wr|record|record holder|fastest (?:run|time|ever))\b/.test(text)) routes.add('records');
   if (/\b(time ?trial|bronze|silver|gold|platinum|plat|medal|trial route)\b/.test(text)) routes.add('trials');
   if (/\b(tech|technique|tutorial|steps?|combo|chain)\b/.test(text)) routes.add('movement');
-  if (/\b(mechanic|physics|momentum|velocity|coyote|afterboost|trimp|wallbounce|wallboost|powerslide|slide jump|long jump)\b/.test(text)) routes.add('mechanics');
+  if (/\b(mechanic|physics|momentum|velocity|coyote)\b/.test(text)) routes.add('mechanics');
   if (/\b(craft|recipe|ingredient|resource|upgrade)\b/.test(text) || /\b(?:make|build|get)\b.*\b(?:grappler|glove|mag ?rail|springhook|binoculars?)\b/.test(text)) routes.add('crafting');
   if (/\b(lore|story|npc|vendor|character|district|location|where is|who is)\b/.test(text)) routes.add('lore');
   if (/\b(gif|meme|discord|community (?:file|link)|invite link)\b/.test(text)) routes.add('community');

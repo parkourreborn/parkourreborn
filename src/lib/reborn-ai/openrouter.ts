@@ -8,8 +8,6 @@ type Delta = { content?: string | null };
 type Usage = { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
 
 const endpoint = 'https://openrouter.ai/api/v1/chat/completions';
-const mistralFallback = 'mistralai/mistral-small-3.2-24b-instruct:free';
-const fallbackModels = ['google/gemma-4-31b-it:free', mistralFallback, 'google/gemma-4-26b-a4b-it:free'];
 
 type RateDiagnostic = {
   providerCode?: string | number;
@@ -30,18 +28,12 @@ export class ModelError extends Error {
   }
 }
 
-export function modelNames() {
-  const raw = process.env.OPENROUTER_MODELS?.trim() || process.env.OPENROUTER_MODEL?.trim() || '';
-  const names = raw.split(',').map((name) => name.trim()).filter(Boolean);
-  if (!names.length) return fallbackModels;
-  // Existing Gemma-only deployments also get an independent free fallback.
-  return names.every((name) => name.startsWith('google/gemma-4-')) && !names.includes(mistralFallback)
-    ? [names[0], mistralFallback, ...names.slice(1)]
-    : names;
+export function modelName() {
+  return process.env.OPENROUTER_MODEL?.trim() ?? '';
 }
 
-export function hasModelKey() {
-  return Boolean(process.env.OPENROUTER_API_KEY?.trim());
+export function hasModelConfig() {
+  return Boolean(process.env.OPENROUTER_API_KEY?.trim() && modelName() && !modelName().includes(','));
 }
 
 function headers() {
@@ -123,17 +115,15 @@ export async function freeModelQuota() {
 }
 
 async function openStream(messages: ModelMessage[], signal?: AbortSignal) {
-  const names = modelNames();
+  const model = modelName();
+  if (!model || model.includes(',')) throw new ModelError('missing or invalid model');
   const body = JSON.stringify({
-    model: names[0],
-    ...(names.length > 1 ? { models: names.slice(1) } : {}),
+    model,
     messages,
     stream: true,
     stream_options: { include_usage: true },
     max_tokens: limits.maxOutputTokens,
-    reasoning_effort: 'none',
-    temperature: 0.1,
-    provider: { sort: 'latency' },
+    temperature: 0,
   });
 
   for (let attempt = 0; ; attempt += 1) {
@@ -158,7 +148,8 @@ async function openStream(messages: ModelMessage[], signal?: AbortSignal) {
       };
       const failure = new ModelError(`model responded ${response.status}${detail ? `: ${detail}` : ''}`, response.status, diagnostic);
       const retrySeconds = Number(diagnostic.retryAfter);
-      const canRetryRateLimit = response.status !== 429 || (Number.isFinite(retrySeconds) && retrySeconds > 0 && retrySeconds <= 5);
+      const canRetryRateLimit = response.status !== 429 || (diagnostic.limitSource === 'upstream_provider_shared_pool'
+        && (!Number.isFinite(retrySeconds) || retrySeconds <= 5));
       if (!retryable.has(response.status) || attempt >= limits.maxModelRetries || !canRetryRateLimit) {
         throw failure;
       }

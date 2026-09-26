@@ -17,13 +17,15 @@ const count = z.number().int().min(1).max(limits.maxToolResultItems).optional();
 const term = z.string().trim().min(1).max(80);
 const schemas = {
   search_knowledge: z.object({ query: term, limit: count }),
-  search_techs: z.object({ query: term, kind: z.enum(['tech', 'concept', 'basic']).optional(), limit: count }),
+  search_techs: z.object({ query: term, kind: z.enum(['tech', 'concept', 'basic']).optional(), exact: z.boolean().optional(), limit: count }),
   get_time_trials: z.object({ query: term.optional(), district: term.optional(), limit: count }),
   get_world_records: z.object({ trial: term.optional(), limit: count }),
   search_community: z.object({ query: term.optional(), type: z.enum(['gif', 'file', 'link']).optional(), limit: count }),
 };
 
 const key = (value: string) => value.trim().toLowerCase();
+const phrase = (value: string) => key(value).replace(/[^a-z0-9]+/g, ' ').trim();
+const mentions = (query: string, name: string) => Boolean(phrase(name) && ` ${phrase(query)} `.includes(` ${phrase(name)} `));
 const words = (value: string) => key(value).split(/[^a-z0-9]+/).filter((word) => word.length > 2);
 const queryNoise = new Set(['about', 'does', 'from', 'have', 'help', 'what', 'when', 'where', 'which', 'with', 'work', 'works']);
 
@@ -100,8 +102,10 @@ export function createToolkit() {
 
   async function runTechs(args: z.infer<typeof schemas.search_techs>) {
     const entries = await getTechs();
-    let results = searchTechs(entries, args.query, args.kind ?? 'all');
-    if (!results.length) {
+    let results = args.exact
+      ? searchTechs(entries, '', args.kind ?? 'all').filter(({ entry }) => [entry.name, ...entry.aliases].some((name) => mentions(args.query, name)))
+      : searchTechs(entries, args.query, args.kind ?? 'all');
+    if (!results.length && !args.exact) {
       const seen = new Set<string>();
       results = words(args.query)
         .filter((word) => !queryNoise.has(word))
@@ -112,7 +116,7 @@ export function createToolkit() {
           return true;
         });
     }
-    const mentioned = results.filter(({ entry }) => [entry.name, ...entry.aliases].some((name) => key(args.query).includes(key(name))));
+    const mentioned = results.filter(({ entry }) => [entry.name, ...entry.aliases].some((name) => mentions(args.query, name)));
     if (mentioned.length) results = mentioned;
     const found = results.slice(0, args.limit ?? 5).map(({ entry }) => entry);
     suggest(found.map((entry) => ({

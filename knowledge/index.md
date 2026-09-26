@@ -99,7 +99,6 @@ tags:
 * [Slide Jump](glossary/slide-jump.md)
 * [Speedvault](glossary/speedvault.md)
 * [Temporary Momentum](glossary/temporary-momentum.md)
-* [Trimp](glossary/trimp.md)
 * [Velocity](glossary/velocity.md)
 * [Wallboost](glossary/wallboost.md)
 * [Wallbounce Flick](glossary/wallbounce-flick.md)

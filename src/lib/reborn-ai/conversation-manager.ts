@@ -1,9 +1,9 @@
 import 'server-only';
 
 import { z } from 'zod';
-import { compactQuery, exactKnowledgeExcerpts, safeAnswer, simpleDefinitionTerm, versionDateAnswer } from '@/lib/reborn-ai/answer-facts';
+import { compactQuery, safeAnswer } from '@/lib/reborn-ai/answer-facts';
 import { limits } from '@/lib/reborn-ai/limits';
-import { freeModelQuota, ModelError, modelNames, streamModel } from '@/lib/reborn-ai/openrouter';
+import { freeModelQuota, ModelError, modelName, streamModel } from '@/lib/reborn-ai/openrouter';
 import type { ModelMessage } from '@/lib/reborn-ai/openrouter';
 import { buildSystemPrompt } from '@/lib/reborn-ai/prompt';
 import { routeMessage } from '@/lib/reborn-ai/router';
@@ -39,7 +39,7 @@ function modelErrorText(error: unknown, dailyRemaining?: number) {
   if (error.status === 429) {
     if (dailyRemaining === 0) return 'openrouter’s free requests for today are used up';
     if (error.diagnostic?.remaining === '0') return 'openrouter’s short-term free request limit was reached; try again after it resets';
-    return 'the free model providers are busy right now; try again soon';
+    return 'the free model provider is busy right now; try again soon';
   }
   if (error.status >= 500) return 'the model is having a moment, try again';
   return 'reborn ai is not reachable right now';
@@ -72,7 +72,7 @@ function hasItems(value: unknown): value is unknown[] {
 function sourceFor(route: RouteName) {
   if (route === 'records') return 'Wasans world records';
   if (route === 'trials') return 'Parkour Reborn time trials';
-  if (route === 'movement') return 'Parkour Reborn movement list';
+  if (route === 'movement' || route === 'mechanics') return 'Parkour Reborn movement list';
   if (route === 'community') return 'Parkour Reborn community library';
   return 'Parkour Reborn guide';
 }
@@ -80,7 +80,7 @@ function sourceFor(route: RouteName) {
 function toolFor(route: RouteName, query: string, message: string) {
   if (route === 'records') return { name: 'get_world_records', args: { trial: query, limit: 4 } };
   if (route === 'trials') return { name: 'get_time_trials', args: { query, limit: 4 } };
-  if (route === 'movement') return { name: 'search_techs', args: { query, limit: 4 } };
+  if (route === 'movement' || route === 'mechanics') return { name: 'search_techs', args: { query, limit: 4 } };
   if (route === 'community') {
     const type = /\bgif|meme\b/i.test(message) ? 'gif' : /\bfile|document|pdf\b/i.test(message) ? 'file' : /\blink|discord|invite\b/i.test(message) ? 'link' : undefined;
     const browse = /\b(any|random|something|surprise me)\b/i.test(message);
@@ -127,7 +127,7 @@ function filteredBlocks(blocks: AssistantBlock[], evidence: Evidence[], ambiguou
   const routed = blocks.filter((block) => {
     if (block.type === 'world_record') return routes.includes('records');
     if (block.type === 'time_trial') return routes.includes('trials');
-    if (block.type === 'tech') return routes.includes('movement');
+    if (block.type === 'tech') return evidence.some((item) => item.source === 'Parkour Reborn movement list' && item.status === 'ok');
     if (block.type === 'recipe') return routes.includes('crafting');
     if (block.type === 'link' || block.type === 'gif') return routes.includes('community');
     return true;
@@ -137,60 +137,28 @@ function filteredBlocks(blocks: AssistantBlock[], evidence: Evidence[], ambiguou
   return routed.filter((block) => {
     if (block.type === 'world_record') return !uncertain.has('records');
     if (block.type === 'time_trial') return !uncertain.has('trials');
-    if (block.type === 'tech') return !uncertain.has('movement');
+    if (block.type === 'tech') return !uncertain.has('movement') && !uncertain.has('mechanics');
     return true;
   }).slice(0, limits.maxBlocks);
 }
 
 function attachments(blocks: AssistantBlock[]) {
-  return blocks.map((block) => {
-    if (block.type === 'world_record') return { type: block.type, name: block.trial, available: true };
-    if (block.type === 'time_trial' || block.type === 'tech' || block.type === 'recipe') return { type: block.type, name: block.type === 'recipe' ? block.item : block.name, available: true };
-    if (block.type === 'link' || block.type === 'gif') return { type: block.type, name: block.title, available: true };
-    return { type: block.type, name: '', available: true };
+  return blocks.map((block, index) => {
+    if (block.type === 'world_record') return { index, type: block.type, name: block.trial };
+    if (block.type === 'time_trial' || block.type === 'tech' || block.type === 'recipe') return { index, type: block.type, name: block.type === 'recipe' ? block.item : block.name };
+    if (block.type === 'link' || block.type === 'gif') return { index, type: block.type, name: block.title };
+    return { index, type: block.type, name: '' };
   });
 }
 
-function groundedFallback(question: string, evidence: Evidence[], missing: string[]) {
-  const parts: string[] = [];
-  const records = evidence.find((item) => item.route === 'records' && hasItems(item.result));
-  const record = records && hasItems(records.result) ? records.result[0] as Record<string, unknown> : undefined;
-  if (record) parts.push(`${record.trial}'s world record is ${record.time} by ${record.player}.`);
-
-  const trials = evidence.find((item) => item.route === 'trials' && hasItems(item.result));
-  const trial = trials && hasItems(trials.result) ? trials.result[0] as Record<string, unknown> : undefined;
-  if (trial) {
-    const medal = ['bronze', 'silver', 'gold', 'platinum'].find((name) => (
-      name === 'platinum' ? /\b(?:platinum|plat)\b/i.test(question) : new RegExp(`\\b${name}\\b`, 'i').test(question)
-    ));
-    parts.push(medal ? `${medal} on ${trial.name} is ${trial[medal]}.` : `i found the current medal times for ${trial.name}.`);
-  }
-  const docs = evidence.flatMap((item) => item.source === 'Parkour Reborn guide' && hasItems(item.result)
-    ? item.result as { title: string; aliases: string[]; body: string }[] : []);
-  parts.push(...exactKnowledgeExcerpts(question, docs));
-  parts.push(...missing);
-  return parts.filter(Boolean).join(' ') || fallbackReply;
-}
-
-function directKnowledgeAnswer(question: string, evidence: Evidence[]) {
-  const results = evidence.flatMap((item) => item.source === 'Parkour Reborn guide' && hasItems(item.result)
-    ? item.result as { title: string; aliases: string[]; category: string; body: string }[] : []);
-  const timeline = results.find((item) => item.title === 'Update Timeline');
-  const date = timeline && versionDateAnswer(question, timeline.body);
-  if (date) return date;
-
-  const trimp = results.find((item) => item.title === 'Trimp');
-  if (trimp && /\bhow\b.*\btrimp(?:ing)?\b/i.test(question)) {
-    return 'trimping briefly re-enters grounded/coyote state when you skim a valid surface at speed, letting you compound or redirect a launch. i don’t have a verified step-by-step input sequence for it.';
-  }
-
-  const term = simpleDefinitionTerm(question);
-  if (!term) return null;
-  const match = results.find((item) => item.category === 'glossary' && [item.title, ...item.aliases].some((name) => name.toLowerCase() === term));
-  if (!match) return null;
-  const definition = match.body.replace(/^#{1,3}\s+[^\n]+\n+/, '').trim().split(/\n\s*\n/)[0];
-  if (definition.length > 500) return null;
-  return definition.toLowerCase().startsWith(term) ? definition : `${match.title}: ${definition}`;
+function selectedBlocks(content: string, available: AssistantBlock[]) {
+  const marker = content.match(/\s*\[\[cards:([\d, ]*)\]\]\s*$/i);
+  const answer = marker ? content.slice(0, marker.index).trim() : content.trim();
+  const indexes = marker?.[1].split(',').map((value) => value.trim()).filter(Boolean).map(Number) ?? [];
+  const blocks = Array.from(new Set(indexes))
+    .filter((index) => Number.isInteger(index) && index >= 0 && index < available.length)
+    .map((index) => available[index]);
+  return { answer, blocks };
 }
 
 export async function runConversation(request: ChatRequest, _origin: string, emit: Emit, signal?: AbortSignal) {
@@ -213,21 +181,34 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
   if (decision.routes.length) {
     emit({ type: 'status', state: 'looking' });
     const calls = uniqueCalls(decision.routes, query, question.content);
+    if (decision.routes.includes('game_knowledge') && !calls.some((call) => call.name === 'search_techs')) {
+      calls.push({ routes: ['movement'], name: 'search_techs', args: { query, exact: true, limit: 4 } });
+    }
     const outcomes = await Promise.all(calls.map(async (call) => ({ call, outcome: await toolkit.lookup(call.name, call.args) })));
 
     for (const { call, outcome } of outcomes) {
+      if (call.args.exact && !(outcome.status === 'ok' && hasItems(outcome.result))) continue;
       const route = call.routes[0];
       if (outcome.status === 'ok') {
         evidence.push({
           route,
           source: sourceFor(route),
           status: hasItems(outcome.result) ? 'ok' : 'empty',
-          checkedAt: route === 'records' || route === 'trials' || route === 'movement' || route === 'community' ? outcome.checkedAt : null,
+          checkedAt: route === 'records' || route === 'trials' || route === 'movement' || route === 'mechanics' || route === 'community' ? outcome.checkedAt : null,
           result: outcome.result,
         });
       } else {
         evidence.push({ route, source: sourceFor(route), status: 'unavailable', checkedAt: outcome.checkedAt, result: null, error: outcome.error });
       }
+    }
+
+    const tech = evidence.find((item) => item.source === 'Parkour Reborn movement list');
+    const guide = evidence.some((item) => item.source === 'Parkour Reborn guide');
+    if (decision.routes.includes('mechanics') && tech?.status === 'empty' && !guide) {
+      const outcome = await toolkit.lookup('search_knowledge', { query, limit: limits.maxKnowledgeDocs });
+      evidence.push(outcome.status === 'ok'
+        ? { route: 'mechanics', source: 'Parkour Reborn guide', status: hasItems(outcome.result) ? 'ok' : 'empty', checkedAt: null, result: outcome.result }
+        : { route: 'mechanics', source: 'Parkour Reborn guide', status: 'unavailable', checkedAt: null, result: null, error: outcome.error });
     }
   }
   const fetchedAt = performance.now();
@@ -235,39 +216,15 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
   const ambiguous = ambiguity(evidence, question.content, refs);
   const blocks = filteredBlocks(toolkit.autoBlocks, evidence, ambiguous, decision.routes);
   const answerEvidence = ambiguous
-    ? evidence.map((item) => ['records', 'trials', 'movement'].includes(item.route) && hasItems(item.result) && item.result.length > 1
+    ? evidence.map((item) => ['records', 'trials', 'movement', 'mechanics'].includes(item.route) && hasItems(item.result) && item.result.length > 1
       ? { ...item, status: 'empty' as const, result: null }
       : item)
     : evidence;
-  const direct = directKnowledgeAnswer(question.content, answerEvidence);
-  if (direct) {
-    emit({ type: 'status', state: 'writing' });
-    emit({ type: 'text', delta: direct });
-    if (blocks.length) emit({ type: 'blocks', blocks });
-    emit({ type: 'done' });
-    return;
-  }
-  const missing = Array.from(new Set([
-    ...(ambiguous ? [ambiguous] : []),
-    ...(decision.handling === 'unsupported' ? ['i can’t access live player state or perform in-game actions.'] : []),
-    ...(decision.handling === 'unclear' && !ambiguous ? ['i need the name of the thing you mean.'] : []),
-    ...evidence.filter((item) => item.status === 'empty').map(() => 'i couldn’t find a match for that part.'),
-    ...evidence.filter((item) => item.status === 'unavailable').map(() => 'i couldn’t check that part right now.'),
-  ]));
-
-  if (decision.routes.length && !answerEvidence.some((item) => item.status === 'ok')) {
-    emit({ type: 'status', state: 'writing' });
-    emit({ type: 'text', delta: missing.join(' ') || 'i couldn’t verify that right now.' });
-    emit({ type: 'done' });
-    return;
-  }
-
   const input = {
     question: question.content,
-    context: { recentMessages: history.slice(-5, -1), references: refs },
+    context: { recentMessages: history.slice(-5, -1), references: refs, handling: decision.handling, ambiguity: ambiguous || null },
     evidence: answerEvidence,
     attachments: attachments(blocks),
-    missing,
   };
   const messages: ModelMessage[] = [
     { role: 'system', content: buildSystemPrompt() },
@@ -275,7 +232,6 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
   ];
 
   emit({ type: 'status', state: 'writing' });
-  let wrote = false;
   let answerModel = '';
   let answerUsage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
 
@@ -284,36 +240,29 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
     answerModel = answer.model;
     answerUsage = answer.usage;
 
-    const fallback = groundedFallback(question.content, answerEvidence, missing);
-    const safe = safeAnswer(answer.content, question.content, answerEvidence.map(({ result }) => result))
-      ? answer.content.trim()
-      : fallback === fallbackReply ? 'i couldn’t verify a reliable answer to that yet.' : fallback;
-    emit({ type: 'text', delta: safe });
-    wrote = Boolean(safe.trim());
+    const chosen = selectedBlocks(answer.content, blocks);
+    if (!safeAnswer(chosen.answer, question.content, answerEvidence.map(({ result }) => result))) {
+      console.warn('reborn-ai answer rejected', { model: answerModel, routes: decision.routes });
+      emit({ type: 'error', message: 'i couldn’t verify that answer; please try again' });
+      return;
+    }
+    emit({ type: 'text', delta: chosen.answer });
+    if (chosen.blocks.length) emit({ type: 'blocks', blocks: chosen.blocks });
   } catch (error) {
     if (signal?.aborted) return;
     const quota = error instanceof ModelError && error.status === 429 ? await freeModelQuota() : null;
     console.error('reborn-ai answer model failed', {
-      models: modelNames(),
+      model: modelName(),
       routes: decision.routes,
       status: error instanceof ModelError ? error.status : undefined,
       error: error instanceof Error ? error.message : String(error),
       diagnostic: error instanceof ModelError ? error.diagnostic : undefined,
       freeModelDailyRequests: quota,
     });
-    const safe = groundedFallback(question.content, answerEvidence, missing);
-    if (safe !== fallbackReply) {
-      emit({ type: 'text', delta: safe });
-      wrote = Boolean(safe.trim());
-    }
-    if (!wrote) {
-      emit({ type: 'error', message: modelErrorText(error, quota?.remaining) });
-      return;
-    }
+    emit({ type: 'error', message: modelErrorText(error, quota?.remaining) });
+    return;
   }
 
-  if (!wrote && !blocks.length) emit({ type: 'text', delta: groundedFallback(question.content, answerEvidence, missing) });
-  if (blocks.length) emit({ type: 'blocks', blocks });
   console.info('reborn-ai request', {
     routes: decision.routes,
     handling: decision.handling,

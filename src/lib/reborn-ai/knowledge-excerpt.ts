@@ -2,7 +2,7 @@ export function knowledgeExcerpt(body: string, query: string, title: string) {
   const version = query.match(/\b\d+(?:\.\d+)+\b/)?.[0];
   if (title === 'Update Timeline' && version) {
     const rows = body.split(/\r?\n/).filter((line) => new RegExp(`^\\|\\s*${version.replace(/\./g, '\\.')}\\s*\\|`).test(line));
-    if (rows.length) return `Recorded update dates (the timeline has no patch details):\n${rows.join('\n')}`;
+    if (rows.length) return `Version rows:\n${rows.join('\n')}`;
   }
 
   if (body.length <= 3000) return body;
