@@ -1,4 +1,4 @@
-export default {
+const config = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.discordapp.com' },
@@ -8,3 +8,5 @@ export default {
     '/api/reborn-ai/chat': ['./knowledge/**/*.md'],
   },
 };
+
+export default config;

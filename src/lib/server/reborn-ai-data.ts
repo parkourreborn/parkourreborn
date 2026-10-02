@@ -4,7 +4,6 @@ import type { CommunityResource, CommunityResourceType } from '@/lib/pages/searc
 import type { MovementEntry, MovementKind } from '@/lib/pages/techlist';
 import type { TimeTrial, WorldRecord } from '@/lib/pages/timetrials';
 import { limits } from '@/lib/reborn-ai/limits';
-import { getCollectionDocuments } from '@/lib/server/firebase';
 import { getAdminDb } from '@/lib/server/firebase-admin';
 import { cleanUrl } from '@/lib/url';
 
@@ -91,9 +90,8 @@ export function loadTechs() {
 
 export function loadTimeTrials() {
   return cached('trials', async () => {
-    const docs = await getCollectionDocuments<TrialData>('timetrials');
+    const docs = await activeDocs<TrialData>('timetrials');
     return docs
-      .filter((doc) => doc.data.active !== false)
       .map<TimeTrial>((doc) => ({
         name: doc.id,
         bronzeTime: text(doc.data.bronzeTime),

@@ -105,10 +105,6 @@ export function getEffectiveMultiplier(playerXpMultiplier: number, isVIP: boolea
   return cleanMultiplier(playerXpMultiplier) * (isVIP ? 2 : 1);
 }
 
-export function comboScoreToXP(comboScore: number, playerXpMultiplier: number, isVIP: boolean): number {
-  return (cleanXP(comboScore) / comboPerXP) * getEffectiveMultiplier(playerXpMultiplier, isVIP);
-}
-
 export function xpToRequiredComboScore(xpNeeded: number, playerXpMultiplier: number, isVIP: boolean): number {
   const multiplier = getEffectiveMultiplier(playerXpMultiplier, isVIP);
   if (multiplier <= 0) return 0;
@@ -149,8 +145,4 @@ export function formatXP(value: number): string {
 
 export function formatComboScore(value: number): string {
   return Math.ceil(cleanXP(value)).toLocaleString('en-US');
-}
-
-export function formatPercent(value: number): string {
-  return `${round(cleanPercent(value), 1).toLocaleString('en-US', { maximumFractionDigits: 1 })}%`;
 }

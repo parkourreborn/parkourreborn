@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install --no-save --package-lock=false firebase-admin
-      - run: node cleanup-firestore.js
+      - run: npm ci --omit=dev --ignore-scripts
+      - run: node cleanup-firestore.mjs
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

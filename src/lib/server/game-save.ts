@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { isDeepStrictEqual } from 'node:util';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/server/firebase-admin';
 
@@ -147,7 +148,7 @@ type WriteInput = {
   discordId: string;
   name: string;
   save: SaveDoc;
-  baseRev: number | null;
+  baseRev: number;
 };
 
 export async function writeSave({ discordId, name, save, baseRev }: WriteInput) {
@@ -164,7 +165,8 @@ export async function writeSave({ discordId, name, save, baseRev }: WriteInput) 
     const data = snapshot.data() as SaveRow | undefined;
     const rev = num(data?.rev);
 
-    if (baseRev !== null && baseRev !== rev) {
+    if (baseRev === rev - 1 && isDeepStrictEqual(data?.doc, doc)) return { ok: true as const, rev };
+    if (baseRev !== rev) {
       return { ok: false as const, rev, save: isPlain(data?.doc) ? data.doc : null };
     }
 

@@ -10,7 +10,7 @@ const oversize = () => NextResponse.json({ error: 'Save too large' }, { status: 
 const invalid = (reason: string) => NextResponse.json({ reason }, { status: 422 });
 
 const declared = (request: NextRequest) => Number(request.headers.get('content-length') ?? 0);
-const baseRev = (value: unknown) => (typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null);
+const baseRev = (value: unknown) => (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null);
 
 export async function GET(request: NextRequest) {
   const session = await readSession(request);
@@ -42,6 +42,8 @@ export async function PUT(request: NextRequest) {
   if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return invalid('bad-body');
 
   const { save, baseRev: base } = payload as { save?: unknown; baseRev?: unknown };
+  const rev = baseRev(base);
+  if (rev === null) return invalid('bad-revision');
   const checked = checkSave(save);
   if (!checked.ok) return invalid(checked.reason);
 
@@ -50,7 +52,7 @@ export async function PUT(request: NextRequest) {
       discordId: session.discordId,
       name: session.name,
       save: checked.save,
-      baseRev: baseRev(base),
+      baseRev: rev,
     });
 
     if (!result.ok) return NextResponse.json({ rev: result.rev, save: result.save }, { status: 409 });

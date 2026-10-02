@@ -12,13 +12,6 @@ const bullet = /^[*-]\s+(.+)$/;
 const middleLine = /^middle:\s*(.+)$/i;
 const amountLine = /^(.+?)\s*[×x]\s*(\d+)$/i;
 
-const romans: Record<string, string> = { '1': 'i', '2': 'ii', '3': 'iii' };
-
-const matchKey = (value: string) => value
-  .toLowerCase()
-  .replace(/\d+/g, (digits) => romans[digits] ?? digits)
-  .replace(/[^a-z0-9]/g, '');
-
 function parseDoc(body: string) {
   const recipes: Recipe[] = [];
   let item = '';
@@ -117,16 +110,6 @@ export function hideRecipes(body: string) {
   }
 
   return lines.join('\n');
-}
-
-export function findRecipe(name: string, recipes: Recipe[]) {
-  const search = matchKey(name);
-  if (!search) return null;
-
-  return recipes.find((recipe) => matchKey(recipe.item) === search)
-    ?? recipes.find((recipe) => matchKey(recipe.item).includes(search))
-    ?? recipes.find((recipe) => search.includes(matchKey(recipe.item)))
-    ?? null;
 }
 
 export const recipeBlock = (recipe: Recipe): AssistantBlock => ({

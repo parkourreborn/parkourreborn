@@ -3,7 +3,7 @@ import 'server-only';
 import { z } from 'zod';
 import { getAdminDb } from '@/lib/server/firebase-admin';
 import { guessrDifficulties, guessrModes } from '@/lib/guessr';
-import type { GuessrDifficulty, GuessrMap, GuessrMode, MapPoint } from '@/lib/guessr';
+import type { GuessrAvailability, GuessrDifficulty, GuessrMap, GuessrMode } from '@/lib/guessr';
 
 export const roundCount = 5;
 
@@ -36,14 +36,7 @@ const imageSchema = z.object({
   mapVersionId: z.string().trim().min(1),
 });
 
-export type PublishedGuessrImage = {
-  id: string;
-  imageUrl: string;
-  mode: GuessrMode;
-  difficulty: GuessrDifficulty;
-  coordinates: MapPoint;
-  mapVersionId: string;
-};
+let availability: { mapId: string; until: number; value: Promise<GuessrAvailability[]> } | null = null;
 
 export async function getActiveGuessrMap(): Promise<GuessrMap> {
   const maps = await getAdminDb().collection('guessrMaps').where('active', '==', true).limit(2).get();
@@ -68,4 +61,18 @@ export async function getPublishedGuessrImages(mapVersionId: string, mode: Guess
     const image = imageSchema.safeParse(doc.data());
     return image.success ? [{ id: doc.id, ...image.data }] : [];
   });
+}
+
+export function getGuessrAvailability(mapId: string) {
+  if (availability?.mapId === mapId && availability.until > Date.now()) return availability.value;
+
+  const choices = guessrModes.flatMap((mode) => guessrDifficulties.map((difficulty) => ({ mode, difficulty })));
+  const value = Promise.all(choices.map(({ mode, difficulty }) => getPublishedGuessrImages(mapId, mode, difficulty)))
+    .then((images) => choices.map((choice, index) => ({ ...choice, count: images[index].length, available: images[index].length >= roundCount })))
+    .catch((error) => {
+      if (availability?.value === value) availability = null;
+      throw error;
+    });
+  availability = { mapId, until: Date.now() + 30000, value };
+  return value;
 }

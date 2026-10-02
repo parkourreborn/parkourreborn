@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+import admin from 'firebase-admin';
 
 if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
   throw new Error('FIREBASE_SERVICE_ACCOUNT is not set');
@@ -32,8 +32,10 @@ async function cleanup(collectionName, field, cutoff) {
 }
 
 async function main() {
-  await cleanup('rateLimits', 'updatedAt', now.toMillis() - 60 * 60 * 1000);
+  await cleanup('rateLimits', 'expiresAt', now);
   await cleanup('guessrGames', 'expiresAt', now);
+  await cleanup('discordAuthStates', 'expiresAt', now.toMillis());
+  await cleanup('discordLogins', 'expiresAt', now.toMillis());
 }
 
 main().catch((error) => {

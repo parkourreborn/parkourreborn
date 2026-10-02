@@ -40,7 +40,8 @@ async function fromHeader(header: string | null) {
 }
 
 export async function readSession(request: NextRequest) {
+  const header = request.headers.get('authorization');
+  if (header) return fromHeader(header);
   const cookie = request.cookies.get(sessionCookie)?.value;
-  const session = cookie ? await fromCookie(cookie) : null;
-  return session ?? fromHeader(request.headers.get('authorization'));
+  return cookie ? fromCookie(cookie) : null;
 }
