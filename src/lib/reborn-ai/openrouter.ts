@@ -1,219 +1,298 @@
 import 'server-only';
 
 import { limits } from '@/lib/reborn-ai/limits';
+import { classifyFailure, cooldownFor, errorMessage, reasoningSettings } from '@/lib/reborn-ai/model-list';
+import type { Failure, ModelCaps } from '@/lib/reborn-ai/model-list';
+import { apiKey, coolDown, freeModelQuota, modelPlan, recovered } from '@/lib/reborn-ai/models';
 
-export type ModelMessage = { role: 'system' | 'user'; content: string };
+export type ModelMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+export type Usage = { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
 
-type Delta = { content?: string | null };
-type Usage = { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+type AttemptFailure = Failure | 'timeout' | 'empty' | 'network';
 
-const endpoint = 'https://openrouter.ai/api/v1/chat/completions';
-
-type RateDiagnostic = {
-  providerCode?: string | number;
-  limitSource?: string;
-  remaining?: string;
-  reset?: string;
-  retryAfter?: string;
+export type AttemptLog = {
+  model: string;
+  result: 'ok' | AttemptFailure;
+  ms: number;
+  status?: number;
+  detail?: string;
 };
 
-export class ModelError extends Error {
-  status: number;
-  diagnostic?: RateDiagnostic;
+export type AnswerOutcome = {
+  content: string;
+  model: string;
+  usage?: Usage;
+  // The model stopped before it finished: it hit the token cap or its stream
+  // broke after text had already reached the user.
+  cut: boolean;
+  attempts: AttemptLog[];
+};
 
-  constructor(message: string, status = 0, diagnostic?: RateDiagnostic) {
+export type ModelErrorKind = 'quota' | 'busy' | 'auth' | 'unavailable' | 'aborted';
+
+export class ModelError extends Error {
+  kind: ModelErrorKind;
+  attempts: AttemptLog[];
+
+  constructor(kind: ModelErrorKind, message: string, attempts: AttemptLog[] = []) {
     super(message);
-    this.status = status;
-    this.diagnostic = diagnostic;
+    this.kind = kind;
+    this.attempts = attempts;
   }
 }
 
-export function modelName() {
-  return process.env.OPENROUTER_MODEL?.trim() ?? '';
-}
+type StreamOptions = {
+  onText: (delta: string) => void;
+  onStatus?: (state: 'queued' | 'writing') => void;
+  signal?: AbortSignal;
+};
 
-export function hasModelConfig() {
-  return Boolean(process.env.OPENROUTER_API_KEY?.trim() && modelName() && !modelName().includes(','));
-}
+type AttemptResult =
+  | { ok: true; content: string; model: string; usage?: Usage; cut: boolean }
+  | { ok: false; failure: AttemptFailure; status?: number; retryAfterMs?: number; detail?: string };
+
+type StreamEvent = {
+  error?: { code?: number | string; message?: string; metadata?: unknown };
+  choices?: { delta?: { content?: string | null }; finish_reason?: string | null }[];
+  model?: string;
+  usage?: Usage;
+};
+
+const endpoint = 'https://openrouter.ai/api/v1/chat/completions';
 
 function headers() {
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (!apiKey) throw new ModelError('missing key');
-
   return {
     'content-type': 'application/json',
-    authorization: `Bearer ${apiKey}`,
+    authorization: `Bearer ${apiKey()}`,
     'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://www.parkourreborn.com',
     'X-Title': 'Parkour Reborn Hub',
   };
 }
 
-const retryable = new Set([408, 409, 429, 500, 502, 503, 504]);
-
-function wait(ms: number, signal?: AbortSignal) {
+function sleep(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
-    if (signal?.aborted) return reject(new ModelError('aborted'));
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => {
+    if (signal?.aborted) return reject(new ModelError('aborted', 'aborted'));
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', stop);
+      resolve();
+    }, ms);
+    const stop = () => {
       clearTimeout(timer);
-      reject(new ModelError('aborted'));
-    }, { once: true });
+      reject(new ModelError('aborted', 'aborted'));
+    };
+    signal?.addEventListener('abort', stop, { once: true });
   });
 }
 
-function backoff(attempt: number, retryAfter?: string | null) {
-  const header = Number(retryAfter);
-  if (Number.isFinite(header) && header > 0) return Math.min(header * 1000, 5000);
-  return 500 * 2 ** attempt;
+function retryAfterMs(response: Response) {
+  const seconds = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
+  const reset = Number(response.headers.get('x-ratelimit-reset'));
+  if (Number.isFinite(reset) && reset > Date.now()) return reset - Date.now();
+  return undefined;
 }
 
-function watchdog(span: number, signal?: AbortSignal) {
-  const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const clear = () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
-  };
-  const relay = () => {
-    clear();
-    controller.abort(signal?.reason);
-  };
-  const bump = (next = span) => {
-    clear();
-    timer = setTimeout(() => controller.abort(new ModelError('model went quiet')), next);
-  };
-  const stop = () => {
-    clear();
-    signal?.removeEventListener('abort', relay);
-  };
-
-  if (signal?.aborted) relay();
-  else signal?.addEventListener('abort', relay, { once: true });
-  bump();
-  return { signal: controller.signal, bump, stop };
-}
-
-function asModelError(error: unknown) {
-  return error instanceof ModelError
-    ? error
-    : new ModelError(error instanceof Error ? error.message : 'model call failed');
-}
-
-export async function freeModelQuota() {
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/key', {
-      headers: { authorization: `Bearer ${process.env.OPENROUTER_API_KEY?.trim() ?? ''}` },
-      signal: AbortSignal.timeout(2000),
-      cache: 'no-store',
-    });
-    if (!response.ok) return null;
-    const body = await response.json() as { data?: { free_model_daily_requests?: { used?: number; limit?: number; remaining?: number } } };
-    return body.data?.free_model_daily_requests ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function openStream(messages: ModelMessage[], signal?: AbortSignal) {
-  const model = modelName();
-  if (!model || model.includes(',')) throw new ModelError('missing or invalid model');
+// One call to one model. Text is handed to onText as it arrives. Once any text
+// has gone out the attempt never reports a failure, because the caller cannot
+// switch models under a reply the user is already reading.
+async function attempt(
+  id: string,
+  caps: ModelCaps | undefined,
+  messages: ModelMessage[],
+  plain: boolean,
+  onText: (delta: string) => void,
+  signal?: AbortSignal,
+): Promise<AttemptResult> {
+  const settings = reasoningSettings(caps, limits.maxOutputTokens, limits.reasoningTokens);
   const body = JSON.stringify({
-    model,
+    model: id,
     messages,
     stream: true,
     stream_options: { include_usage: true },
-    max_tokens: limits.maxOutputTokens,
-    temperature: 0,
+    max_tokens: settings.maxTokens,
+    temperature: 0.2,
+    ...(settings.reasoning && !plain ? { reasoning: settings.reasoning } : {}),
   });
 
-  for (let attempt = 0; ; attempt += 1) {
-    const watch = watchdog(limits.modelConnectMs, signal);
-    try {
-      const response = await fetch(endpoint, { method: 'POST', headers: headers(), signal: watch.signal, body });
-      if (response.ok && response.body) {
-        watch.bump(limits.modelIdleMs);
-        return { body: response.body, watch };
-      }
+  const controller = new AbortController();
+  let timedOut = false;
+  const relay = () => controller.abort();
+  const expire = () => {
+    timedOut = true;
+    controller.abort();
+  };
 
-      const responseBody = await response.json().catch(() => null);
-      watch.stop();
-      const detail = typeof responseBody?.error?.message === 'string' ? responseBody.error.message.slice(0, 500) : '';
-      const metadata = responseBody?.error?.metadata;
-      const diagnostic: RateDiagnostic = {
-        providerCode: typeof metadata?.provider_code === 'string' || typeof metadata?.provider_code === 'number' ? metadata.provider_code : undefined,
-        limitSource: typeof metadata?.limit_source === 'string' ? metadata.limit_source : undefined,
-        remaining: response.headers.get('x-ratelimit-remaining') ?? undefined,
-        reset: response.headers.get('x-ratelimit-reset') ?? undefined,
-        retryAfter: response.headers.get('retry-after') ?? undefined,
-      };
-      const failure = new ModelError(`model responded ${response.status}${detail ? `: ${detail}` : ''}`, response.status, diagnostic);
-      const retrySeconds = Number(diagnostic.retryAfter);
-      const canRetryRateLimit = response.status !== 429 || (diagnostic.limitSource === 'upstream_provider_shared_pool'
-        && (!Number.isFinite(retrySeconds) || retrySeconds <= 5));
-      if (!retryable.has(response.status) || attempt >= limits.maxModelRetries || !canRetryRateLimit) {
-        throw failure;
-      }
-      await wait(backoff(attempt, diagnostic.retryAfter), signal);
-    } catch (error) {
-      watch.stop();
-      const modelError = asModelError(error);
-      if (signal?.aborted || attempt >= limits.maxModelRetries || modelError.status) throw modelError;
-      await wait(backoff(attempt), signal);
+  if (signal?.aborted) throw new ModelError('aborted', 'aborted');
+  signal?.addEventListener('abort', relay, { once: true });
+
+  // Two clocks: one for the first word of the reply, one for the stream going
+  // silent. Keep-alive comments and hidden reasoning both reset the second.
+  let firstWord: ReturnType<typeof setTimeout> | null = setTimeout(expire, settings.slow ? limits.reasoningFirstTokenMs : limits.firstTokenMs);
+  let silence: ReturnType<typeof setTimeout> | null = null;
+  const heard = () => {
+    if (silence) clearTimeout(silence);
+    silence = setTimeout(expire, limits.modelIdleMs);
+  };
+  const cleanup = () => {
+    if (firstWord) clearTimeout(firstWord);
+    if (silence) clearTimeout(silence);
+    firstWord = null;
+    silence = null;
+    signal?.removeEventListener('abort', relay);
+  };
+
+  let content = '';
+  let model = id;
+  let usage: Usage | undefined;
+  let finish = '';
+
+  try {
+    let response: Response;
+    try {
+      response = await fetch(endpoint, { method: 'POST', headers: headers(), body, signal: controller.signal });
+    } catch {
+      if (signal?.aborted) throw new ModelError('aborted', 'aborted');
+      return { ok: false, failure: timedOut ? 'timeout' : 'network' };
     }
+
+    if (!response.ok || !response.body) {
+      const errorBody = await response.json().catch(() => null);
+      return {
+        ok: false,
+        failure: classifyFailure(response.status, errorBody),
+        status: response.status,
+        retryAfterMs: retryAfterMs(response),
+        detail: errorMessage(errorBody),
+      };
+    }
+
+    heard();
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        heard();
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const payload = trimmed.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+
+          let event: StreamEvent;
+          try {
+            event = JSON.parse(payload) as StreamEvent;
+          } catch {
+            continue;
+          }
+
+          if (event.error) {
+            if (content) return { ok: true, content, model, usage, cut: true };
+            const code = Number(event.error.code) || 0;
+            return { ok: false, failure: classifyFailure(code, { error: event.error }), status: code, detail: errorMessage({ error: event.error }) };
+          }
+          if (event.model) model = event.model;
+          if (event.usage) usage = event.usage;
+
+          const choice = event.choices?.[0];
+          if (choice?.finish_reason) finish = choice.finish_reason;
+          const delta = choice?.delta?.content;
+          if (delta) {
+            if (firstWord) {
+              clearTimeout(firstWord);
+              firstWord = null;
+            }
+            content += delta;
+            onText(delta);
+          }
+        }
+      }
+    } catch {
+      if (signal?.aborted) throw new ModelError('aborted', 'aborted');
+      if (content) return { ok: true, content, model, usage, cut: true };
+      return { ok: false, failure: timedOut ? 'timeout' : 'network' };
+    }
+
+    if (!content.trim()) {
+      // finish_reason "length" with no text means the model spent the whole
+      // budget thinking. Either way there is nothing to show from this model.
+      return { ok: false, failure: finish === 'error' ? 'error' : 'empty', detail: finish ? `finish_reason ${finish}` : undefined };
+    }
+
+    return { ok: true, content, model, usage, cut: finish === 'length' || finish === 'error' };
+  } finally {
+    cleanup();
+    controller.abort();
   }
 }
 
-export async function streamModel(
-  messages: ModelMessage[],
-  onText: (delta: string) => void,
-  signal?: AbortSignal,
-) {
-  const { body, watch } = await openStream(messages, signal);
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let content = '';
-  let buffer = '';
-  let model = '';
-  let usage: Usage | undefined;
-  let truncated = false;
+// Streams one answer, walking the OPENROUTER_MODEL list in order until a model
+// replies. Throws ModelError only when no model produced any text at all.
+export async function streamAnswer(messages: ModelMessage[], { onText, onStatus, signal }: StreamOptions): Promise<AnswerOutcome> {
+  const plan = await modelPlan();
+  const attempts: AttemptLog[] = [];
+  const deadline = Date.now() + limits.answerBudgetMs;
+  let queueLeft = limits.queueWaitMs;
+  let busy = false;
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      watch.bump(limits.modelIdleMs);
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
+  if (!plan.length) throw new ModelError('unavailable', 'no models configured');
 
-      for (const line of lines) {
-        const payload = line.trim().startsWith('data:') ? line.trim().slice(5).trim() : '';
-        if (!payload || payload === '[DONE]') continue;
+  for (const { id, caps } of plan) {
+    let plain = false;
+    let waits = 0;
 
-        let event: { error?: { code?: number; message?: string }; choices?: { delta?: Delta; finish_reason?: string | null }[]; model?: string; usage?: Usage };
-        try {
-          event = JSON.parse(payload) as typeof event;
-        } catch {
+    while (Date.now() < deadline) {
+      const started = Date.now();
+      const result = await attempt(id, caps, messages, plain, onText, signal);
+      const ms = Date.now() - started;
+
+      if (result.ok) {
+        recovered(id);
+        attempts.push({ model: id, result: 'ok', ms });
+        return { content: result.content, model: result.model, usage: result.usage, cut: result.cut, attempts };
+      }
+
+      attempts.push({ model: id, result: result.failure, ms, status: result.status, detail: result.detail });
+
+      if (result.failure === 'auth') throw new ModelError('auth', result.detail || 'openrouter rejected the key', attempts);
+      if (result.failure === 'daily') throw new ModelError('quota', 'free requests used up for today', attempts);
+
+      // The model may not accept our reasoning setting. Try it once without.
+      if (result.failure === 'bad_request' && !plain && reasoningSettings(caps, 1, 1).reasoning) {
+        plain = true;
+        continue;
+      }
+
+      if (result.failure === 'minute') {
+        busy = true;
+        const left = await freeModelQuota();
+        if (left?.remaining === 0) throw new ModelError('quota', 'free requests used up for today', attempts);
+        // The per-minute limit covers the whole account, so wait our turn
+        // instead of burning through the rest of the list.
+        const wait = Math.min(result.retryAfterMs ?? 4000, 10_000, queueLeft, deadline - Date.now());
+        if (wait > 0 && waits < 2) {
+          waits += 1;
+          queueLeft -= wait;
+          onStatus?.('queued');
+          await sleep(wait, signal);
+          onStatus?.('writing');
           continue;
         }
-        if (event.error) throw new ModelError(event.error.message || 'model stream failed', event.error.code ?? 0);
-        if (event.model) model = event.model;
-        if (event.usage) usage = event.usage;
-        if (event.choices?.[0]?.finish_reason === 'length') truncated = true;
-        const delta = event.choices?.[0]?.delta?.content;
-        if (delta) {
-          content += delta;
-          onText(delta);
-        }
+        break;
       }
+
+      if (result.failure === 'busy' || result.failure === 'timeout') busy = true;
+      coolDown(id, cooldownFor(result.failure));
+      break;
     }
-  } catch (error) {
-    throw asModelError(error);
-  } finally {
-    watch.stop();
   }
 
-  if (truncated) throw new ModelError('model answer was cut off');
-
-  return { content, model, usage };
+  throw new ModelError(busy ? 'busy' : 'unavailable', 'no model answered', attempts);
 }

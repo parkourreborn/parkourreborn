@@ -106,7 +106,7 @@ export function hideRecipes(body: string) {
 
     if (noted) continue;
     noted = true;
-    lines.push(`Recipe: withheld on purpose. Call show with a recipe block for "${item}" and the grid card lays it out. Never guess at or describe what goes in it.`);
+    lines.push(`Recipe: the "${item}" recipe is shown by its recipe card when you attach it. Don't list or guess its ingredients.`);
   }
 
   return lines.join('\n');

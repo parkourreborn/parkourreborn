@@ -4509,6 +4509,10 @@ button {
 }
 
 .ai-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0 15px;
   padding: 9px 12px;
   border: 0;
@@ -4517,6 +4521,33 @@ button {
   background: transparent;
   color: var(--hub-danger);
   font-size: 13px;
+}
+
+.ai-error__retry {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--hub-danger-line);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--hub-danger);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  cursor: pointer;
+}
+
+.ai-error__retry:hover {
+  border-color: var(--hub-danger);
+}
+
+.ai-error__retry svg {
+  width: 12px;
+  height: 12px;
 }
 
 .ai-composer {

@@ -54,7 +54,11 @@ export async function streamRebornAi(messages: ChatMessage[], signal: AbortSigna
   });
 
   if (!response.ok || !response.body) {
-    onEvent({ type: 'error', message: errors[response.status] ?? 'reborn ai is unavailable right now' });
+    onEvent({
+      type: 'error',
+      message: errors[response.status] ?? 'reborn ai is unavailable right now',
+      retryable: !(response.status in errors),
+    });
     return;
   }
 
@@ -89,5 +93,5 @@ export async function streamRebornAi(messages: ChatMessage[], signal: AbortSigna
 
   // A stream that stops without saying done got killed somewhere in between.
   // Without this the half written reply just disappears and nothing explains why.
-  if (!ended) onEvent({ type: 'error', message: 'that answer got cut off, try again' });
+  if (!ended) onEvent({ type: 'error', message: 'that answer got cut off, try again', retryable: true });
 }

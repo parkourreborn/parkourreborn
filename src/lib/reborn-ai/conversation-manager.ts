@@ -1,10 +1,14 @@
 import 'server-only';
 
 import { z } from 'zod';
-import { compactQuery, safeAnswer } from '@/lib/reborn-ai/answer-facts';
+import { checkAnswer, compactQuery, rewriteRequest } from '@/lib/reborn-ai/answer-facts';
+import type { AnswerVerdict } from '@/lib/reborn-ai/answer-facts';
+import { answerStream, rescueText } from '@/lib/reborn-ai/answer-text';
+import type { RescueReason } from '@/lib/reborn-ai/answer-text';
 import { limits } from '@/lib/reborn-ai/limits';
-import { freeModelQuota, ModelError, modelName, streamModel } from '@/lib/reborn-ai/openrouter';
-import type { ModelMessage } from '@/lib/reborn-ai/openrouter';
+import { configuredModels } from '@/lib/reborn-ai/models';
+import { ModelError, streamAnswer } from '@/lib/reborn-ai/openrouter';
+import type { AnswerOutcome, AttemptLog, ModelMessage } from '@/lib/reborn-ai/openrouter';
 import { buildSystemPrompt } from '@/lib/reborn-ai/prompt';
 import { routeMessage } from '@/lib/reborn-ai/router';
 import type { RouteName } from '@/lib/reborn-ai/router';
@@ -33,22 +37,36 @@ type Evidence = {
   error?: string;
 };
 
-const fallbackReply = 'my brain glitched there, ask me again';
-function modelErrorText(error: unknown, dailyRemaining?: number) {
-  if (!(error instanceof ModelError)) return fallbackReply;
-  if (error.status === 429) {
-    if (dailyRemaining === 0) return 'openrouter’s free requests for today are used up';
-    if (error.diagnostic?.remaining === '0') return 'openrouter’s short-term free request limit was reached; try again after it resets';
-    return 'the free model provider is busy right now; try again soon';
-  }
-  if (error.status >= 500) return 'the model is having a moment, try again';
-  return 'reborn ai is not reachable right now';
+const cutNote = '\n\n(that answer got cut short, ask me to continue if you need the rest)';
+const uncheckedNote = '\n\n(i couldn’t double-check every number here against the game data, so verify anything important)';
+
+function failureText(error: unknown) {
+  const kind = error instanceof ModelError ? error.kind : 'unavailable';
+  if (kind === 'quota') return { message: 'reborn ai has used up its free answers for today, try again tomorrow', retryable: false };
+  if (kind === 'busy') return { message: 'all the free ai models are busy right now, try again in a minute', retryable: true };
+  if (kind === 'auth') return { message: 'reborn ai is misconfigured right now', retryable: false };
+  return { message: 'reborn ai can’t reach its models right now, try again soon', retryable: true };
+}
+
+function rescueReason(error: unknown): RescueReason {
+  if (error instanceof ModelError && error.kind === 'quota') return 'quota';
+  if (error instanceof ModelError && error.kind === 'busy') return 'busy';
+  return 'other';
 }
 
 function recentHistory(messages: ChatMessage[]) {
   const window = messages.slice(-limits.maxHistory);
   const start = window.findIndex((message) => message.role === 'user');
   return start === -1 ? [] : window.slice(start);
+}
+
+// Recent turns go to the model in full, older ones are shortened so a long
+// chat keeps its thread without crowding out this turn's facts.
+function contextMessages(history: ChatMessage[]) {
+  const cutoff = history.length - limits.fullHistoryTurns;
+  return history.map((message, index) => index >= cutoff || message.content.length <= limits.olderTurnChars
+    ? message
+    : { ...message, content: `${message.content.slice(0, limits.olderTurnChars).trimEnd()}…` });
 }
 
 function references(history: ChatMessage[], question: string) {
@@ -151,14 +169,26 @@ function attachments(blocks: AssistantBlock[]) {
   });
 }
 
-function selectedBlocks(content: string, available: AssistantBlock[]) {
-  const marker = content.match(/\s*\[\[cards:([\d, ]*)\]\]\s*$/i);
-  const answer = marker ? content.slice(0, marker.index).trim() : content.trim();
-  const indexes = marker?.[1].split(',').map((value) => value.trim()).filter(Boolean).map(Number) ?? [];
-  const blocks = Array.from(new Set(indexes))
-    .filter((index) => Number.isInteger(index) && index >= 0 && index < available.length)
-    .map((index) => available[index]);
-  return { answer, blocks };
+function pickBlocks(indexes: number[], available: AssistantBlock[]) {
+  return indexes.filter((index) => index < available.length).map((index) => available[index]);
+}
+
+type Draft = { outcome: AnswerOutcome; answer: string; indexes: number[] };
+
+// Streams one answer to the user and settles its card marker.
+async function writeDraft(messages: ModelMessage[], emit: Emit, signal?: AbortSignal): Promise<Draft> {
+  const stream = answerStream((delta) => emit({ type: 'text', delta }));
+  const outcome = await streamAnswer(messages, {
+    onText: stream.push,
+    onStatus: (state) => emit({ type: 'status', state }),
+    signal,
+  });
+  const { answer, indexes } = stream.finish();
+  return { outcome, answer, indexes };
+}
+
+function attemptSummary(attempts: AttemptLog[]) {
+  return attempts.map(({ model, result, ms, status, detail }) => ({ model, result, ms, ...(status ? { status } : {}), ...(detail ? { detail } : {}) }));
 }
 
 export async function runConversation(request: ChatRequest, _origin: string, emit: Emit, signal?: AbortSignal) {
@@ -222,8 +252,13 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
     : evidence;
   const input = {
     question: question.content,
-    context: { recentMessages: history.slice(-5, -1), references: refs, handling: decision.handling, ambiguity: ambiguous || null },
-    evidence: answerEvidence,
+    context: {
+      recentMessages: contextMessages(history.slice(0, -1)),
+      references: refs,
+      handling: decision.handling,
+      ambiguity: ambiguous || null,
+    },
+    facts: answerEvidence,
     attachments: attachments(blocks),
   };
   const messages: ModelMessage[] = [
@@ -231,37 +266,90 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
     { role: 'user', content: JSON.stringify(input) },
   ];
 
-  emit({ type: 'status', state: 'writing' });
-  let answerModel = '';
-  let answerUsage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
+  const priorTurns = history.slice(0, -1).map((message) => message.content);
+  const verdictFor = (draft: Draft): AnswerVerdict => (draft.outcome.cut
+    ? { ok: true }
+    : checkAnswer({
+      answer: draft.answer,
+      hasCards: pickBlocks(draft.indexes, blocks).length > 0,
+      question: question.content,
+      history: priorTurns,
+      facts: answerEvidence,
+      checkNumbers: decision.routes.length > 0,
+    }));
 
-  try {
-    const answer = await streamModel(messages, () => {}, signal);
-    answerModel = answer.model;
-    answerUsage = answer.usage;
-
-    const chosen = selectedBlocks(answer.content, blocks);
-    if (!safeAnswer(chosen.answer, question.content, answerEvidence.map(({ result }) => result))) {
-      console.warn('reborn-ai answer rejected', { model: answerModel, routes: decision.routes });
-      emit({ type: 'error', message: 'i couldn’t verify that answer; please try again' });
+  // Nothing a model writes is worth an empty reply. When no model can answer,
+  // the facts already looked up are shown as they are.
+  const rescue = (error: unknown) => {
+    const rescueBlocks = blocks.slice(0, 6);
+    const text = rescueText(answerEvidence, rescueReason(error), rescueBlocks.length > 0);
+    if (!text) {
+      emit({ type: 'error', ...failureText(error) });
       return;
     }
-    emit({ type: 'text', delta: chosen.answer });
-    if (chosen.blocks.length) emit({ type: 'blocks', blocks: chosen.blocks });
+    emit({ type: 'text', delta: text });
+    if (rescueBlocks.length) emit({ type: 'blocks', blocks: rescueBlocks });
+    emit({ type: 'done' });
+  };
+
+  const logFailure = (error: unknown) => console.error('reborn-ai answer failed', {
+    models: configuredModels(),
+    routes: decision.routes,
+    kind: error instanceof ModelError ? error.kind : 'unknown',
+    error: error instanceof Error ? error.message : String(error),
+    attempts: error instanceof ModelError ? attemptSummary(error.attempts) : [],
+  });
+
+  emit({ type: 'status', state: 'writing' });
+  let draft: Draft;
+  try {
+    draft = await writeDraft(messages, emit, signal);
   } catch (error) {
     if (signal?.aborted) return;
-    const quota = error instanceof ModelError && error.status === 429 ? await freeModelQuota() : null;
-    console.error('reborn-ai answer model failed', {
-      model: modelName(),
-      routes: decision.routes,
-      status: error instanceof ModelError ? error.status : undefined,
-      error: error instanceof Error ? error.message : String(error),
-      diagnostic: error instanceof ModelError ? error.diagnostic : undefined,
-      freeModelDailyRequests: quota,
-    });
-    emit({ type: 'error', message: modelErrorText(error, quota?.remaining) });
+    logFailure(error);
+    rescue(error);
     return;
   }
+
+  const attempts = [...draft.outcome.attempts];
+  let verdict = verdictFor(draft);
+  let check: 'ok' | 'rewritten' | 'flagged' = 'ok';
+
+  // One rewrite for a draft that states numbers the facts don't have, leaks
+  // internals, or says nothing. The first draft comes back if the rewrite fails.
+  if (!verdict.ok) {
+    const first = draft;
+    emit({ type: 'reset' });
+    emit({ type: 'status', state: 'writing' });
+    try {
+      draft = await writeDraft([
+        ...messages,
+        { role: 'assistant', content: first.outcome.content },
+        { role: 'user', content: rewriteRequest(verdict) },
+      ], emit, signal);
+      attempts.push(...draft.outcome.attempts);
+      verdict = verdictFor(draft);
+      check = verdict.ok ? 'rewritten' : 'flagged';
+    } catch (error) {
+      if (signal?.aborted) return;
+      if (error instanceof ModelError) attempts.push(...error.attempts);
+      check = 'flagged';
+      emit({ type: 'reset' });
+      if (first.answer) emit({ type: 'text', delta: first.answer });
+    }
+  }
+
+  const chosen = pickBlocks(draft.indexes, blocks);
+  if (!draft.answer && !chosen.length) {
+    const empty = new ModelError('unavailable', 'models returned empty answers', attempts);
+    logFailure(empty);
+    rescue(empty);
+    return;
+  }
+
+  if (draft.outcome.cut) emit({ type: 'text', delta: cutNote });
+  else if (!verdict.ok && verdict.reason === 'numbers') emit({ type: 'text', delta: uncheckedNote });
+  if (chosen.length) emit({ type: 'blocks', blocks: chosen });
 
   console.info('reborn-ai request', {
     routes: decision.routes,
@@ -269,8 +357,11 @@ export async function runConversation(request: ChatRequest, _origin: string, emi
     usedJev: decision.usedJev,
     jevModel: decision.jevModel,
     jevUsage: decision.jevUsage,
-    answerModel,
-    answerUsage,
+    answerModel: draft.outcome.model,
+    answerUsage: draft.outcome.usage,
+    attempts: attemptSummary(attempts),
+    check,
+    cut: draft.outcome.cut,
     routeMs: Math.round(routedAt - startedAt),
     fetchMs: Math.round(fetchedAt - routedAt),
     generationMs: Math.round(performance.now() - fetchedAt),

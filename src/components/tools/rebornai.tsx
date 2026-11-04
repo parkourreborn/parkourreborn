@@ -20,11 +20,32 @@ type Who = {
   bot: boolean;
 };
 
+type Failure = {
+  message: string;
+  retryable: boolean;
+  question: string;
+  base: ChatEntry[];
+};
+
 const statusLabels: Record<AssistantStatus, string> = {
   thinking: 'thinking',
   looking: 'checking',
   writing: 'typing',
+  queued: 'busy, waiting in line',
 };
+
+const autoRetryMs = 1500;
+
+function pause(ms: number, signal: AbortSignal) {
+  return new Promise<boolean>((resolve) => {
+    if (signal.aborted) return resolve(false);
+    const timer = setTimeout(() => resolve(true), ms);
+    signal.addEventListener('abort', () => {
+      clearTimeout(timer);
+      resolve(false);
+    }, { once: true });
+  });
+}
 
 function Row({ entry, who, status }: { entry: ChatEntry; who: Who; status: AssistantStatus | null }) {
   const waiting = status !== null && !entry.content;
@@ -66,7 +87,7 @@ export default function RebornAi() {
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<AssistantStatus | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<Failure | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -99,17 +120,16 @@ export default function RebornAi() {
     field.style.height = `${Math.min(field.scrollHeight, 168)}px`;
   }, [input]);
 
-  const send = async (text: string) => {
-    const message = text.trim().slice(0, limits.maxMessageChars);
-    if (!message || busy) return;
-
+  // Sends `message` on top of `base`. A failed attempt that showed nothing is
+  // retried once on its own when the error is a passing one; anything else
+  // leaves a retry button that asks the same question again.
+  const ask = async (message: string, base: ChatEntry[], autoRetry: boolean) => {
     const question = newEntry('user', message);
     const answer = newEntry('assistant', '');
-    const history = toHistory([...entries, question]);
+    const history = toHistory([...base, question]);
 
-    setInput('');
-    setError('');
-    setEntries((current) => [...current, question, answer]);
+    setError(null);
+    setEntries([...base, question, answer]);
     setStatus('thinking');
     pinned.current = true;
 
@@ -120,21 +140,54 @@ export default function RebornAi() {
       setEntries((current) => current.map((entry) => (entry.id === answer.id ? change(entry) : entry)));
     };
 
+    let received = false;
+    let failure: Omit<Failure, 'question' | 'base'> | null = null;
+
     try {
       await streamRebornAi(history, controller.signal, (event) => {
         if (event.type === 'status') setStatus(event.state);
-        if (event.type === 'reset') update((entry) => ({ ...entry, content: '' }));
-        if (event.type === 'text') update((entry) => ({ ...entry, content: entry.content + event.delta }));
-        if (event.type === 'blocks') update((entry) => ({ ...entry, blocks: event.blocks }));
-        if (event.type === 'error') setError(event.message);
+        if (event.type === 'reset') update((entry) => ({ ...entry, content: '', blocks: [] }));
+        if (event.type === 'text') {
+          received = true;
+          update((entry) => ({ ...entry, content: entry.content + event.delta }));
+        }
+        if (event.type === 'blocks') {
+          received = true;
+          update((entry) => ({ ...entry, blocks: event.blocks }));
+        }
+        if (event.type === 'error') failure = { message: event.message, retryable: event.retryable === true };
       });
     } catch (issue) {
-      if (!(issue instanceof DOMException && issue.name === 'AbortError')) setError('connection dropped, try again');
-    } finally {
-      abortRef.current = null;
-      setStatus(null);
-      setEntries((current) => current.filter((entry) => entry.id !== answer.id || entry.content.trim() || entry.blocks.length));
+      if (!(issue instanceof DOMException && issue.name === 'AbortError')) {
+        failure = { message: 'connection dropped, try again', retryable: true };
+      }
     }
+
+    setEntries((current) => current.filter((entry) => entry.id !== answer.id || entry.content.trim() || entry.blocks.length));
+    if (controller.signal.aborted) return;
+
+    const failed = failure as Omit<Failure, 'question' | 'base'> | null;
+    if (failed?.retryable && autoRetry && !received) {
+      setStatus('thinking');
+      if (await pause(autoRetryMs, controller.signal)) return ask(message, base, false);
+      return;
+    }
+
+    abortRef.current = null;
+    setStatus(null);
+    if (failed) setError({ ...failed, question: message, base });
+  };
+
+  const send = (text: string) => {
+    const message = text.trim().slice(0, limits.maxMessageChars);
+    if (!message || busy) return;
+    setInput('');
+    void ask(message, entries, true);
+  };
+
+  const retry = () => {
+    if (!error || busy) return;
+    void ask(error.question, error.base, false);
   };
 
   const stop = () => {
@@ -146,7 +199,7 @@ export default function RebornAi() {
   const reset = () => {
     stop();
     setEntries([]);
-    setError('');
+    setError(null);
     setInput('');
   };
 
@@ -191,13 +244,21 @@ export default function RebornAi() {
           ))}
         </div>
 
-        {error ? <div className="ai-error">{error}</div> : null}
+        {error ? (
+          <div className="ai-error" role="alert">
+            <span>{error.message}</span>
+            <button className="ai-error__retry" type="button" onClick={retry}>
+              <RotateCcw aria-hidden="true" />
+              retry
+            </button>
+          </div>
+        ) : null}
 
         <form
           className="ai-composer"
           onSubmit={(event) => {
             event.preventDefault();
-            void send(input);
+            send(input);
           }}
         >
           <div className="ai-input">
@@ -212,7 +273,7 @@ export default function RebornAi() {
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' || event.shiftKey) return;
                 event.preventDefault();
-                void send(input);
+                send(input);
               }}
             />
             {busy ? (

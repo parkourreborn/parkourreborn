@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { chatRequestSchema, runConversation } from '@/lib/reborn-ai/conversation-manager';
 import { limits, rateLimits } from '@/lib/reborn-ai/limits';
-import { hasModelConfig } from '@/lib/reborn-ai/openrouter';
+import { hasModelConfig } from '@/lib/reborn-ai/models';
 import type { ChatEvent } from '@/lib/reborn-ai/types';
 import { checkRateLimit, clientKey } from '@/lib/server/rate-limit';
 
@@ -73,8 +73,9 @@ export async function POST(request: NextRequest) {
 
       try {
         await runConversation(parsed.data, origin, emit, request.signal);
-      } catch {
-        emit({ type: 'error', message: 'reborn ai broke, try again' });
+      } catch (error) {
+        console.error('reborn-ai conversation crashed', { error: error instanceof Error ? error.message : String(error) });
+        emit({ type: 'error', message: 'reborn ai broke, try again', retryable: true });
       } finally {
         clearInterval(beat);
         const wasOpen = open;

@@ -59,14 +59,15 @@ export type AssistantBlock =
       slots: RecipeSlot[];
     };
 
-export type AssistantStatus = 'thinking' | 'looking' | 'writing';
+export type AssistantStatus = 'thinking' | 'looking' | 'writing' | 'queued';
 
 export type ChatEvent =
   | { type: 'status'; state: AssistantStatus }
   | { type: 'text'; delta: string }
+  // Drop the text streamed so far, a rewritten answer follows.
   | { type: 'reset' }
   | { type: 'blocks'; blocks: AssistantBlock[] }
-  | { type: 'error'; message: string }
+  | { type: 'error'; message: string; retryable?: boolean }
   | { type: 'done' };
 
 export type KnowledgeDoc = {
