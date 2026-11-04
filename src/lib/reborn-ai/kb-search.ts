@@ -214,6 +214,14 @@ export function createKnowledgeSearch(kb: KnowledgeBase) {
     return picked;
   }
 
+  // A doc's chunks, the ones matching the query first.
+  function chunksOf(docId: string, query = '') {
+    const own = kb.chunks.filter((chunk) => chunk.doc === docId);
+    if (!query.trim()) return own;
+    const order = new Map(search(query, 60, 60).filter((hit) => hit.chunk.doc === docId).map((hit, index) => [hit.chunk.id, index]));
+    return [...own].sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
+  }
+
   // Every doc in full, for the rare question nothing narrower could answer.
   function fullText() {
     return kb.docs.map((doc) => `# ${doc.title} (${doc.category})\n${doc.body}`).join('\n\n');
@@ -222,6 +230,7 @@ export function createKnowledgeSearch(kb: KnowledgeBase) {
   return {
     hash: kb.hash,
     search,
+    chunksOf,
     fullText,
     doc: (id: string) => docs.get(id),
     docs: kb.docs,

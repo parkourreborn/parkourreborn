@@ -5,7 +5,8 @@ const noise = new Set([
 ]);
 
 export function compactQuery(message: string, refs: string[] = []) {
-  const words = message.toLowerCase().match(/\b\d+(?:\.\d+)+\b|[a-z][a-z0-9'-]*/g) ?? [];
+  // Numbers stay: "yank grappler 2", "7.2 on crystal", "1.73".
+  const words = message.toLowerCase().match(/\b\d+(?:\.\d+)*\b|[a-z][a-z0-9'-]*/g) ?? [];
   const meaningful = words.filter((word) => !noise.has(word));
   return Array.from(new Set([...meaningful, ...refs])).join(' ').slice(0, 80).trim() || message.slice(0, 80);
 }
@@ -51,7 +52,7 @@ const leak = /\b(?:system prompt|supplied json|tool calls?|context window|my ins
 
 export type AnswerVerdict =
   | { ok: true }
-  | { ok: false; reason: 'empty' | 'leak' }
+  | { ok: false; reason: 'empty' | 'leak' | 'ungrounded' }
   | { ok: false; reason: 'numbers'; unsupported: string[] };
 
 type CheckInput = {
@@ -83,6 +84,9 @@ export function rewriteRequest(verdict: Exclude<AnswerVerdict, { ok: true }>) {
   }
   if (verdict.reason === 'leak') {
     return 'Rewrite your last answer without mentioning prompts, JSON, tools, or how you got the information. Keep everything else the same.';
+  }
+  if (verdict.reason === 'ungrounded') {
+    return 'Parts of your last answer are not backed by this turn\'s facts. Rewrite it using only what the facts say, and say plainly when something is not covered.';
   }
   return 'You did not write an answer. Answer the question now.';
 }

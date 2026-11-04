@@ -3,12 +3,12 @@ import 'server-only';
 import type { CommunityResource, CommunityResourceType } from '@/lib/pages/search';
 import type { MovementEntry, MovementKind } from '@/lib/pages/techlist';
 import type { TimeTrial, WorldRecord } from '@/lib/pages/timetrials';
-import { limits } from '@/lib/reborn-ai/limits';
 import { getAdminDb } from '@/lib/server/firebase-admin';
+import { swrCache } from '@/lib/server/swr';
+import { worldRecordsRaw } from '@/lib/server/wasans';
 import { cleanUrl } from '@/lib/url';
 
 type Loaded<T> = { data: T; checkedAt: string };
-type CacheEntry = { at: number; value: Promise<Loaded<unknown>> };
 
 type MovementData = {
   Aliases?: unknown;
@@ -46,24 +46,17 @@ export type WrItem = {
 
 export type WrResponse = { data?: WrItem[] };
 
-const cache = new Map<string, CacheEntry>();
+// Firestore lists change rarely: serve them from memory for 5 minutes, and
+// keep serving the last good copy (while refreshing) for up to a day.
+const cache = swrCache<unknown>({ freshMs: 5 * 60_000, maxStaleMs: 24 * 60 * 60_000, maxEntries: 20 });
 const movementKinds = new Set<MovementKind>(['tech', 'concept', 'basic']);
 const resourceOrder = { gif: 0, file: 1, link: 2 } satisfies Record<CommunityResourceType, number>;
 const text = (value: unknown) => (value === undefined || value === null ? '' : String(value).trim());
 const list = (value: unknown) => (Array.isArray(value) ? value.map(text).filter(Boolean) : []);
 
-function cached<T>(key: string, load: () => Promise<T>): Promise<Loaded<T>> {
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < limits.dataCacheMs) return hit.value as Promise<Loaded<T>>;
-
-  const value = load()
-    .then((data) => ({ data, checkedAt: new Date().toISOString() }))
-    .catch((error) => {
-      if (cache.get(key)?.value === value) cache.delete(key);
-      throw error;
-    });
-  cache.set(key, { at: Date.now(), value: value as Promise<Loaded<unknown>> });
-  return value;
+async function cached<T>(key: string, load: () => Promise<T>): Promise<Loaded<T>> {
+  const { value, at } = await cache.get(key, load);
+  return { data: value as T, checkedAt: new Date(at).toISOString() };
 }
 
 function cleanMovement(id: string, data: MovementData): MovementEntry {
@@ -145,23 +138,17 @@ export function loadCommunityResources() {
   });
 }
 
-export function loadWorldRecords() {
-  return cached('records', async () => {
-    const response = await fetch('https://wasans.tully.sh/v2/records/world', {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(limits.toolTimeoutMs),
-    });
-    if (!response.ok) throw new Error(`world records responded ${response.status}`);
-    const raw = await response.json() as WrResponse;
-    const records = (raw.data ?? [])
-      .filter((item): item is WrItem & { trial_name: string; time: number } => Boolean(item.trial_name) && typeof item.time === 'number')
-      .map<WorldRecord>((item) => ({
-        trialName: item.trial_name,
-        playerName: item.player_name ?? 'Unknown',
-        time: item.time,
-        submissionUuid: item.submission_uuid ?? '',
-        playerScore: typeof item.player_score === 'number' ? item.player_score : null,
-      }));
-    return { raw, records };
-  });
+// Shares the Wasans client's cache with Reborn AI (see server/wasans.ts).
+export async function loadWorldRecords() {
+  const { raw, checkedAt } = await worldRecordsRaw();
+  const records = ((raw as WrResponse).data ?? [])
+    .filter((item): item is WrItem & { trial_name: string; time: number } => Boolean(item.trial_name) && typeof item.time === 'number')
+    .map<WorldRecord>((item) => ({
+      trialName: item.trial_name,
+      playerName: item.player_name ?? 'Unknown',
+      time: item.time,
+      submissionUuid: item.submission_uuid ?? '',
+      playerScore: typeof item.player_score === 'number' ? item.player_score : null,
+    }));
+  return { data: { raw: raw as WrResponse, records }, checkedAt };
 }

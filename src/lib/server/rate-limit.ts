@@ -42,6 +42,12 @@ function apply(slots: Record<string, Slot>, windows: RateWindow[], now: number):
   return { ok: retryAfter === 0, retryAfter };
 }
 
+// A per-instance check with no Firestore round trip, for cheap flood
+// protection before any real work starts.
+export function checkMemoryLimit(key: string, windows: RateWindow[]): RateResult {
+  return memoryLimit(`memory:${key}`, windows, Date.now());
+}
+
 function memoryLimit(key: string, windows: RateWindow[], now: number) {
   if (memory.size > memoryCap) memory.clear();
 

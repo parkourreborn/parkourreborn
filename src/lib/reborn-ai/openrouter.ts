@@ -43,6 +43,8 @@ export class ModelError extends Error {
 
 type StreamOptions = {
   onText: (delta: string) => void;
+  // A very long prompt (the whole guide) takes longer before the first word.
+  longPrompt?: boolean;
   onStatus?: (state: 'queued' | 'writing') => void;
   signal?: AbortSignal;
 };
@@ -102,6 +104,7 @@ async function attempt(
   plain: boolean,
   onText: (delta: string) => void,
   signal?: AbortSignal,
+  waitScale = 1,
 ): Promise<AttemptResult> {
   const settings = reasoningSettings(caps, limits.maxOutputTokens, limits.reasoningTokens);
   const body = JSON.stringify({
@@ -127,7 +130,7 @@ async function attempt(
 
   // Two clocks: one for the first word of the reply, one for the stream going
   // silent. Keep-alive comments and hidden reasoning both reset the second.
-  let firstWord: ReturnType<typeof setTimeout> | null = setTimeout(expire, settings.slow ? limits.reasoningFirstTokenMs : limits.firstTokenMs);
+  let firstWord: ReturnType<typeof setTimeout> | null = setTimeout(expire, (settings.slow ? limits.reasoningFirstTokenMs : limits.firstTokenMs) * waitScale);
   let silence: ReturnType<typeof setTimeout> | null = null;
   const heard = () => {
     if (silence) clearTimeout(silence);
@@ -235,7 +238,7 @@ async function attempt(
 
 // Streams one answer, walking the OPENROUTER_MODEL list in order until a model
 // replies. Throws ModelError only when no model produced any text at all.
-export async function streamAnswer(messages: ModelMessage[], { onText, onStatus, signal }: StreamOptions): Promise<AnswerOutcome> {
+export async function streamAnswer(messages: ModelMessage[], { onText, onStatus, signal, longPrompt = false }: StreamOptions): Promise<AnswerOutcome> {
   const plan = await modelPlan();
   const attempts: AttemptLog[] = [];
   const deadline = Date.now() + limits.answerBudgetMs;
@@ -250,7 +253,7 @@ export async function streamAnswer(messages: ModelMessage[], { onText, onStatus,
 
     while (Date.now() < deadline) {
       const started = Date.now();
-      const result = await attempt(id, caps, messages, plain, onText, signal);
+      const result = await attempt(id, caps, messages, plain, onText, signal, longPrompt ? 3 : 1);
       const ms = Date.now() - started;
 
       if (result.ok) {

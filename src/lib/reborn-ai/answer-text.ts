@@ -98,7 +98,8 @@ export type RescueReason = keyof typeof rescueIntro;
 // showing: the best guide section as text, with the cards under it.
 export function rescueText(facts: Fact[], reason: RescueReason, hasCards: boolean) {
   const hit = facts.flatMap((fact) => (Array.isArray(fact.result) ? fact.result : [])).find(knowledgeHit);
-  const excerpt = hit ? plainExcerpt(hit.body, 900) : '';
+  // Chunks start with a "Gear › Grappler › …" breadcrumb; the title is shown instead.
+  const excerpt = hit ? plainExcerpt(hit.body.replace(/^[^\n]*›[^\n]*\n/, ''), 900) : '';
   if (!excerpt && !hasCards) return null;
   return excerpt ? `${rescueIntro[reason]}\n\n**${hit?.title}**\n${excerpt}` : rescueIntro[reason];
 }

@@ -30,7 +30,15 @@ export const limits = {
   quotaCacheMs: 60000,
 } as const;
 
+// Answers per person. Logged-in players are counted by Discord account, so a
+// shared school or household connection does not lock everyone out; anyone
+// else is counted by IP. When fewer than lowQuotaBelow free OpenRouter
+// requests are left for the day, everyone's limits are halved so the rest
+// of the day's quota is shared out.
 export const rateLimits = {
-  perMinute: 10,
-  perHour: 100,
+  user: { perMinute: 20, perHour: 200, perDay: 400 },
+  anonymous: { perMinute: 10, perHour: 100 },
+  // Requests per IP per minute before any work is done, whoever is asking.
+  flood: 40,
+  lowQuotaBelow: 100,
 } as const;

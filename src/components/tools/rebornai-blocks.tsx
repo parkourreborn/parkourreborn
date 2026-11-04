@@ -66,6 +66,8 @@ function TrialBlock({ block }: { block: Extract<AssistantBlock, { type: 'time_tr
         <small>{block.difficulty}</small>
       </header>
 
+      {block.location ? <p className="ai-card__note">{block.location}</p> : null}
+
       <div className="ai-medals">
         {medals.map(([icon, label], index) => (
           <span className="ai-medal" key={label}>
@@ -149,6 +151,64 @@ function RecipeBlock({ block }: { block: Extract<AssistantBlock, { type: 'recipe
   );
 }
 
+function LeaderboardBlock({ block }: { block: Extract<AssistantBlock, { type: 'leaderboard' }> }) {
+  return (
+    <div className="ai-card">
+      <header className="ai-card__head">
+        <span>Wasans</span>
+        <strong>{block.title}</strong>
+        {block.subtitle ? <small>{block.subtitle}</small> : null}
+      </header>
+
+      <ol className="ai-board">
+        {block.rows.map((row) => (
+          <li className={`ai-board__row${row.highlight ? ' is-you' : ''}`} key={`${row.rank}-${row.name}`}>
+            <span className="ai-board__rank">{row.rank}</span>
+            <span className="ai-board__name">{row.name}{row.note ? <small>{row.note}</small> : null}</span>
+            <strong className="ai-board__value">{row.value}</strong>
+          </li>
+        ))}
+      </ol>
+
+      {block.url ? <a className="ai-card__link" href={block.url} target="_blank" rel="noopener noreferrer">Open on Wasans</a> : null}
+    </div>
+  );
+}
+
+function PlayerBlock({ block }: { block: Extract<AssistantBlock, { type: 'player' }> }) {
+  return (
+    <div className="ai-card">
+      <header className="ai-card__head">
+        <span>Player</span>
+        <strong>{block.name}</strong>
+        <small>{[block.rank, block.tier].filter(Boolean).join(' · ')}</small>
+      </header>
+
+      <div className="ai-wr">
+        <span className="ai-wr__icon" style={{ backgroundImage: `url(${images.elements.timetrials.platinum})` }} aria-hidden="true" />
+        <div>
+          <strong>{block.score || '—'}</strong>
+          <small>Wasans score</small>
+        </div>
+      </div>
+
+      {block.pbs.length ? (
+        <ol className="ai-board">
+          {block.pbs.map((pb) => (
+            <li className="ai-board__row" key={pb.trial}>
+              <span className="ai-board__rank">{pb.rank}</span>
+              <span className="ai-board__name">{pb.trial}</span>
+              <strong className="ai-board__value">{pb.time}</strong>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+
+      <a className="ai-card__link" href={block.url} target="_blank" rel="noopener noreferrer">View profile</a>
+    </div>
+  );
+}
+
 function Block({ block }: BlockProps) {
   if (block.type === 'text') return <div className="ai-text"><RichText value={block.content} /></div>;
 
@@ -175,6 +235,8 @@ function Block({ block }: BlockProps) {
   if (block.type === 'tech') return <TechBlock block={block} />;
   if (block.type === 'time_trial') return <TrialBlock block={block} />;
   if (block.type === 'world_record') return <RecordBlock block={block} />;
+  if (block.type === 'leaderboard') return <LeaderboardBlock block={block} />;
+  if (block.type === 'player') return <PlayerBlock block={block} />;
   return <RecipeBlock block={block} />;
 }
 

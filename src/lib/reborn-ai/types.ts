@@ -37,6 +37,7 @@ export type AssistantBlock =
       name: string;
       district: string;
       difficulty: string;
+      location?: string;
       bronze: string;
       silver: string;
       gold: string;
@@ -57,11 +58,29 @@ export type AssistantBlock =
       item: string;
       middle: RecipeSlot;
       slots: RecipeSlot[];
+    }
+  | {
+      type: 'leaderboard';
+      title: string;
+      subtitle?: string;
+      rows: { rank: number; name: string; value: string; note?: string; highlight?: boolean }[];
+      url?: string;
+    }
+  | {
+      type: 'player';
+      name: string;
+      rank: string;
+      score: string;
+      tier: string;
+      pbs: { trial: string; time: string; rank: string }[];
+      url: string;
     };
 
 export type AssistantStatus = 'thinking' | 'looking' | 'writing' | 'queued';
 
 export type ChatEvent =
+  // Sent first: the id feedback for this answer is filed under.
+  | { type: 'meta'; id: string }
   | { type: 'status'; state: AssistantStatus }
   | { type: 'text'; delta: string }
   // Drop the text streamed so far, a rewritten answer follows.
