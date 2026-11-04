@@ -65,13 +65,3 @@ export async function readLog(id: string) {
 export async function saveFeedback(id: string, feedback: { vote: 'up' | 'down'; note: string; triage: string | null }) {
   await getAdminDb().collection('aiLogs').doc(id).set({ feedback: { ...feedback, at: Timestamp.now() } }, { merge: true });
 }
-
-export async function recentLogs(limit: number) {
-  const snapshot = await getAdminDb().collection('aiLogs').orderBy('at', 'desc').limit(limit).get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as RequestLog & { id: string; at?: Timestamp; feedback?: { vote: string; note?: string; triage?: string | null } });
-}
-
-export async function recentGaps(limit: number) {
-  const snapshot = await getAdminDb().collection('aiGaps').orderBy('at', 'desc').limit(limit).get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as { id: string; question: string; routes: string[]; answerable: number | null; escalated: boolean; at?: Timestamp });
-}
