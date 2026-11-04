@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, RotateCcw, Square } from 'lucide-react';
+import { ArrowUp, RotateCcw, Square, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import Blocks from '@/components/tools/rebornai-blocks';
 import RichText from '@/components/tools/rebornai-text';
@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { images } from '@/lib/assets';
 import { discordAvatar } from '@/lib/discord';
-import { chatTime, newEntry, streamRebornAi, toHistory } from '@/lib/pages/rebornai';
+import { chatTime, newEntry, sendFeedback, streamRebornAi, toHistory } from '@/lib/pages/rebornai';
 import type { ChatEntry } from '@/lib/pages/rebornai';
 import { limits } from '@/lib/reborn-ai/limits';
 import type { AssistantStatus } from '@/lib/reborn-ai/types';
@@ -47,7 +47,38 @@ function pause(ms: number, signal: AbortSignal) {
   });
 }
 
-function Row({ entry, who, status }: { entry: ChatEntry; who: Who; status: AssistantStatus | null }) {
+function Feedback({ entry, onVote }: { entry: ChatEntry; onVote: (vote: 'up' | 'down', note?: string) => void }) {
+  const [note, setNote] = useState('');
+  const [sent, setSent] = useState(false);
+
+  return (
+    <div className="ai-feedback">
+      <button type="button" className={entry.vote === 'up' ? 'is-on' : ''} aria-label="Good answer" aria-pressed={entry.vote === 'up'} onClick={() => onVote('up')}>
+        <ThumbsUp aria-hidden="true" />
+      </button>
+      <button type="button" className={entry.vote === 'down' ? 'is-on' : ''} aria-label="Bad answer" aria-pressed={entry.vote === 'down'} onClick={() => onVote('down')}>
+        <ThumbsDown aria-hidden="true" />
+      </button>
+      {entry.vote === 'down' && !sent ? (
+        <form
+          className="ai-feedback__note"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!note.trim()) return;
+            onVote('down', note);
+            setSent(true);
+          }}
+        >
+          <input value={note} maxLength={500} placeholder="what was wrong? (optional)" aria-label="What was wrong with this answer" onChange={(event) => setNote(event.target.value)} />
+          <button type="submit" disabled={!note.trim()}>send</button>
+        </form>
+      ) : null}
+      {entry.vote && (entry.vote === 'up' || sent) ? <span className="ai-feedback__thanks">thanks</span> : null}
+    </div>
+  );
+}
+
+function Row({ entry, who, status, onVote }: { entry: ChatEntry; who: Who; status: AssistantStatus | null; onVote?: (vote: 'up' | 'down', note?: string) => void }) {
   const waiting = status !== null && !entry.content;
 
   return (
@@ -76,6 +107,7 @@ function Row({ entry, who, status }: { entry: ChatEntry; who: Who; status: Assis
             </span>
           ) : <RichText value={entry.content} />}
           <Blocks blocks={entry.blocks} />
+          {who.bot && status === null && entry.requestId && onVote ? <Feedback entry={entry} onVote={onVote} /> : null}
         </div>
       </div>
     </article>
@@ -145,6 +177,7 @@ export default function RebornAi() {
 
     try {
       await streamRebornAi(history, controller.signal, (event) => {
+        if (event.type === 'meta') update((entry) => ({ ...entry, requestId: event.id }));
         if (event.type === 'status') setStatus(event.state);
         if (event.type === 'reset') update((entry) => ({ ...entry, content: '', blocks: [] }));
         if (event.type === 'text') {
@@ -176,6 +209,13 @@ export default function RebornAi() {
     abortRef.current = null;
     setStatus(null);
     if (failed) setError({ ...failed, question: message, base });
+  };
+
+  // Files a thumbs up/down on one answer; a note can follow a thumbs down.
+  const castVote = (entry: ChatEntry, vote: 'up' | 'down', note?: string) => {
+    if (!entry.requestId) return;
+    setEntries((current) => current.map((item) => (item.id === entry.id ? { ...item, vote } : item)));
+    void sendFeedback(entry.requestId, vote, note);
   };
 
   const send = (text: string) => {
@@ -240,6 +280,7 @@ export default function RebornAi() {
               key={entry.id}
               who={entry.role === 'user' ? you : bot}
               status={busy && index === entries.length - 1 && entry.role === 'assistant' ? status : null}
+              onVote={(vote, note) => castVote(entry, vote, note)}
             />
           ))}
         </div>

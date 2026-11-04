@@ -7,7 +7,19 @@ export type ChatEntry = {
   content: string;
   blocks: AssistantBlock[];
   at: number;
+  // The server's id for this answer, used to file feedback on it.
+  requestId?: string;
+  vote?: 'up' | 'down';
 };
+
+export async function sendFeedback(requestId: string, vote: 'up' | 'down', note = '') {
+  const response = await fetch('/api/reborn-ai/feedback', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: requestId, vote, ...(note.trim() ? { note: note.trim().slice(0, 500) } : {}) }),
+  }).catch(() => null);
+  return Boolean(response?.ok);
+}
 
 const errors: Record<number, string> = {
   400: 'that message did not go through',
@@ -36,6 +48,7 @@ export function toHistory(entries: ChatEntry[]): ChatMessage[] {
         if (block.type === 'tech') return [`movement=${block.name}`];
         if (block.type === 'recipe') return [`recipe=${block.item}`];
         if (block.type === 'link' || block.type === 'gif') return [`resource=${block.title}`];
+        if (block.type === 'player') return [`player=${block.name}`];
         return [];
       });
       const context = references.length ? `\n[context cards: ${references.join('; ')}]` : '';

@@ -34,6 +34,8 @@ async function cleanup(collectionName, field, cutoff) {
 async function main() {
   await cleanup('rateLimits', 'expiresAt', now);
   await cleanup('guessrGames', 'expiresAt', now);
+  await cleanup('aiLogs', 'expiresAt', now);
+  await cleanup('aiGaps', 'expiresAt', now);
   await cleanup('discordAuthStates', 'expiresAt', now.toMillis());
   await cleanup('discordLogins', 'expiresAt', now.toMillis());
 }
