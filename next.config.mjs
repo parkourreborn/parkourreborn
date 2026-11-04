@@ -4,9 +4,6 @@ const config = {
       { protocol: 'https', hostname: 'cdn.discordapp.com' },
     ],
   },
-  outputFileTracingIncludes: {
-    '/api/reborn-ai/chat': ['./knowledge/**/*.md'],
-  },
 };
 
 export default config;

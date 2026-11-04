@@ -69,22 +69,3 @@ export type ChatEvent =
   | { type: 'blocks'; blocks: AssistantBlock[] }
   | { type: 'error'; message: string; retryable?: boolean }
   | { type: 'done' };
-
-export type KnowledgeDoc = {
-  id: string;
-  title: string;
-  category: string;
-  aliases: string[];
-  tags: string[];
-  body: string;
-};
-
-export type KnowledgeResult = {
-  doc: KnowledgeDoc;
-  score: number;
-};
-
-export interface KnowledgeRetriever {
-  search(query: string, limit?: number): Promise<KnowledgeResult[]>;
-  docs(): Promise<KnowledgeDoc[]>;
-}

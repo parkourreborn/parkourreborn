@@ -9,3 +9,5 @@ CLAUDE.md
 .vercel
 .env*
 docs
+# built from knowledge/ by scripts/kb/build.mjs
+src/generated/

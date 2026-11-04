@@ -4,11 +4,10 @@ import { z } from 'zod';
 import { searchTechs } from '@/lib/pages/techlist';
 import { formatTime } from '@/lib/pages/time';
 import { wrVideoURL } from '@/lib/pages/timetrials';
-import { knowledgeRetriever } from '@/lib/reborn-ai/knowledge-retriever';
-import { knowledgeExcerpt } from '@/lib/reborn-ai/knowledge-excerpt';
+import { focusVersions, matchRecipes } from '@/lib/reborn-ai/kb-search';
+import { knowledge } from '@/lib/reborn-ai/knowledge-retriever';
 import { limits } from '@/lib/reborn-ai/limits';
-import { hideRecipes, parseRecipes, recipeBlock } from '@/lib/reborn-ai/recipes';
-import type { Recipe } from '@/lib/reborn-ai/recipes';
+import { recipeBlock } from '@/lib/reborn-ai/recipes';
 import type { AssistantBlock } from '@/lib/reborn-ai/types';
 import { loadCommunityResources, loadTechs, loadTimeTrials, loadWorldRecords } from '@/lib/server/reborn-ai-data';
 import { cleanPathPart } from '@/lib/url';
@@ -46,11 +45,7 @@ function bestMatches<T>(scored: { item: T; hit: number }[]) {
   return scored.filter((entry) => entry.hit === best).map((entry) => entry.item);
 }
 
-let recipeCache: Promise<Recipe[]> | null = null;
-function getRecipes() {
-  if (!recipeCache) recipeCache = knowledgeRetriever.docs().then(parseRecipes).catch(() => [] as Recipe[]);
-  return recipeCache;
-}
+const trialPlaces = new Map(knowledge.trials.map((trial) => [key(trial.name), trial]));
 
 export function createToolkit() {
   const autoBlocks: AssistantBlock[] = [];
@@ -77,26 +72,24 @@ export function createToolkit() {
     return loaded.data.records;
   });
 
-  async function suggestRecipes(query: string) {
-    const scored = (await getRecipes())
-      .map((recipe) => ({ item: recipe, hit: score(recipe.item, query) }))
-      .filter((entry) => entry.hit > 0);
-    if (scored.length) suggest(bestMatches(scored).map(recipeBlock));
+  function suggestRecipes(query: string) {
+    const recipes = matchRecipes(query, knowledge.recipes);
+    if (recipes.length) suggest(recipes.map(recipeBlock));
   }
 
   async function runKnowledge(args: z.infer<typeof schemas.search_knowledge>) {
-    const found = await knowledgeRetriever.search(args.query, args.limit ?? limits.maxKnowledgeDocs);
-    const results: { id: string; title: string; aliases: string[]; category: string; body: string }[] = [];
+    const found = knowledge.search(args.query, args.limit ?? limits.maxKnowledgeDocs);
+    const results: { id: string; title: string; section: string; category: string; body: string }[] = [];
     let left = limits.maxKnowledgeChars;
 
-    for (const { doc } of found) {
+    for (const { chunk } of found) {
       if (left <= 0) break;
-      const text = knowledgeExcerpt(doc.category === 'crafting' ? hideRecipes(doc.body) : doc.body, args.query, doc.title);
+      const text = focusVersions(chunk.text, args.query);
       const body = text.length > left ? `${text.slice(0, left)}...` : text;
       left -= body.length;
-      results.push({ id: doc.id, title: doc.title, aliases: doc.aliases, category: doc.category, body });
+      results.push({ id: chunk.id, title: chunk.title, section: chunk.section, category: chunk.category, body });
     }
-    if (results.some((result) => result.category === 'crafting')) await suggestRecipes(args.query);
+    if (results.some((result) => result.category === 'crafting')) suggestRecipes(args.query);
     return results;
   }
 
@@ -150,6 +143,7 @@ export function createToolkit() {
       name: trial.name,
       district: trial.district,
       difficulty: trial.difficulty,
+      location: trialPlaces.get(key(trial.name))?.location ?? '',
       bronze: formatTime(trial.bronzeTime),
       silver: formatTime(trial.silverTime),
       gold: formatTime(trial.goldTime),

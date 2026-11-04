@@ -1,0 +1,182 @@
+{"q":"how much do prefer slips cost","docs":["cosmetics/bag-prices.md"]}
+{"q":"how many tokens is a bag","docs":["cosmetics/bag-prices.md"]}
+{"q":"what are the drop rates for the runner bag","docs":["cosmetics/bag-rates.md"]}
+{"q":"whats the chance of getting a legendary skin","docs":["cosmetics/bag-rates.md","cosmetics/skin-rarities.md"]}
+{"q":"what are cosmetics in this game","docs":["cosmetics/cosmetics-overview.md"]}
+{"q":"when were skins added","docs":["cosmetics/cosmetics-trivia.md"]}
+{"q":"which gear doesnt get every skin","docs":["cosmetics/gear-availability-exceptions.md"]}
+{"q":"what skin rarities are there","docs":["cosmetics/skin-rarities.md"]}
+{"q":"what happens when i get a duplicate skin","docs":["cosmetics/skin-rarities.md"]}
+{"q":"what skins are in the shade bag","docs":["cosmetics/skins-by-bag.md","cosmetics/bag-rates.md"]}
+{"q":"how do i craft the climber glove","docs":["crafting/glove-recipes.md","gear/glove.md"]}
+{"q":"drifter glove 2 recipe","docs":["crafting/glove-recipes.md"]}
+{"q":"where do i find grip tape","docs":["crafting/glove-resources-locations.md"]}
+{"q":"where can i get kinetic fabric","docs":["crafting/glove-resources-locations.md"]}
+{"q":"where do i find fittings","docs":["crafting/grappler-general-components-locations.md"]}
+{"q":"where is the emag accelerator","docs":["crafting/grappler-general-components-locations.md"]}
+{"q":"how do you make a yank grappler","docs":["crafting/grappler-recipes.md","gear/grappler.md"]}
+{"q":"swing grappler 2 recipe","docs":["crafting/grappler-recipes.md"]}
+{"q":"launch rail recipe","docs":["crafting/mag-rail-recipes.md"]}
+{"q":"how to craft the mag rail","docs":["crafting/mag-rail-recipes.md","gear/mag-rail.md"]}
+{"q":"where do i find the gauss amplifier","docs":["crafting/mag-rail-resources-locations.md"]}
+{"q":"where is the rail trigger","docs":["crafting/mag-rail-resources-locations.md"]}
+{"q":"what happened to grappler mechanisms","docs":["crafting/removed-resources.md"]}
+{"q":"powered springhook recipe","docs":["crafting/springhook-recipes.md"]}
+{"q":"where do i get the springhook chassis","docs":["crafting/springhook-resources-locations.md"]}
+{"q":"where can i find a hook latch","docs":["crafting/springhook-resources-locations.md"]}
+{"q":"tell me about dirwik","docs":["districts/dirwik.md"]}
+{"q":"what is downtown","docs":["districts/downtown.md"]}
+{"q":"what is the fragment district","docs":["districts/fragment.md"]}
+{"q":"which districts are coming in the future","docs":["districts/future-districts.md","districts/map-overview.md"]}
+{"q":"what is skyarc","docs":["districts/future-districts.md"]}
+{"q":"what is the city called","docs":["districts/map-overview.md"]}
+{"q":"how many districts are there","docs":["districts/map-overview.md","guides/quick-lookup-summary.md"]}
+{"q":"what is stack","docs":["districts/stack.md"]}
+{"q":"what does the developer console say after a trial","docs":["easter-eggs/developer-console-easter-eggs.md"]}
+{"q":"what is hudzells great pain","docs":["easter-eggs/developer-console-easter-eggs.md","easter-eggs/easter-egg-trivia.md"]}
+{"q":"are there any secrets in dirwik","docs":["easter-eggs/dirwik-easter-eggs.md","easter-eggs/dirwik-special-vents.md"]}
+{"q":"where is the golden vent","docs":["easter-eggs/dirwik-special-vents.md"]}
+{"q":"what does the ruby vent give","docs":["easter-eggs/dirwik-special-vents.md"]}
+{"q":"where is the cheese wedge","docs":["easter-eggs/downtown-easter-eggs.md","easter-eggs/easter-egg-trivia.md","easter-eggs/stack-easter-eggs.md"]}
+{"q":"why is there a cheese wedge","docs":["easter-eggs/easter-egg-trivia.md","easter-eggs/downtown-easter-eggs.md"]}
+{"q":"easter eggs in fragment","docs":["easter-eggs/fragment-easter-eggs.md"]}
+{"q":"where is the pigeon","docs":["easter-eggs/fragment-easter-eggs.md"]}
+{"q":"what is the loneliness or tranquility message","docs":["easter-eggs/general-ui-easter-eggs.md"]}
+{"q":"what is divideds loadout","docs":["easter-eggs/general-ui-easter-eggs.md"]}
+{"q":"what does it say when someone wont accept party invites from randos","docs":["easter-eggs/party-invite-easter-eggs.md"]}
+{"q":"stack easter eggs","docs":["easter-eggs/stack-easter-eggs.md"]}
+{"q":"how do i climb pipes","docs":["gameplay/climbables.md"]}
+{"q":"can you move the cranes","docs":["gameplay/cranes.md"]}
+{"q":"what do the landing pads do","docs":["gameplay/dampeners.md"]}
+{"q":"how do i open red doors","docs":["gameplay/doors-and-vents.md"]}
+{"q":"how do elevators work","docs":["gameplay/elevators.md"]}
+{"q":"can i get under garage doors","docs":["gameplay/garage-doors.md"]}
+{"q":"what are the flying drones for","docs":["gameplay/grapple-swing-points.md"]}
+{"q":"what does grate do","docs":["gameplay/grate-material.md"]}
+{"q":"how do i sit on a bench","docs":["gameplay/loiters.md"]}
+{"q":"how do pvp races work","docs":["gameplay/pvp-races.md"]}
+{"q":"what websites are on the net","docs":["gameplay/the-net-websites.md"]}
+{"q":"what is the runners codex","docs":["gameplay/the-net-websites.md"]}
+{"q":"what is the net","docs":["gameplay/the-net.md"]}
+{"q":"can i use vending machines","docs":["gameplay/vending-machines.md"]}
+{"q":"how do i ride ziplines","docs":["gameplay/ziplines.md","gear/zipline-hook-and-cable-glider.md"]}
+{"q":"how do i get binoculars","docs":["gear/binoculars.md","missions/derek-questline.md"]}
+{"q":"what gear is there","docs":["gear/gear-categories.md"]}
+{"q":"what is augment gear","docs":["gear/gear-categories.md"]}
+{"q":"what does the glove do","docs":["gear/glove.md"]}
+{"q":"climber vs drifter glove","docs":["gear/glove.md"]}
+{"q":"what does the grappler do","docs":["gear/grappler.md"]}
+{"q":"should i go yank or swing grappler","docs":["gear/grappler.md"]}
+{"q":"what does mag rail do","docs":["gear/mag-rail.md"]}
+{"q":"what is charge rail","docs":["gear/mag-rail.md"]}
+{"q":"what does the springhook do","docs":["gear/springhook.md"]}
+{"q":"what is the cable glider","docs":["gear/zipline-hook-and-cable-glider.md"]}
+{"q":"what is afterboost","docs":["glossary/afterboost.md","mechanics/unlockable-movement-abilities.md"]}
+{"q":"what is a coil slide","docs":["glossary/coil-slide.md","mechanics/basic-movement.md"]}
+{"q":"what is extended coyote","docs":["glossary/extended-coyote.md","mechanics/intermediate-advanced-movement.md"]}
+{"q":"what does flail mean","docs":["glossary/flail.md"]}
+{"q":"what counts as grounded","docs":["glossary/grounded-state.md"]}
+{"q":"how do i long jump","docs":["glossary/long-jump.md","mechanics/intermediate-advanced-movement.md"]}
+{"q":"what is the blue bar","docs":["glossary/momentum.md","mechanics/momentum-temporary-momentum-and-velocity.md","mechanics/movement-concepts-quick-reference.md"]}
+{"q":"what is coyote time","docs":["glossary/normal-coyote.md","mechanics/intermediate-advanced-movement.md"]}
+{"q":"what does slide mean in tech names","docs":["glossary/powerslide.md"]}
+{"q":"how do you slide jump","docs":["glossary/slide-jump.md"]}
+{"q":"what is a speedvault","docs":["glossary/speedvault.md"]}
+{"q":"what is the red bar","docs":["glossary/temporary-momentum.md","mechanics/momentum-temporary-momentum-and-velocity.md","mechanics/movement-concepts-quick-reference.md"]}
+{"q":"difference between momentum and velocity","docs":["mechanics/momentum-temporary-momentum-and-velocity.md","glossary/velocity.md","glossary/momentum.md","mechanics/movement-concepts-quick-reference.md"]}
+{"q":"what is a wallboost","docs":["glossary/wallboost.md","mechanics/unlockable-movement-abilities.md"]}
+{"q":"how do i wallbounce flick","docs":["glossary/wallbounce-flick.md"]}
+{"q":"how do i wb","docs":["glossary/wallbounce.md","mechanics/intermediate-advanced-movement.md"]}
+{"q":"give me a quick summary of the game","docs":["guides/quick-lookup-summary.md"]}
+{"q":"what songs are in the game","docs":["guides/tab-menu-music-tracks.md"]}
+{"q":"what is downtown binary","docs":["guides/tab-menu-music-tracks.md"]}
+{"q":"tab menu trivia","docs":["guides/tab-menu-trivia.md"]}
+{"q":"how do i open the tab menu","docs":["guides/tab-menu.md"]}
+{"q":"where is apollo tower","docs":["locations/apollo.md"]}
+{"q":"what is artemis","docs":["locations/artemis.md"]}
+{"q":"list all checkpoints in stack","docs":["locations/checkpoints.md"]}
+{"q":"what is crest","docs":["locations/crest.md"]}
+{"q":"how do i go back to spawn","docs":["locations/main-spawn.md"]}
+{"q":"what is prk tech","docs":["locations/prk-tech.md"]}
+{"q":"where is the tutorial","docs":["locations/tutorial.md"]}
+{"q":"what is the tallest tower in downtown","docs":["locations/vertigo.md"]}
+{"q":"what is zephyr","docs":["locations/zephyr.md"]}
+{"q":"how do i vault","docs":["mechanics/basic-movement.md"]}
+{"q":"how do i wall run","docs":["mechanics/basic-movement.md"]}
+{"q":"how do i dropkick","docs":["mechanics/combat-ability.md"]}
+{"q":"how does combo work","docs":["mechanics/combo-system.md"]}
+{"q":"what level do you unlock combo","docs":["mechanics/combo-system.md","mechanics/other-abilities.md"]}
+{"q":"what is the gravity value","docs":["mechanics/core-physics-foundation.md","mechanics/technical-reference.md"]}
+{"q":"how does air drag work","docs":["mechanics/drag-and-movement-influence.md"]}
+{"q":"what is bhop grace","docs":["mechanics/drag-and-movement-influence.md","mechanics/movement-concepts-quick-reference.md"]}
+{"q":"how do i avoid fall damage","docs":["mechanics/falling-stabilization-and-landing.md","gameplay/dampeners.md"]}
+{"q":"what is terminal velocity","docs":["mechanics/falling-stabilization-and-landing.md","mechanics/movement-concepts-quick-reference.md"]}
+{"q":"does fps affect movement","docs":["mechanics/fps-and-update-order.md"]}
+{"q":"how do i ledge grab","docs":["mechanics/intermediate-advanced-movement.md"]}
+{"q":"what is a barrier vault","docs":["mechanics/intermediate-advanced-movement.md"]}
+{"q":"what is the momentum cap","docs":["mechanics/momentum-temporary-momentum-and-velocity.md","mechanics/technical-reference.md"]}
+{"q":"exact dash values","docs":["mechanics/technical-reference.md"]}
+{"q":"what level do i unlock dash","docs":["mechanics/unlockable-movement-abilities.md"]}
+{"q":"how do i wall kick","docs":["mechanics/unlockable-movement-abilities.md"]}
+{"q":"how does the xp multiplier work","docs":["mechanics/xp-and-multipliers.md","progression/xp-routers.md"]}
+{"q":"what consumables are coming","docs":["miscellaneous/future-consumables.md"]}
+{"q":"what is the quickbelt","docs":["miscellaneous/future-gear-and-items.md"]}
+{"q":"is a paraglider coming","docs":["miscellaneous/future-gear-and-items.md"]}
+{"q":"when is beta coming out","docs":["miscellaneous/upcoming-content.md"]}
+{"q":"when did 1.73 come out","docs":["miscellaneous/update-timeline.md"]}
+{"q":"when was pre-alpha 1.0 released","docs":["miscellaneous/update-timeline.md"]}
+{"q":"what are challenges","docs":["missions/challenges-overview.md","time-trials/races-overview.md"]}
+{"q":"how do deliveries work","docs":["missions/deliveries.md"]}
+{"q":"what is dereks questline","docs":["missions/derek-questline.md","npcs/derek.md"]}
+{"q":"what challenges are in dirwik","docs":["missions/dirwik-challenges.md"]}
+{"q":"what is leg day","docs":["missions/dirwik-challenges.md"]}
+{"q":"where is the dash training challenge","docs":["missions/downtown-challenges.md"]}
+{"q":"list the main missions","docs":["missions/main-missions.md"]}
+{"q":"what quests does julian give","docs":["missions/npc-quests.md","npcs/julian.md"]}
+{"q":"what is advancement gamma","docs":["missions/stack-challenges.md"]}
+{"q":"who is connor","docs":["npcs/connor.md"]}
+{"q":"who sells the runner phone","docs":["npcs/derek.md"]}
+{"q":"where is harper","docs":["npcs/harper.md"]}
+{"q":"who is julian","docs":["npcs/julian.md"]}
+{"q":"where is mantra","docs":["npcs/mantra.md"]}
+{"q":"who is marcel","docs":["npcs/marcel.md"]}
+{"q":"who is mike","docs":["npcs/mike.md"]}
+{"q":"list all the npcs","docs":["npcs/npc-overview.md","guides/quick-lookup-summary.md"]}
+{"q":"what does petra sell","docs":["npcs/petra.md"]}
+{"q":"who is castor","docs":["players/castor.md"]}
+{"q":"who made this website","docs":["players/elkkut.md"]}
+{"q":"who is rumblestumpleton","docs":["players/rumblestumpleton.md"]}
+{"q":"who is the vestibule guy","docs":["players/timpanzee.md"]}
+{"q":"how do i get credits","docs":["progression/credits.md"]}
+{"q":"what currencies are there","docs":["progression/currency-overview.md"]}
+{"q":"were credits ever capped","docs":["progression/currency-trivia.md"]}
+{"q":"what do daily rewards give","docs":["progression/daily-rewards.md"]}
+{"q":"how many tokens does the mag rail cost","docs":["progression/gear-token-purchases.md"]}
+{"q":"how much xp do i need for level 50","docs":["progression/leveling-curve.md"]}
+{"q":"what is the signal booster","docs":["progression/permanent-token-upgrades.md"]}
+{"q":"what gamepasses are there","docs":["progression/robux-gamepasses.md"]}
+{"q":"what does vip do","docs":["progression/robux-gamepasses.md"]}
+{"q":"how many runs to level up","docs":["progression/runs-needed-formula.md"]}
+{"q":"what does the scanner module do","docs":["progression/scanner-module.md"]}
+{"q":"what is in the store","docs":["progression/store-overview.md"]}
+{"q":"how much do token packs cost","docs":["progression/token-packs.md"]}
+{"q":"how do i get tokens","docs":["progression/tokens.md"]}
+{"q":"what are valuables","docs":["progression/valuables.md"]}
+{"q":"which vendor pays the most for valuables","docs":["progression/vendor-multipliers-for-valuables.md"]}
+{"q":"what are xp routers","docs":["progression/xp-routers.md"]}
+{"q":"what are the discord rules","docs":["rules/discord-rules.md"]}
+{"q":"can i get banned for exploiting","docs":["rules/game-rules.md"]}
+{"q":"list the dirwik time trials","docs":["time-trials/dirwik-time-trials.md","time-trials/time-trials-by-district.md"]}
+{"q":"where is the solar time trial","docs":["time-trials/downtown-time-trials.md"]}
+{"q":"fragment time trials","docs":["time-trials/fragment-time-trials.md","time-trials/time-trials-by-district.md"]}
+{"q":"what types of races are there","docs":["time-trials/races-overview.md"]}
+{"q":"what time trials were removed","docs":["time-trials/removed-time-trials.md","time-trials/time-trials-by-district.md"]}
+{"q":"where is the wisp trial","docs":["time-trials/stack-time-trials.md"]}
+{"q":"time trial trivia","docs":["time-trials/time-trial-trivia.md"]}
+{"q":"what is vegetable","docs":["time-trials/time-trial-trivia.md"]}
+{"q":"list every time trial","docs":["time-trials/time-trials-by-district.md"]}
+{"q":"how do time trial medals work","docs":["time-trials/time-trials-overview.md"]}
+{"q":"what trials are coming soon","docs":["time-trials/unreleased-time-trials.md"]}
+{"q":"what is carbon","docs":["time-trials/unreleased-time-trials.md"]}
+{"q":"how do i get faster","docs":["mechanics/momentum-temporary-momentum-and-velocity.md","mechanics/movement-concepts-quick-reference.md","glossary/momentum.md","glossary/velocity.md"]}
+{"q":"best way to make money","docs":["progression/credits.md","progression/valuables.md","progression/vendor-multipliers-for-valuables.md"]}
