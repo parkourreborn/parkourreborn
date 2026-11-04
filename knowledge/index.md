@@ -211,3 +211,16 @@ tags:
 
 * [ElkkuT](players/elkkut.md)
 * [RumbleStumpleton](players/rumblestumpleton.md)
+
+## Wasans
+
+* [Wasans](wasans/wasans-overview.md)
+* [Wasans Origin and Lore](wasans/wasans-origin-and-lore.md)
+* [Wasans Score and Tiers](wasans/wasans-score-and-tiers.md)
+* [Wasans Medal Cutoffs](wasans/wasans-medal-cutoffs.md)
+* [Wasans Rules](wasans/wasans-rules.md)
+* [Submitting Runs to Wasans](wasans/wasans-submitting-runs.md)
+* [Wasans Combo Leaderboards](wasans/wasans-combos.md)
+* [Wasans Discord, Members and Staff](wasans/wasans-discord-and-staff.md)
+* [Wasans Website](wasans/wasans-website.md)
+* [Wasans Prizes and Giveaways](wasans/wasans-prizes-and-giveaways.md)

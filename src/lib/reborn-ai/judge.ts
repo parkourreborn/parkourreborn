@@ -91,7 +91,7 @@ export async function judgeAnswer(question: string, facts: unknown, answer: stri
   const reply = await askJev({ question, facts: compactFacts(facts), answer }, {
     grounded: {
       type: 'noul',
-      instructions: 'Is every claim about Parkour Reborn in `answer` (names, numbers, dates, steps) supported by `facts`? Saying that something is unknown counts as supported.',
+      instructions: 'Is every claim about Parkour Reborn in `answer` (names, numbers, dates, steps) supported by `facts`? Saying that something is unknown counts as supported. A role-play voice, jokes, greetings and in-character lines (like "I\'m Harper, take a look at my stock") are not claims; only check the game facts.',
     },
     internals: {
       type: 'noul',

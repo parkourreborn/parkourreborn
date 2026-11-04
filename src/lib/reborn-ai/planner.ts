@@ -198,5 +198,14 @@ export function planTools({ routes, entities, message, query, maxKnowledge }: Pl
     }
   }
 
+  // The guide is always worth a quick look: "what are the rules for
+  // submitting a wr" hits the records route but is answered by the Wasans
+  // rules page. A few chunks when other tools ran, the full amount when
+  // nothing else did.
+  if (routes.length && !calls.some((call) => call.name === 'search_knowledge')) {
+    const others = calls.length > 0;
+    add(routes[0], 'search_knowledge', { query, limit: others ? 3 : maxKnowledge });
+  }
+
   return calls;
 }

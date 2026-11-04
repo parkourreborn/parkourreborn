@@ -57,8 +57,16 @@ test('keyword routes cover the new data', () => {
   assert.equal(ruleRoutes('show me my inventory', extractEntities('')).handling, 'unsupported');
 });
 
-const plan = (text, routes) => planTools({ routes, entities: extractEntities(text, players), message: text, query: text, maxKnowledge: 10 })
+const allCalls = (text, routes) => planTools({ routes, entities: extractEntities(text, players), message: text, query: text, maxKnowledge: 10 })
   .map((call) => `${call.name} ${JSON.stringify(call.args)}`);
+// Leaves out the small guide search that rides along with every live lookup.
+const plan = (text, routes) => allCalls(text, routes).filter((call) => !call.endsWith(',"limit":3}') || !call.startsWith('search_knowledge'));
+
+test('a small guide search rides along with live lookups, a full one stands alone', () => {
+  assert.deepEqual(allCalls('wr on crystal', ['records']), ['get_world_records {"trial":"Crystal","limit":4}', 'search_knowledge {"query":"wr on crystal","limit":3}']);
+  assert.deepEqual(allCalls('how does the wasans score work', ['calculator']), ['search_knowledge {"query":"how does the wasans score work","limit":10}']);
+  assert.deepEqual(allCalls('hi', []), []);
+});
 
 test('the planner picks the tools a question needs', () => {
   assert.deepEqual(plan('wr on crystal', ['records']), ['get_world_records {"trial":"Crystal","limit":4}']);

@@ -277,8 +277,12 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
     else evidence.push(entry);
   };
 
+  // A guide search that only rides along with live data (records, players,
+  // calculators) gets a short rerank with no catalog, and is dropped when
+  // Jev finds nothing in it that helps.
+  const supportOnly = !wantsGuide && evidence.some((item) => item.tool === 'search_knowledge');
   if (lookup && hasJev()) {
-    candidates = wantsGuide ? knowledge.search(query, 24) : [];
+    candidates = wantsGuide ? knowledge.search(query, 24) : supportOnly ? knowledge.search(query, 8) : [];
     verdict = await judgeEvidence({
       question: question.content,
       history: priorText,
@@ -291,6 +295,9 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
     if (verdict) {
       answerable = verdict.answerable;
       if (wantsGuide) setGuide(chooseChunks(verdict, candidates, query));
+      else if (supportOnly) {
+        setGuide(candidates.filter((hit) => (verdict?.relevance.get(hit.chunk.id) ?? 0) >= relevantChunk).slice(0, 3));
+      }
     }
   }
 
@@ -323,8 +330,9 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
     context: {
       recentMessages: contextMessages(prior),
       references: refs,
-      handling: decision.handling,
       askerLoggedIn: Boolean(viewer),
+      ...(decision.handling === 'unsupported' ? { note: 'Part of this asks for something you cannot see or do (such as the player\'s own in-game inventory, level or save, or doing things in the game). Say so for that part only and answer the rest.' } : {}),
+      ...(decision.handling === 'unclear' ? { note: 'It is not clear what this refers to. Answer what you can and ask one short question about the rest.' } : {}),
     },
     facts,
     ...(cardMode === 'marker' ? { attachments: available.map((block, index) => ({ index, type: block.type, name: cardTitle(block) })) } : {}),

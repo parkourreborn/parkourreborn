@@ -263,3 +263,20 @@ test('Jev reading the facts overrules a number the pattern check missed', async 
   assert.equal(prompts.length, 1);
   assert.equal(text, 'It has stood for 15 days.');
 });
+
+test('a guide search riding along with live data keeps only what Jev finds relevant', async (t) => {
+  const keep = { relevance: null };
+  const jev = {
+    evidence: ({ candidates }) => {
+      keep.relevance = new Map(candidates.map((candidate) => [candidate.id, candidate.title.includes('Wasans Rules') ? 0.9 : 0.05]));
+      return { relevance: keep.relevance, catalogPicks: [], answerable: 0.9, cardPicks: [], ms: 5, model: 'jev' };
+    },
+    answer: () => ({ grounded: 0.9, internals: 0 }),
+  };
+  const { ask, prompts } = setup(t, { routes: ['records'], drafts: ['Submit it within a reasonable time.'], jev });
+  await ask('what are the rules for submitting a wr');
+
+  const guide = JSON.parse(prompts[0][1].content).facts.find((fact) => fact.source === 'Parkour Reborn guide');
+  assert.ok(guide.result.length > 0 && guide.result.length <= 3);
+  assert.ok(guide.result.every((chunk) => chunk.title === 'Wasans Rules'));
+});
