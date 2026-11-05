@@ -18,6 +18,8 @@ export type Entities = {
   multiplier: number | null;
   vip: boolean;
   top: number | null;
+  // A leaderboard position asked about: "20th place", "#20", "who is rank 20".
+  place: number | null;
   range: '7d' | '30d' | '90d' | '1y' | 'all' | null;
 };
 
@@ -32,7 +34,8 @@ const trialContext = /\b(trials?|tt|wrs?|world records?|records?|pbs?|personal b
 export function findTrials(text: string): WasansTrial[] {
   const words = ` ${lower(text).replace(/[^a-z0-9]+/g, ' ')} `;
   const squashed = flat(text);
-  const context = trialContext.test(lower(text)) || /\d+(?:\.\d+)?\s*(?:s|sec|secs|seconds)\b/.test(lower(text));
+  // A time ("7.2s") or a place ("#5", "2nd") also makes it about trials.
+  const context = trialContext.test(lower(text)) || /\d+(?:\.\d+)?\s*(?:s|sec|secs|seconds)\b|#\s*\d|\b\d{1,3}(?:st|nd|rd|th)\b/.test(lower(text));
   const found = wasansTrials.filter((trial) => {
     const name = lower(trial);
     const hit = words.includes(` ${name} `) || (name.includes(' ') && squashed.includes(flat(trial)));
@@ -91,10 +94,29 @@ export function findScore(text: string) {
   return score >= 0 && score <= 1 ? score : null;
 }
 
+// "rank 20" is a level in XP questions and a position in leaderboard ones.
+const boardContext = /\b(leaderboards?|lb|who|whos|who's|wasans|overall|place|placed|position|spot)\b/;
+const levelContext = /\b(xp|exp|level|lvl|lv)\b/;
+const rankIsPlace = (value: string) => boardContext.test(value) && !levelContext.test(value);
+
+export function findPlace(text: string, hasTrial = false) {
+  const value = lower(text);
+  const ordinal = value.match(/\b(\d{1,3})(?:st|nd|rd|th)\b/);
+  const numbered = value.match(/(?:#|\b(?:place|position|spot|number)\s+#?)\s*(\d{1,3})\b/);
+  const ranked = rankIsPlace(value) ? value.match(/\brank(?:ed)?\s+#?(\d{1,3})\b/) : null;
+  // An ordinal alone could be a date ("october 20th").
+  const place = (ordinal && (hasTrial || boardContext.test(value)) ? ordinal[1] : null) ?? numbered?.[1] ?? ranked?.[1];
+  const number = Number(place);
+  return place && number >= 1 && number <= 200 ? number : null;
+}
+
 export function findLevels(text: string) {
   const value = lower(text);
   const levels: number[] = [];
-  for (const match of value.matchAll(/\b(?:level|lvl|lv|rank)\s*(\d{1,3})(?:\s*(?:to|-|->|and)\s*(?:level|lvl|lv)?\s*(\d{1,3}))?\b/g)) {
+  const pattern = rankIsPlace(value)
+    ? /\b(?:level|lvl|lv)\s*(\d{1,3})(?:\s*(?:to|-|->|and)\s*(?:level|lvl|lv)?\s*(\d{1,3}))?\b/g
+    : /\b(?:level|lvl|lv|rank)\s*(\d{1,3})(?:\s*(?:to|-|->|and)\s*(?:level|lvl|lv)?\s*(\d{1,3}))?\b/g;
+  for (const match of value.matchAll(pattern)) {
     levels.push(Number(match[1]));
     if (match[2]) levels.push(Number(match[2]));
   }
@@ -131,6 +153,7 @@ export function extractEntities(text: string, playerNames: string[] = []): Entit
     multiplier: multiplier ? Number(multiplier[1] ?? multiplier[2]) : null,
     vip: /\bvip\b/.test(value),
     top: top ? Math.min(200, Math.max(1, Number(top[1]))) : null,
+    place: findPlace(text, trials.length > 0),
     range,
   };
 }
@@ -143,21 +166,34 @@ const playerContext = /\b(who|player|players|pbs?|profile|rank|ranked|stats|scor
 const nearRunWord = (words: string, plain: string) => words.includes(` has ${plain} `) || words.includes(` did ${plain} `)
   || new RegExp(` ${plain} (?:s )?(?:time(?! trials? )|times|pbs?|best|records?|wrs?) `).test(words);
 
-// Player names from the Wasans list that the question mentions. Names that
-// look like ordinary words also need some sign the question is about a player.
+// Player names from the Wasans list that the question mentions, in the order
+// it mentions them. Names that look like ordinary words also need some sign
+// the question is about a player.
 export function findPlayers(text: string, names: string[]) {
   if (!names.length) return [];
   const value = lower(text);
   const words = ` ${value.replace(/[^a-z0-9_\-]+/g, ' ')} `;
   const context = playerContext.test(value);
-  const hits = names.filter((name) => {
+  const hits: { name: string; at: number }[] = [];
+  for (const name of names) {
     const key = lower(name).trim();
-    if (key.length < 3) return false;
+    if (key.length < 3) continue;
     const plain = key.replace(/[^a-z0-9_\-]+/g, ' ').trim();
-    if (!plain || !words.includes(` ${plain} `)) return false;
+    if (!plain) continue;
     const distinctive = /[0-9_]/.test(name) || /[a-z][A-Z]/.test(name) || plain.length >= 7;
-    return distinctive || context || nearRunWord(words, plain);
-  });
+    const exact = words.indexOf(` ${plain} `);
+    if (exact !== -1) {
+      if (distinctive || context || nearRunWord(words, plain)) hits.push({ name, at: exact });
+      continue;
+    }
+    // "timpanzees thread time": an s with no apostrophe. Ordinary-word names
+    // ("star" in "stars") only count right next to a run word.
+    const withS = words.indexOf(` ${plain}s `);
+    if (withS !== -1 && (distinctive || nearRunWord(words, `${plain}s`))) hits.push({ name, at: withS });
+  }
   // A longer name that contains a shorter one wins ("jahz2" over "jahz").
-  return hits.filter((name) => !hits.some((other) => other !== name && lower(other).includes(lower(name))));
+  return hits
+    .filter((hit) => !hits.some((other) => other.name.length > hit.name.length && lower(other.name).includes(lower(hit.name))))
+    .sort((a, b) => a.at - b.at)
+    .map((hit) => hit.name);
 }

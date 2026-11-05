@@ -5,7 +5,8 @@ import { extractEntities, findPlayers, findTrials } from './reborn-ai/entities.t
 import { planTools, ruleRoutes } from './reborn-ai/planner.ts';
 import { nextTier, tierForScore, timeForScore, wasansScore } from './wasans-data.ts';
 
-const players = ['jahz', 'sinydrol', '-Fhyre-', 'K15A6', 'RumbleStumpleton', 'flow'];
+// TimPanZee before ElkkuT, as in the real Wasans list.
+const players = ['jahz', 'sinydrol', '-Fhyre-', 'K15A6', 'RumbleStumpleton', 'flow', 'TimPanZee', 'ElkkuT', 'Star'];
 
 test('trials are found by name, ordinary words only with trial context', () => {
   assert.deepEqual(findTrials('wr on crystal and neon bold'), ['Crystal', 'Neon Bold']);
@@ -58,6 +59,44 @@ test('a short player name next to a run word counts, apostrophe or not', () => {
   const calls = planTools({ routes: ruleRoutes(text, entities).routes, entities, message: text, query: text, maxKnowledge: 10 });
   assert.deepEqual(calls.find((call) => call.name === 'get_player')?.args, { player: 'jahz' });
   assert.deepEqual(calls.find((call) => call.name === 'get_trial_leaderboard')?.args, { trial: 'Ascension', limit: 3, player: 'jahz' });
+});
+
+test('every named player is looked up, in the order the question names them', () => {
+  assert.deepEqual(findPlayers('does elkkut have a faster time on thread than timpanzee', players), ['ElkkuT', 'TimPanZee']);
+  // "timpanzees" with no apostrophe still names TimPanZee.
+  assert.deepEqual(findPlayers("compare elkkut's and timpanzees thread times", players), ['ElkkuT', 'TimPanZee']);
+  // An ordinary-word name with an s is just the word.
+  assert.deepEqual(findPlayers('how many stars do i need for rank', players), []);
+
+  const text = 'does elkkut have a faster time on thread than timpanzee';
+  const entities = extractEntities(text, players);
+  const calls = planTools({ routes: ruleRoutes(text, entities).routes, entities, message: text, query: text, maxKnowledge: 10 })
+    .filter((call) => call.name !== 'search_knowledge')
+    .map((call) => `${call.name} ${JSON.stringify(call.args)}`);
+  assert.deepEqual(calls, [
+    'get_player {"player":"ElkkuT"}',
+    'get_trial_leaderboard {"trial":"Thread","limit":3,"player":"ElkkuT"}',
+    'get_player {"player":"TimPanZee"}',
+    'get_trial_leaderboard {"trial":"Thread","limit":3,"player":"TimPanZee"}',
+  ]);
+});
+
+test('a leaderboard place is understood and fetched deep enough', () => {
+  assert.equal(extractEntities('whos at 20th place in leaderboards?').place, 20);
+  assert.equal(extractEntities('who is #5 on crystal').place, 5);
+  assert.deepEqual(extractEntities('who is #5 on crystal').trials, ['Crystal']);
+  assert.equal(extractEntities('what happened on october 20th').place, null);
+  // "rank 20" is a place on a leaderboard and a level in an XP question.
+  const board = extractEntities('who is rank 20 on the overall leaderboard');
+  assert.equal(board.place, 20);
+  assert.deepEqual(board.levels, []);
+  const xp = extractEntities('how much xp from rank 20 to 30');
+  assert.equal(xp.place, null);
+  assert.deepEqual(xp.levels, [20, 30]);
+
+  assert.deepEqual(plan('whos at 20th place in leaderboards?', ['leaderboards']), ['get_overall_leaderboard {"limit":20}']);
+  assert.deepEqual(plan('who is #25 on crystal', ['leaderboards']), ['get_trial_leaderboard {"trial":"Crystal","limit":25}']);
+  assert.ok(ruleRoutes('whos in 20th place', extractEntities('whos in 20th place')).routes.includes('leaderboards'));
 });
 
 test('keyword routes cover the new data', () => {

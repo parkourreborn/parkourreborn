@@ -85,3 +85,7 @@ test('the prompt plays along with tones and characters', () => {
   assert.match(prompt, /still answer any Parkour Reborn question/);
   assert.doesNotMatch(prompt, /offer to help with Parkour Reborn instead/);
 });
+
+test('the prompt does not turn missing data into "has no time"', () => {
+  assert.match(buildSystemPrompt(), /missing from the facts was\s+not checked/);
+});

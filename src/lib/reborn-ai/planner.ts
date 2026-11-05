@@ -61,7 +61,7 @@ export function ruleRoutes(message: string, entities: Entities): { routes: Route
   if (/\b(world records?|wrs?|record holders?|fastest (?:run|time|ever)|holds? the record)\b/.test(text)) routes.add('records');
   if (/\b(time ?trials?|tts?|bronze|silver|gold|platinum|plat|medals?|trial route)\b/.test(text) && !/\b(leaderboard|lb)\b/.test(text)) routes.add('trials');
   if (/\b(leaderboards?|lb|top \d+|top players?|rankings?|ranked|placing|place on|position on|number one|#1|best players?|who'?s (?:first|best|top))\b/.test(text)) routes.add('leaderboards');
-  if (entities.combo || /\bcombo (?:leaderboard|lb|record|top)\b/.test(text)) routes.add('leaderboards');
+  if (entities.combo || entities.place !== null || /\bcombo (?:leaderboard|lb|record|top)\b/.test(text)) routes.add('leaderboards');
   if (entities.players.length || entities.me || /\b(personal bests?|profile|player stats)\b/.test(text)) routes.add('players');
   if (/\b(stats|statistics|how many (?:runs|players|submissions)|most active|activity|recent runs|latest runs|newest runs|grinders?|announcements?|wasans news)\b/.test(text)) routes.add('stats');
   if ((entities.trials.length && entities.times.length) || entities.score !== null || entities.levels.length
@@ -90,10 +90,11 @@ type PlanInput = {
 
 const has = (pattern: RegExp, text: string) => pattern.test(text.toLowerCase());
 
-// Who a player question is about: a named player first, then the asker.
-function target(entities: Entities) {
-  if (entities.players.length) return entities.players[0];
-  return entities.me ? 'me' : null;
+// Who a player question is about: the named players (up to three, so "is
+// elkkut faster than timpanzee" gets both sides), otherwise the asker.
+function targets(entities: Entities) {
+  if (entities.players.length) return entities.players.slice(0, 3);
+  return entities.me ? ['me'] : [];
 }
 
 export function planTools({ routes, entities, message, query, maxKnowledge }: PlanInput): ToolCall[] {
@@ -109,8 +110,10 @@ export function planTools({ routes, entities, message, query, maxKnowledge }: Pl
   };
 
   const trial = entities.trials[0];
-  const who = target(entities);
-  const top = entities.top ?? 10;
+  const people = targets(entities);
+  const who = people[0] ?? null;
+  // Deep enough to reach the place asked about ("who is 20th").
+  const top = Math.min(200, Math.max(entities.top ?? 10, entities.place ?? 0));
 
   for (const route of routes) {
     if (route === 'records') {
@@ -137,12 +140,14 @@ export function planTools({ routes, entities, message, query, maxKnowledge }: Pl
     }
 
     if (route === 'players') {
-      if (who) {
-        add(route, 'get_player', { player: who });
-        if (has(/\b(percentile|peak|history|improv\w*|last pb|average|compare|best trial|worst|weakest|strongest|grind|should i|focus|progress)\b/, message)) {
-          add(route, 'get_player_analytics', { player: who });
+      if (people.length) {
+        for (const person of people) {
+          add(route, 'get_player', { player: person });
+          if (has(/\b(percentile|peak|history|improv\w*|last pb|average|compare|best trial|worst|weakest|strongest|grind|should i|focus|progress)\b/, message)) {
+            add(route, 'get_player_analytics', { player: person });
+          }
+          if (trial) add(route, 'get_trial_leaderboard', { trial, limit: 3, player: person });
         }
-        if (trial) add(route, 'get_trial_leaderboard', { trial, limit: 3, player: who });
       } else {
         add(route, 'get_overall_leaderboard', { limit: top });
       }
