@@ -12,6 +12,7 @@ import { createKnowledgeSearch } from './reborn-ai/kb-search.ts';
 import * as limits from './reborn-ai/limits.ts';
 import * as planner from './reborn-ai/planner.ts';
 import * as prompt from './reborn-ai/prompt.ts';
+import * as wasansData from './wasans-data.ts';
 
 function load(file, modules) {
   const source = readFileSync(new URL(file, import.meta.url), 'utf8');
@@ -40,7 +41,7 @@ const noEntities = entities.extractEntities('');
 
 // drafts: what each model call writes, in order. A string streams in
 // pieces, an Error is thrown as if every model failed.
-function setup(t, { routes = ['records'], results = { get_world_records: [record] }, cards = [], drafts = [], jev = null, gate, decision = {} } = {}) {
+function setup(t, { routes = ['records'], results = { get_world_records: [record] }, cards = [], drafts = [], jev = null, gate, decision = {}, router = null, playerIndex = async () => [] } = {}) {
   t.mock.method(console, 'info', () => {});
   t.mock.method(console, 'error', () => {});
   t.mock.method(console, 'warn', () => {});
@@ -48,6 +49,7 @@ function setup(t, { routes = ['records'], results = { get_world_records: [record
   const streams = [];
   const logs = [];
   const gaps = [];
+  const lookups = [];
 
   const cache = load('./reborn-ai/answer-cache.ts', { 'server-only': {}, crypto });
   const manager = load('./reborn-ai/conversation-manager.ts', {
@@ -74,7 +76,7 @@ function setup(t, { routes = ['records'], results = { get_world_records: [record
     '@/lib/reborn-ai/models': { configuredModels: () => ['a/model:free'], freeModelQuota: async () => ({ remaining: 500 }) },
     '@/lib/reborn-ai/planner': planner,
     '@/lib/reborn-ai/prompt': prompt,
-    '@/lib/reborn-ai/router': {
+    '@/lib/reborn-ai/router': router ?? {
       routeMessage: async (message) => ({
         routes,
         handling: routes.length ? 'lookup' : 'conversation',
@@ -90,7 +92,7 @@ function setup(t, { routes = ['records'], results = { get_world_records: [record
     '@/lib/reborn-ai/tools': {
       createToolkit: () => ({
         autoBlocks: cards,
-        lookup: async (name) => (name in results
+        lookup: async (name, args) => (lookups.push({ name, args }), name in results
           ? { status: 'ok', result: results[name], checkedAt: '2026-11-04T12:00:00.000Z' }
           : { status: 'ok', result: [], checkedAt: '2026-11-04T12:00:00.000Z' }),
       }),
@@ -108,7 +110,7 @@ function setup(t, { routes = ['records'], results = { get_world_records: [record
       },
     },
     '@/lib/server/reborn-ai-data': { loadTechs: async () => ({}), loadTimeTrials: async () => ({}) },
-    '@/lib/server/wasans': { playerIndex: async () => [], wasans: { worldRecords: async () => ({}) } },
+    '@/lib/server/wasans': { playerIndex, wasans: { worldRecords: async () => ({}) } },
   });
 
   const ask = async (question) => {
@@ -121,8 +123,27 @@ function setup(t, { routes = ['records'], results = { get_world_records: [record
     }
     return { events, text, types: events.map((event) => event.type), error: events.find((event) => event.type === 'error'), blocks: events.find((event) => event.type === 'blocks')?.blocks };
   };
-  return { ask, prompts, streams, logs, gaps };
+  return { ask, prompts, streams, logs, gaps, lookups };
 }
+
+test('a one-shot player question finds the player even when the player list is slow', async (t) => {
+  const realRouter = load('./reborn-ai/router.ts', {
+    'server-only': {},
+    '@/lib/reborn-ai/jev': { askJev: async () => null, yes: () => null },
+    '@/lib/reborn-ai/entities': entities,
+    '@/lib/reborn-ai/limits': limits,
+    '@/lib/reborn-ai/planner': planner,
+    '@/lib/wasans-data': wasansData,
+  });
+  // Wasans taking 1.3 s, as on a cold server. Routing used to give up at 1.2 s
+  // and treat the question as naming no player.
+  const playerIndex = () => new Promise((resolve) => setTimeout(resolve, 1300, [{ name: 'jahz' }, { name: 'sinydrol' }]));
+  const { ask, lookups } = setup(t, { router: realRouter, playerIndex, drafts: ['jahz has a run on Ascension.'] });
+
+  await ask("what's jahz time on ascension");
+  assert.deepEqual(lookups.find((call) => call.name === 'get_player')?.args, { player: 'jahz' });
+  assert.deepEqual(lookups.find((call) => call.name === 'get_trial_leaderboard')?.args, { trial: 'Ascension', limit: 3, player: 'jahz' });
+});
 
 test('answers stream with the card marker hidden and the chosen cards attached', async (t) => {
   const { ask, prompts, logs } = setup(t, { cards: [wrCard], drafts: ['The Crystal WR is 5.951 by jahz.\n[[cards:0]]'] });

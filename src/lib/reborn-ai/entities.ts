@@ -137,6 +137,12 @@ export function extractEntities(text: string, playerNames: string[] = []): Entit
 
 const playerContext = /\b(who|player|players|pbs?|profile|rank|ranked|stats|score|tier|runs?|submitted|holds?|beat|vs|versus|compare|better|than)\b|'s\b|’s\b/;
 
+// A name right next to a run word is a player: "jahz time on glass", "jahz's
+// pb", "what has jahz done". Only next to it, because "time" alone is too
+// common ("random time trial" is not the player random).
+const nearRunWord = (words: string, plain: string) => words.includes(` has ${plain} `) || words.includes(` did ${plain} `)
+  || new RegExp(` ${plain} (?:s )?(?:time(?! trials? )|times|pbs?|best|records?|wrs?) `).test(words);
+
 // Player names from the Wasans list that the question mentions. Names that
 // look like ordinary words also need some sign the question is about a player.
 export function findPlayers(text: string, names: string[]) {
@@ -150,7 +156,7 @@ export function findPlayers(text: string, names: string[]) {
     const plain = key.replace(/[^a-z0-9_\-]+/g, ' ').trim();
     if (!plain || !words.includes(` ${plain} `)) return false;
     const distinctive = /[0-9_]/.test(name) || /[a-z][A-Z]/.test(name) || plain.length >= 7;
-    return distinctive || context;
+    return distinctive || context || nearRunWord(words, plain);
   });
   // A longer name that contains a shorter one wins ("jahz2" over "jahz").
   return hits.filter((name) => !hits.some((other) => other !== name && lower(other).includes(lower(name))));

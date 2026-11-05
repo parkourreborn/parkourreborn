@@ -16,6 +16,10 @@ export const limits = {
   maxBlocks: 12,
   toolTimeoutMs: 12000,
   routerTimeoutMs: 1500,
+  // How long routing waits for the Wasans player list on a cold cache. Giving
+  // up early makes "jahz's time on glass" look like it names no player, and
+  // the player tools wait for the same list anyway.
+  playerNamesMs: 4000,
   // How long a model gets to send its first word before the next one is tried.
   firstTokenMs: 15000,
   reasoningFirstTokenMs: 45000,

@@ -42,6 +42,24 @@ test('player names are matched carefully', () => {
   assert.deepEqual(findPlayers("what is flow's rank", players), ['flow']);
 });
 
+test('a short player name next to a run word counts, apostrophe or not', () => {
+  // These used to work only when an unrelated "'s" (as in "what's") was present.
+  assert.deepEqual(findPlayers('whats jahz time on ascension', players), ['jahz']);
+  assert.deepEqual(findPlayers('jahz times on glass?', players), ['jahz']);
+  assert.deepEqual(findPlayers('what trials has jahz done', players), ['jahz']);
+  assert.deepEqual(findPlayers('what did jahz get on crystal', players), ['jahz']);
+  assert.deepEqual(findPlayers('jahz best on celsius', players), ['jahz']);
+  // "time" on its own, or "time trial", is not a sign of a player.
+  assert.deepEqual(findPlayers('is there a random time trial', [...players, 'random']), []);
+  assert.deepEqual(findPlayers('how far can i jump in time', [...players, 'far']), []);
+
+  const text = 'whats jahz time on ascension';
+  const entities = extractEntities(text, players);
+  const calls = planTools({ routes: ruleRoutes(text, entities).routes, entities, message: text, query: text, maxKnowledge: 10 });
+  assert.deepEqual(calls.find((call) => call.name === 'get_player')?.args, { player: 'jahz' });
+  assert.deepEqual(calls.find((call) => call.name === 'get_trial_leaderboard')?.args, { trial: 'Ascension', limit: 3, player: 'jahz' });
+});
+
 test('keyword routes cover the new data', () => {
   const routes = (text) => ruleRoutes(text, extractEntities(text, players)).routes.sort();
   assert.deepEqual(routes('hi'), []);

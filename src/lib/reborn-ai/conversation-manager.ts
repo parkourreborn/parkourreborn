@@ -173,10 +173,13 @@ function chooseChunks(verdict: EvidenceVerdict, candidates: ChunkHit[], query: s
   return (picked.length ? picked : candidates.slice(0, 3)).slice(0, 12);
 }
 
-const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T) => Promise.race([
-  promise.catch(() => fallback),
-  new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-]);
+const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T) => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise<T>((resolve) => { timer = setTimeout(() => resolve(fallback), ms); }),
+  ]).finally(() => clearTimeout(timer));
+};
 
 type Draft = { outcome: AnswerOutcome; answer: string; indexes: number[] };
 
@@ -214,7 +217,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
   emit({ type: 'status', state: 'thinking' });
 
   // Warm everything lookups may need while routing runs.
-  const playerNames = withTimeout(playerIndex().then((players) => players.map((player) => player.name)), 1200, [] as string[]);
+  const playerNames = withTimeout(playerIndex().then((players) => players.map((player) => player.name)), limits.playerNamesMs, [] as string[]);
   void loadTechs().catch(() => {});
   void loadTimeTrials().catch(() => {});
   void wasans.worldRecords().catch(() => {});
