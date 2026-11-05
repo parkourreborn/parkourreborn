@@ -160,11 +160,25 @@ export function extractEntities(text: string, playerNames: string[] = []): Entit
 
 const playerContext = /\b(who|player|players|pbs?|profile|rank|ranked|stats|score|tier|runs?|submitted|holds?|beat|vs|versus|compare|better|than)\b|'s\b|’s\b/;
 
-// A name right next to a run word is a player: "jahz time on glass", "jahz's
-// pb", "what has jahz done". Only next to it, because "time" alone is too
-// common ("random time trial" is not the player random).
-const nearRunWord = (words: string, plain: string) => words.includes(` has ${plain} `) || words.includes(` did ${plain} `)
-  || new RegExp(` ${plain} (?:s )?(?:time(?! trials? )|times|pbs?|best|records?|wrs?) `).test(words);
+// A name in the spot a player goes is a player: next to a run word ("jahz
+// time on glass", "what has jahz done") or asked about by place ("what place
+// is audio at", "where is audio", "audio on the lb"). Only in that spot,
+// because the words alone are too common ("random time trial", "is the
+// leaderboard random", "how far is 10th place" are not players).
+const playerSlot = (words: string, plain: string) => words.includes(` has ${plain} `) || words.includes(` did ${plain} `)
+  || new RegExp(` ${plain} (?:s )?(?:time(?! trials? )|times|pbs?|best|records?|wrs?) `).test(words)
+  || new RegExp(` (?:place|placed|placing|position|rank|spot|standing) (?:.* )?(?:is|does|did|has) ${plain} `).test(words)
+  || new RegExp(` where(?: is| s|s) ${plain} `).test(words)
+  || new RegExp(` ${plain} (?:s )?(?:at|on|in) (?:the )?(?:wasans |overall )*(?:leaderboards?|lb) `).test(words);
+
+// 'what rank is "audio"': quotes mark a name.
+const quotes = /["'`“”‘’]/;
+function inQuotes(value: string, key: string) {
+  for (let at = value.indexOf(key); at !== -1; at = value.indexOf(key, at + 1)) {
+    if (quotes.test(value[at - 1] ?? '') && quotes.test(value[at + key.length] ?? '')) return true;
+  }
+  return false;
+}
 
 // Player names from the Wasans list that the question mentions, in the order
 // it mentions them. Names that look like ordinary words also need some sign
@@ -183,13 +197,13 @@ export function findPlayers(text: string, names: string[]) {
     const distinctive = /[0-9_]/.test(name) || /[a-z][A-Z]/.test(name) || plain.length >= 7;
     const exact = words.indexOf(` ${plain} `);
     if (exact !== -1) {
-      if (distinctive || context || nearRunWord(words, plain)) hits.push({ name, at: exact });
+      if (distinctive || context || playerSlot(words, plain) || inQuotes(value, key)) hits.push({ name, at: exact });
       continue;
     }
     // "timpanzees thread time": an s with no apostrophe. Ordinary-word names
     // ("star" in "stars") only count right next to a run word.
     const withS = words.indexOf(` ${plain}s `);
-    if (withS !== -1 && (distinctive || nearRunWord(words, `${plain}s`))) hits.push({ name, at: withS });
+    if (withS !== -1 && (distinctive || playerSlot(words, `${plain}s`))) hits.push({ name, at: withS });
   }
   // A longer name that contains a shorter one wins ("jahz2" over "jahz").
   return hits

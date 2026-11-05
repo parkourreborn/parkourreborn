@@ -81,6 +81,22 @@ test('every named player is looked up, in the order the question names them', ()
   ]);
 });
 
+test('a short name asked about by place or in quotes is a player', () => {
+  const names = [...players, 'Audio', 'random', 'far', 'victor'];
+  for (const text of [
+    'what place in leaderboards is Audio at in wasans?',
+    'Then what place is audio at in the leaderboards?',
+    'where is audio on the lb',
+    'audio on the overall leaderboard?',
+    'what rank is "Audio" in',
+  ]) assert.deepEqual(findPlayers(text, names), ['Audio'], text);
+  assert.deepEqual(findPlayers('what position is victor in', names), ['victor']);
+  // The same words without a name in the player's spot stay words.
+  assert.deepEqual(findPlayers('how far is 10th place from 1st on the leaderboard', names), []);
+  assert.deepEqual(findPlayers('is the leaderboard random', names), []);
+  assert.deepEqual(findPlayers('how do i change audio settings', names), []);
+});
+
 test('a leaderboard place is understood and fetched deep enough', () => {
   assert.equal(extractEntities('whos at 20th place in leaderboards?').place, 20);
   assert.equal(extractEntities('who is #5 on crystal').place, 5);
