@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
+import { MessageCircle, Pencil, Power, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { ScreenReaderLoading, Skeleton } from '@/components/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { HubDialog, HubDialogContent } from '@/components/ui/hub-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { images } from '@/lib/assets';
 import { discordAvatar } from '@/lib/discord';
 import { formatDate, formatDateTime } from '@/lib/pages/account';
 import { statSources } from '@/lib/pages/account-stats';
@@ -45,16 +47,18 @@ function AccountSkeleton() {
   );
 }
 
-function SignedOut({ label }: { label: string }) {
+function SignedOut() {
   const { busy, error, login } = useAuth();
 
   return (
-    <div className="account-empty">
-      <span>{label}</span>
-      {error ? <span className="account-error">{error}</span> : null}
-      <Button className="account-action account-action--go" type="button" disabled={busy} onClick={login}>
+    <div className="account-login">
+      <Image src={images.logo.main} alt="" width={60} height={60} loading="eager" />
+      <strong>Not logged in</strong>
+      {error ? <span className="account-error" role="alert">{error}</span> : null}
+      <button className="account-btn account-btn--go account-btn--wide" type="button" disabled={busy} onClick={login}>
+        <MessageCircle aria-hidden="true" />
         Log in with Discord
-      </Button>
+      </button>
     </div>
   );
 }
@@ -172,6 +176,15 @@ export default function AccountModal({ onClose }: AccountModalProps) {
   const [actionError, setActionError] = useState('');
   const name = account?.displayName || discord?.globalName || discord?.username || 'Discord user';
   const avatar = discord ? discordAvatar(discord) : '';
+  // These dialogs are opened without a Radix trigger, so Radix has nowhere to
+  // send focus when they close. Send it back to whatever opened them.
+  const [opener] = useState(() => (typeof document === 'undefined' ? null : document.activeElement as HTMLElement | null));
+  const confirmFrom = useRef<HTMLElement | null>(null);
+  const refocus = (target: () => HTMLElement | null) => (event: Event) => {
+    event.preventDefault();
+    const element = target();
+    if (element?.isConnected) element.focus();
+  };
 
   const saveName = async () => {
     setActionError('');
@@ -220,68 +233,63 @@ export default function AccountModal({ onClose }: AccountModalProps) {
     }}>
       <HubDialogContent
         className="account-dialog"
-        aria-label="Account"
+        aria-describedby={undefined}
+        onCloseAutoFocus={refocus(() => opener)}
         onInteractOutside={(event) => {
           if (insideMenu(event.detail.originalEvent.target)) event.preventDefault();
         }}
       >
-        <header className="account-head">
-          <div className="account-head__title">
-            <DialogTitle asChild>
-              <h2>Account</h2>
-            </DialogTitle>
-          </div>
-          <DialogClose asChild>
-            <Button className="account-close" type="button" aria-label="Close account">
-              <span aria-hidden="true">&times;</span>
-            </Button>
-          </DialogClose>
-        </header>
+        <DialogTitle className="sr-only">{discord ? 'Account' : 'Log in'}</DialogTitle>
+        <div className="account-banner" aria-hidden="true" />
+        <DialogClose asChild>
+          <button className="account-close" type="button" aria-label="Close">
+            <X aria-hidden="true" />
+          </button>
+        </DialogClose>
 
-        <Tabs className="account-body" defaultValue="account">
-          <TabsList className="account-tabs" aria-label="Account sections">
-            <TabsTrigger value="account">Profile</TabsTrigger>
-            <TabsTrigger value="stats">Statistics</TabsTrigger>
-          </TabsList>
+        <div className="account-main" aria-busy={loading || busy}>
+          {loading ? <ScreenReaderLoading>Checking login...</ScreenReaderLoading> : null}
+          {busy ? <ScreenReaderLoading>Updating account...</ScreenReaderLoading> : null}
+          {loading ? <AccountSkeleton /> : null}
+          {!loading && !discord ? <SignedOut /> : null}
 
-          <TabsContent className="account-panel" value="account" aria-busy={loading || busy}>
-            {loading ? <ScreenReaderLoading>Checking login...</ScreenReaderLoading> : null}
-            {busy ? <ScreenReaderLoading>Updating account...</ScreenReaderLoading> : null}
-            {loading ? <AccountSkeleton /> : null}
+          {!loading && discord ? (
+            <>
+              <div className="account-id">
+                <Avatar className="account-avatar">
+                  {avatar ? <AvatarImage src={avatar} alt="" /> : null}
+                  <AvatarFallback>{name.slice(0, 1)}</AvatarFallback>
+                </Avatar>
+                {editing ? (
+                  <form className="account-name-edit" onSubmit={(event) => { event.preventDefault(); void saveName(); }}>
+                    <input aria-label="Display name" value={draft} maxLength={32} autoFocus onChange={(event) => setDraft(event.target.value)} disabled={busy} />
+                    <div>
+                      <button className="account-btn" type="button" disabled={busy} onClick={() => { setEditing(false); setActionError(''); }}>Cancel</button>
+                      <button className="account-btn account-btn--go" type="submit" disabled={busy || !draft.trim()}>Save</button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <span className="account-id__name"><strong>{name}</strong><small>@{discord.username}</small></span>
+                    <button className="account-icon-btn" type="button" aria-label="Change display name" onClick={() => { setDraft(name); setActionError(''); setEditing(true); }}>
+                      <Pencil aria-hidden="true" />
+                    </button>
+                  </>
+                )}
+              </div>
 
-            {!loading && discord ? (
-              <>
-                <div className="account-id">
-                  <Avatar className="account-avatar">
-                    {avatar ? <AvatarImage src={avatar} alt="" /> : null}
-                    <AvatarFallback>{name.slice(0, 1)}</AvatarFallback>
-                  </Avatar>
-                  {editing ? (
-                    <form className="account-name-edit" onSubmit={(event) => { event.preventDefault(); void saveName(); }}>
-                      <input aria-label="Display name" value={draft} maxLength={32} autoFocus onChange={(event) => setDraft(event.target.value)} disabled={busy} />
-                      <div>
-                        <Button type="button" disabled={busy} onClick={() => { setEditing(false); setActionError(''); }}>Cancel</Button>
-                        <Button type="submit" disabled={busy || !draft.trim()}>Save</Button>
-                      </div>
-                    </form>
-                  ) : (
-                    <>
-                      <span><strong>{name}</strong><small>@{discord.username}</small></span>
-                      <Button className="account-edit" type="button" aria-label="Change display name" onClick={() => { setDraft(name); setActionError(''); setEditing(true); }}>
-                        <Pencil className="size-3.5" aria-hidden="true" />
-                        <span aria-hidden="true">Edit</span>
-                      </Button>
-                    </>
-                  )}
-                </div>
+              {editing && actionError ? <span className="account-error" role="alert">{actionError}</span> : null}
 
-                {editing && actionError ? <span className="account-error">{actionError}</span> : null}
+              <Tabs className="account-body" defaultValue="account">
+                <TabsList className="account-tabs" aria-label="Account sections">
+                  <TabsTrigger value="account">Profile</TabsTrigger>
+                  <TabsTrigger value="stats">Stats</TabsTrigger>
+                </TabsList>
 
-                <div className="account-group">
-                  <span className="account-group__label">Details</span>
+                <TabsContent className="account-panel" value="account">
                   <dl className="account-facts">
                     <div>
-                      <dt>Account created</dt>
+                      <dt>Joined</dt>
                       <dd>{formatDate(account?.createdAt)}</dd>
                     </div>
                     <div>
@@ -293,61 +301,64 @@ export default function AccountModal({ onClose }: AccountModalProps) {
                       <dd className="account-facts__mono">{discord.id}</dd>
                     </div>
                   </dl>
-                </div>
 
-                {error ? <span className="account-error">{error}</span> : null}
-                {!editing && !confirm && actionError ? <span className="account-error" role="alert">{actionError}</span> : null}
+                  {error ? <span className="account-error" role="alert">{error}</span> : null}
+                  {!editing && !confirm && actionError ? <span className="account-error" role="alert">{actionError}</span> : null}
 
-                <div className="account-actions">
-                  <Button className="account-action account-action--go" type="button" disabled={busy} onClick={logout}>
-                    Log out
-                  </Button>
-                  <Button className="account-action" type="button" disabled={busy} onClick={() => void downloadData()}>
-                    Download my data
-                  </Button>
-                  <Button className="account-action" type="button" disabled={busy} onClick={() => { setConfirm('deactivate'); setActionError(''); }}>
-                    Deactivate
-                  </Button>
-                  <Button className="account-action account-action--risk" type="button" disabled={busy} onClick={() => { setConfirm('delete'); setTyped(''); setActionError(''); }}>
-                    Delete account
-                  </Button>
-                </div>
-              </>
-            ) : null}
+                  <div className="account-actions">
+                    <button className="account-btn account-btn--go" type="button" disabled={busy} onClick={logout}>Log out</button>
+                    <button className="account-btn" type="button" disabled={busy} aria-label="Download my data" onClick={() => void downloadData()}>My data</button>
+                    <span className="account-actions__gap" />
+                    <button className="account-text-btn" type="button" disabled={busy} onClick={(event) => { confirmFrom.current = event.currentTarget; setConfirm('deactivate'); setActionError(''); }}>Deactivate</button>
+                    <button className="account-text-btn account-text-btn--risk" type="button" disabled={busy} aria-label="Delete account" onClick={(event) => { confirmFrom.current = event.currentTarget; setConfirm('delete'); setTyped(''); setActionError(''); }}>Delete</button>
+                  </div>
+                </TabsContent>
 
-            {!loading && !discord ? <SignedOut label="Not logged in" /> : null}
-          </TabsContent>
-
-          <TabsContent className="account-panel" value="stats">
-            {loading ? <AccountSkeleton /> : null}
-            {!loading && discord ? <Stats /> : null}
-            {!loading && !discord ? <SignedOut label="Log in to see your saved progress" /> : null}
-          </TabsContent>
-        </Tabs>
+                <TabsContent className="account-panel" value="stats">
+                  <Stats />
+                </TabsContent>
+              </Tabs>
+            </>
+          ) : null}
+        </div>
       </HubDialogContent>
     </HubDialog>
     {confirm ? (
       <HubDialog onOpenChange={(next) => { if (!next && !busy) setConfirm(null); }}>
-        <HubDialogContent className="account-dialog account-confirm" aria-describedby="account-confirm-text">
-          <header className="account-head"><div className="account-head__title"><DialogTitle asChild><h2>{confirm === 'delete' ? 'Delete account' : 'Deactivate account'}</h2></DialogTitle></div></header>
-          <div className="account-confirm__body">
-            {confirm === 'deactivate' ? (
-              <p id="account-confirm-text">Are you sure you want to deactivate your account? You’ll be logged out. Log in with Discord to reactivate it later.</p>
-            ) : (
-              <div id="account-confirm-text" className="account-confirm__copy">
-                <p>This is permanent and starts instantly. Your account, saves, and scores will be deleted. If you’re unsure, deactivate instead.</p>
-                <p>Admin content and uploads stay with “Deleted account” attribution. Provider backups and logs follow their retention schedules.</p>
-                <label htmlFor="account-delete-confirm">Type DELETE to confirm</label>
-                <input id="account-delete-confirm" value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" autoFocus />
-              </div>
-            )}
-            {actionError ? <p className="account-error">{actionError}</p> : null}
-            <div className="account-confirm__actions">
-              <Button className="account-action" type="button" disabled={busy} onClick={() => setConfirm(null)}>No</Button>
-              <Button className={`account-action ${confirm === 'delete' ? 'account-action--risk' : 'account-action--go'}`} type="button" disabled={busy || (confirm === 'delete' && typed !== 'DELETE')} onClick={() => void finishAction()}>
-                {confirm === 'delete' ? 'Yes, delete' : 'Yes, deactivate'}
-              </Button>
-            </div>
+        <HubDialogContent className="account-dialog account-confirm" aria-describedby="account-confirm-text" onCloseAutoFocus={refocus(() => confirmFrom.current)}>
+          <div className="account-confirm__head">
+            <span className={`account-confirm__icon${confirm === 'delete' ? ' is-risk' : ''}`} aria-hidden="true">
+              {confirm === 'delete' ? <Trash2 /> : <Power />}
+            </span>
+            <DialogTitle asChild>
+              <h2>{confirm === 'delete' ? 'Delete account?' : 'Deactivate account?'}</h2>
+            </DialogTitle>
+            <DialogClose asChild>
+              <button className="account-icon-btn" type="button" aria-label="Close" disabled={busy}>
+                <X aria-hidden="true" />
+              </button>
+            </DialogClose>
+          </div>
+          <p id="account-confirm-text" className="account-confirm__text">
+            {confirm === 'delete' ? 'Your account, saves and scores are deleted. This can’t be undone.' : 'You’re logged out. Log in again to reactivate.'}
+          </p>
+          {confirm === 'delete' ? (
+            <label className="account-field">
+              <span>Type DELETE</span>
+              <input value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" autoFocus />
+            </label>
+          ) : null}
+          {actionError ? <p className="account-error" role="alert">{actionError}</p> : null}
+          <div className="account-confirm__actions">
+            <button className="account-btn" type="button" disabled={busy} onClick={() => setConfirm(null)}>Cancel</button>
+            <button
+              className={`account-btn ${confirm === 'delete' ? 'account-btn--risk' : 'account-btn--go'}`}
+              type="button"
+              disabled={busy || (confirm === 'delete' && typed !== 'DELETE')}
+              onClick={() => void finishAction()}
+            >
+              {confirm === 'delete' ? 'Delete' : 'Deactivate'}
+            </button>
           </div>
         </HubDialogContent>
       </HubDialog>

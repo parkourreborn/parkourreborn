@@ -4,21 +4,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpen, Clock, ClipboardList, ArrowBigLeft, House, Search } from 'lucide-react';
+import { ArrowBigLeft, ArrowUpRight, X } from 'lucide-react';
 import { images } from '@/lib/assets';
+import { menuSections } from '@/lib/site-nav';
 import MenuAuth from '@/components/menu-auth';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetTrigger } from '@/components/ui/sheet';
-
-const mainLinks = [
-  { name: 'Tech List', href: '/techlist', icon: ClipboardList },
-  { name: 'Search', href: '/search', icon: Search },
-  { name: 'Time Trial Hub', href: '/timetrialhub', icon: Clock },
-];
-
-const redirectLinks = [
-  { name: 'Wiki', href: 'https://parkourreborn.wiki', icon: BookOpen },
-];
 
 const MenuIcon = ({ open }: { open: boolean }) => (
   <span className={`menu-icon ${open ? 'is-open' : ''}`} aria-hidden="true">
@@ -39,15 +29,20 @@ const nothingFocused = () => {
 
 export default function Menu() {
   const [open, setOpen] = useState(false);
+  // Tiles and their images are only rendered once the menu has been opened.
+  const [seen, setSeen] = useState(false);
   const pathname = usePathname();
-  const panelRef = useRef<HTMLElement>(null);
-  const navClass = (href: string) => `side-menu__link${pathname === href ? ' side-menu__link--on' : ''}`;
+  const panelRef = useRef<HTMLDivElement>(null);
   const guessr = pathname === '/games/parkourguessr' || pathname === '/games/parkourguessr/play';
 
   const close = useCallback((returnFocus: boolean) => {
     setOpen(false);
-    if (returnFocus) requestAnimationFrame(() => document.getElementById('menu-toggle')?.focus());
+    if (returnFocus) document.getElementById('menu-toggle')?.focus();
   }, []);
+
+  useEffect(() => {
+    if (open) setSeen(true);
+  }, [open]);
 
   // Like the in-game Tab menu: Tab opens the menu, but only while nothing on
   // the page has focus. Once something is focused, Tab moves focus as usual,
@@ -67,8 +62,9 @@ export default function Menu() {
     return () => document.removeEventListener('keydown', keyboard, true);
   }, [guessr]);
 
-  // While open, the menu behaves like a dialog: focus starts inside, Tab
-  // cycles within it, and Escape closes it and returns focus to the button.
+  // While open, the menu behaves like a dialog: the page behind stops
+  // scrolling, focus starts inside, Tab cycles within it, and Escape closes it
+  // and returns focus to the menu button.
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
@@ -76,10 +72,14 @@ export default function Menu() {
     panel.inert = !open;
     if (!open) return;
 
+    const root = document.documentElement;
+    const overflow = root.style.overflow;
+    root.style.overflow = 'hidden';
+
     const items = () => [...panel.querySelectorAll<HTMLElement>(focusable)].filter((item) => item.offsetParent !== null);
-    const frame = requestAnimationFrame(() => {
-      if (!panel.contains(document.activeElement)) (panel.querySelector<HTMLElement>('[aria-current="page"]') ?? items()[0])?.focus();
-    });
+    if (!panel.contains(document.activeElement)) {
+      (panel.querySelector<HTMLElement>('[aria-current="page"]') ?? panel.querySelector<HTMLElement>('.pause-menu__tile') ?? items()[0])?.focus();
+    }
 
     const keyboard = (event: KeyboardEvent) => {
       // Leave keys alone while a dialog opened from the menu (the account
@@ -99,14 +99,13 @@ export default function Menu() {
 
       const first = list[0];
       const last = list[list.length - 1];
-      const active = document.activeElement;
-      if (!panel.contains(active)) {
+      if (!panel.contains(current)) {
         event.preventDefault();
         first.focus();
-      } else if (event.shiftKey && active === first) {
+      } else if (event.shiftKey && current === first) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && active === last) {
+      } else if (!event.shiftKey && current === last) {
         event.preventDefault();
         first.focus();
       }
@@ -114,7 +113,7 @@ export default function Menu() {
 
     document.addEventListener('keydown', keyboard);
     return () => {
-      cancelAnimationFrame(frame);
+      root.style.overflow = overflow;
       document.removeEventListener('keydown', keyboard);
     };
   }, [open, close]);
@@ -122,75 +121,90 @@ export default function Menu() {
   if (pathname === '/games/parkourguessr/play') return null;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button id="menu-toggle" className={`menu-toggle ${open ? 'is-open' : ''}`} type="button" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="side-menu">
-          <MenuIcon open={open} />
-        </Button>
-      </SheetTrigger>
+    <>
+      <Button
+        id="menu-toggle"
+        className={`menu-toggle ${open ? 'is-open' : ''}`}
+        type="button"
+        aria-label={open ? 'Close menu' : 'Open menu'}
+        aria-expanded={open}
+        aria-controls="site-menu"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <MenuIcon open={open} />
+      </Button>
 
-      <aside
-        id="side-menu"
+      <div
+        id="site-menu"
         ref={panelRef}
-        className={`side-menu ${open ? 'is-open' : ''}`}
-        aria-hidden={!open}
-        aria-label="Site menu"
+        className={`pause-menu${open ? ' is-open' : ''}`}
         role="dialog"
         aria-modal={open}
+        aria-label="Menu"
+        aria-hidden={!open}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) close(true);
+        }}
       >
-        <div className="side-menu__brand">
-          <Image src={images.logo.main} alt="" width={34} height={34} />
-          <span>PR Hub</span>
-        </div>
+        {open || seen ? (
+          <div className="pause-menu__inner">
+            <div className="pause-menu__head">
+              <Link href="/" className="pause-menu__brand" aria-current={pathname === '/' ? 'page' : undefined} onClick={() => setOpen(false)}>
+                <Image src={images.logo.main} alt="" width={34} height={34} />
+                <span>PR Hub</span>
+              </Link>
+              <button type="button" className="pause-menu__close" aria-label="Close menu" onClick={() => close(true)}>
+                <span aria-hidden="true">Esc</span>
+                <X aria-hidden="true" />
+              </button>
+            </div>
 
-        <nav className="side-menu__nav" aria-label="Main menu">
-          <span className="side-menu__label">Hub</span>
+            {menuSections.map((section) => (
+              <section className="pause-menu__section" aria-labelledby={`menu-${section.title.toLowerCase()}`} key={section.title}>
+                <h2 id={`menu-${section.title.toLowerCase()}`}>{section.title}</h2>
+                <div className="pause-menu__grid">
+                  {section.items.map((item) => {
+                    const tile = (
+                      <>
+                        <Image className="pause-menu__img" src={item.image} alt="" fill sizes="(max-width: 760px) 50vw, 260px" />
+                        <span className="pause-menu__name">
+                          {item.title}
+                          {item.external ? <ArrowUpRight aria-hidden="true" /> : null}
+                        </span>
+                      </>
+                    );
 
-          <Link href="/" className={navClass('/')} aria-current={pathname === '/' ? 'page' : undefined} onClick={() => setOpen(false)}>
-            <House className="side-menu__icon size-8" aria-hidden="true" />
-            <span>Home</span>
-          </Link>
+                    return item.external ? (
+                      <a className="pause-menu__tile" href={item.href} target="_blank" rel="noopener noreferrer" key={item.title} onClick={() => setOpen(false)}>
+                        {tile}
+                        <span className="sr-only"> (opens in a new tab)</span>
+                      </a>
+                    ) : (
+                      <Link
+                        className="pause-menu__tile"
+                        href={item.href}
+                        key={item.title}
+                        aria-current={pathname === item.href ? 'page' : undefined}
+                        onClick={() => setOpen(false)}
+                      >
+                        {tile}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
 
-          {mainLinks.map(({ href, icon: Icon, name }) => (
-            <Link
-              href={href}
-              className={navClass(href)}
-              key={name}
-              aria-current={pathname === href ? 'page' : undefined}
-              onClick={() => setOpen(false)}
-            >
-              <Icon className="side-menu__icon size-8" aria-hidden="true" />
-              <span>{name}</span>
-            </Link>
-          ))}
-          <span className="side-menu__label side-menu__label--links">Links</span>
-
-          {redirectLinks.map(({ href, icon: Icon, name }) => (
-            <Link
-              href={href}
-              className="side-menu__link"
-              key={name}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-            >
-              <Icon className="side-menu__icon size-8" aria-hidden="true" />
-              <span>{name}</span>
-              <span className="side-menu__out" aria-hidden="true">&#8599;</span>
-              <span className="sr-only"> (opens in a new tab)</span>
-            </Link>
-          ))}
-        </nav>
-        <div className="side-menu__footer">
-          <MenuAuth />
-          <Button className="side-menu__resume" type="button" onClick={() => close(true)}>
-            <ArrowBigLeft className="side-menu__resume-icon size-7" aria-hidden="true" />
-            <span className="side-menu__resume-text">Resume</span>
-          </Button>
-        </div>
-      </aside>
-
-      <Button className={`menu-scrim ${open ? 'is-open' : ''}`} type="button" tabIndex={-1} aria-hidden="true" onClick={() => setOpen(false)} />
-    </Sheet>
+            <div className="pause-menu__foot">
+              <MenuAuth />
+              <button type="button" className="pause-menu__resume" onClick={() => close(true)}>
+                <ArrowBigLeft aria-hidden="true" />
+                <span>Resume</span>
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }

@@ -4,8 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { ReactNode } from 'react';
 import { browserLocalPersistence, onAuthStateChanged, setPersistence, signInWithCustomToken, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
+import { Power } from 'lucide-react';
 import { getClientAuth, hasFirebaseConfig } from '@/lib/firebase';
-import { Button } from '@/components/ui/button';
 import { DialogTitle } from '@/components/ui/dialog';
 import { HubDialog, HubDialogContent } from '@/components/ui/hub-dialog';
 import type { DiscordProfile } from '@/lib/discord';
@@ -313,13 +313,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     {reactivationPending ? (
       <HubDialog onOpenChange={(next) => { if (!next && !busy) void cancelReactivation(); }}>
         <HubDialogContent className="account-dialog account-confirm" aria-describedby={undefined}>
-          <header className="account-head"><div className="account-head__title"><DialogTitle asChild><h2>Reactivate account</h2></DialogTitle></div></header>
-          <div className="account-confirm__body">
-            {error ? <p className="account-error">{error}</p> : null}
-            <div className="account-confirm__actions">
-              <Button className="account-action" type="button" disabled={busy} onClick={() => void cancelReactivation()}>Cancel</Button>
-              <Button className="account-action account-action--go" type="button" disabled={busy} onClick={() => void reactivate()}>Reactivate</Button>
-            </div>
+          <div className="account-confirm__head">
+            <span className="account-confirm__icon" aria-hidden="true"><Power /></span>
+            <DialogTitle asChild><h2>Reactivate account?</h2></DialogTitle>
+          </div>
+          {error ? <p className="account-error" role="alert">{error}</p> : null}
+          <div className="account-confirm__actions">
+            <button className="account-btn" type="button" disabled={busy} onClick={() => void cancelReactivation()}>Cancel</button>
+            <button className="account-btn account-btn--go" type="button" disabled={busy} onClick={() => void reactivate()}>Reactivate</button>
           </div>
         </HubDialogContent>
       </HubDialog>

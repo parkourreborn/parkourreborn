@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/next';
+import { ChartColumn } from 'lucide-react';
 
 const key = 'pr-hub-analytics';
 const savedChoice = () => {
@@ -51,13 +52,12 @@ export default function LegalFooter() {
   // it comes first in the tab order.
   const notice = (choice === null || settings) ? (
     <div className="analytics-notice" role="region" aria-label="Analytics choice" ref={noticeRef}>
-      <div>
-        <strong>Analytics?</strong>
-        <p>Can we use Vercel Analytics to see how the hub is used? It only starts if you accept. <Link href="/privacy">Privacy details</Link></p>
-      </div>
+      <ChartColumn className="analytics-notice__icon" aria-hidden="true" />
+      <strong className="analytics-notice__text">Allow Vercel Analytics?</strong>
+      <Link href="/privacy">Privacy</Link>
       <div className="analytics-notice__actions">
-        <button type="button" onClick={() => choose('no')}>No thanks</button>
-        <button type="button" onClick={() => choose('yes')}>Accept analytics</button>
+        <button type="button" onClick={() => choose('no')}>No</button>
+        <button type="button" onClick={() => choose('yes')}>Allow</button>
         {settings && choice !== null && <button type="button" onClick={closeSettings}>Close</button>}
       </div>
     </div>
