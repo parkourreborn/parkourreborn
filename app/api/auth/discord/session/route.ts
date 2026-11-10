@@ -34,6 +34,7 @@ const done = (body: Record<string, unknown>) => {
 };
 
 export async function POST(request: NextRequest) {
+  if (!sameOrigin(request)) return NextResponse.json({ error: 'Bad request.' }, { status: 403 });
   const login = await pending(request);
   if (!login) return done({ token: null });
   if (login.data.reactivate) return NextResponse.json({ token: null, reactivate: true }, { headers: { 'cache-control': 'no-store' } });

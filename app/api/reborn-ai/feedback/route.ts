@@ -28,9 +28,14 @@ export async function POST(request: NextRequest) {
     const log = await readLog(id);
     if (!log) return NextResponse.json({ error: 'Unknown answer' }, { status: 404 });
 
-    const triage = vote === 'down' && hasJev() ? await triageAnswer(log.question, log.answer, log.facts ?? '', note) : null;
+    // Re-sending the same vote is a no-op, and each answer is triaged by the
+    // model at most once, so repeated thumbs-downs cannot run up model calls.
+    const previous = log.feedback;
+    if (previous?.vote === vote && (previous.note ?? '') === note) return NextResponse.json({ ok: true });
+    const triaged = previous?.triage !== undefined && previous.triage !== null;
+    const triage = vote === 'down' && hasJev() && !triaged ? await triageAnswer(log.question, log.answer, log.facts ?? '', note) : previous?.triage ?? null;
     await saveFeedback(id, { vote, note, triage });
-    if (triage === 'missing_knowledge') logGap(`${id}-feedback`, { question: log.question, routes: log.routes ?? [], answerable: null, escalated: log.escalated ?? false });
+    if (!triaged && triage === 'missing_knowledge') logGap(`${id}-feedback`, { question: log.question, routes: log.routes ?? [], answerable: null, escalated: log.escalated ?? false });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: 'Could not save feedback' }, { status: 500 });

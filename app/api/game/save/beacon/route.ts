@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { maxBytes, parseSave, tooBig, writeSave } from '@/lib/server/game-save';
-import { readSession } from '@/lib/server/session';
+import { crossSite, readSession } from '@/lib/server/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,6 +12,7 @@ const baseRev = (value: string | null) => {
 };
 
 export async function POST(request: NextRequest) {
+  if (crossSite(request)) return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
   const session = await readSession(request);
   if (!session) return NextResponse.json({ error: 'Signed out' }, { status: 401 });
   const rev = baseRev(request.nextUrl.searchParams.get('rev'));

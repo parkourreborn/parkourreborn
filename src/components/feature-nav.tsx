@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { images } from '@/lib/assets';
@@ -114,6 +114,9 @@ export default function FeatureNav() {
   }, [updateCols]);
 
   return (
+    // reducedMotion="user": panel animations are skipped for visitors who
+    // turned on "reduce motion" in their system settings.
+    <MotionConfig reducedMotion="user">
     <section className="feature-grid" aria-label="Hub sections" ref={navRef}>
       {features.map((card) => {
         const isOpen = open === card.title;
@@ -179,5 +182,6 @@ export default function FeatureNav() {
         );
       })}
     </section>
+    </MotionConfig>
   );
 }

@@ -59,9 +59,9 @@ export default function Home() {
       <section className="hub-page">
         <div className="hub-container">
           <header className="hero-panel">
-            <div className="hero-panel__logo">
+            <h1 className="hero-panel__logo">
               <Image src={images.logo.hero} alt="Parkour Reborn Hub" width={520} height={240} priority />
-            </div>
+            </h1>
           </header>
           <FeatureNav />
           <section className="links-panel">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth } from '@/lib/server/firebase-admin';
 import { verifyBearer } from '@/lib/server/auth';
-import { sessionCookie, sessionMaxAge } from '@/lib/server/session';
+import { crossSite, sessionCookie, sessionMaxAge } from '@/lib/server/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  if (crossSite(request)) return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
   const response = NextResponse.json({ ok: true });
   response.cookies.delete(sessionCookie);
   return response;

@@ -12,7 +12,19 @@ export type Session = {
 };
 
 export const sessionCookie = 'discord_session';
-export const sessionMaxAge = 14 * 24 * 60 * 60;
+// Refreshed on every visit while signed in, so this is the idle limit. Firebase
+// session cookies cannot be revoked one by one, so a stolen cookie stays valid
+// until it expires; keeping the window short limits that.
+export const sessionMaxAge = 7 * 24 * 60 * 60;
+
+// Browsers send Origin on every POST/PUT/DELETE. A mismatch means another site
+// (including a sibling subdomain, which SameSite=Lax treats as same-site) sent
+// the request with this user's cookies. Requests without Origin come from
+// non-browser clients, which do not carry the user's cookies.
+export function crossSite(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  return Boolean(origin) && origin !== request.nextUrl.origin;
+}
 
 async function toSession(token: DecodedIdToken): Promise<Session | null> {
   const { data, discordId } = await accountFor(token);

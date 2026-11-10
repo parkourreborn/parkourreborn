@@ -172,7 +172,8 @@ function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; 
                       <Button
                         className={`tech-step${item.optional ? ' is-optional' : ''}${item.add ? ' is-addition' : ''}${item.remove ? ' is-remove' : ''}`}
                         type="button"
-                        tabIndex={-1}
+                        tabIndex={match ? undefined : -1}
+                        aria-disabled={match ? undefined : true}
                         onClick={() => {
                           if (match) onPick(match);
                         }}

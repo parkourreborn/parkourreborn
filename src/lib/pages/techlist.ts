@@ -158,7 +158,9 @@ export function youtubeEmbedUrl(url: string) {
     }
 
     id = id.split('?')[0].split('&')[0].trim();
-    return /^[a-zA-Z0-9_-]{6,}$/.test(id) ? `https://www.youtube.com/embed/${id}` : '';
+    // youtube-nocookie.com: YouTube's privacy-enhanced mode, which does not set
+    // tracking cookies until the visitor plays the video.
+    return /^[a-zA-Z0-9_-]{6,}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : '';
   } catch {
     return '';
   }

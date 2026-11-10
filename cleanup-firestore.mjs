@@ -1,15 +1,16 @@
-import admin from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
   throw new Error('FIREBASE_SERVICE_ACCOUNT is not set');
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+const app = initializeApp({
+  credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
 });
 
-const db = admin.firestore();
-const now = admin.firestore.Timestamp.now();
+const db = getFirestore(app);
+const now = Timestamp.now();
 
 async function cleanup(collectionName, field, cutoff) {
   let deleted = 0;

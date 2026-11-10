@@ -15,7 +15,7 @@ export default function MenuAuth() {
 
   return (
     <div className="menu-auth">
-      <Button className="menu-auth__card" type="button" tabIndex={-1} aria-label="Account" onClick={() => setOpen(true)}>
+      <Button className="menu-auth__card" type="button" aria-label={`Account: ${name}, ${status.toLowerCase()}`} onClick={() => setOpen(true)}>
         {avatar
           ? <img src={avatar} alt="" width={32} height={32} />
           : <span className="menu-auth__avatar" aria-hidden="true">{name.slice(0, 1)}</span>}

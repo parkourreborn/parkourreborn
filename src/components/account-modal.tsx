@@ -164,7 +164,7 @@ function Stats() {
 }
 
 export default function AccountModal({ onClose }: AccountModalProps) {
-  const { account, discord, loading, busy, error, logout, updateName, deactivate, deleteAccount } = useAuth();
+  const { account, discord, loading, busy, error, logout, updateName, deactivate, deleteAccount, exportData } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [confirm, setConfirm] = useState<'deactivate' | 'delete' | null>(null);
@@ -180,6 +180,15 @@ export default function AccountModal({ onClose }: AccountModalProps) {
       setEditing(false);
     } catch (nextError) {
       setActionError(nextError instanceof Error ? nextError.message : 'Could not update your name.');
+    }
+  };
+
+  const downloadData = async () => {
+    setActionError('');
+    try {
+      await exportData();
+    } catch (nextError) {
+      setActionError(nextError instanceof Error ? nextError.message : 'Could not export your data.');
     }
   };
 
@@ -287,10 +296,14 @@ export default function AccountModal({ onClose }: AccountModalProps) {
                 </div>
 
                 {error ? <span className="account-error">{error}</span> : null}
+                {!editing && !confirm && actionError ? <span className="account-error" role="alert">{actionError}</span> : null}
 
                 <div className="account-actions">
                   <Button className="account-action account-action--go" type="button" disabled={busy} onClick={logout}>
                     Log out
+                  </Button>
+                  <Button className="account-action" type="button" disabled={busy} onClick={() => void downloadData()}>
+                    Download my data
                   </Button>
                   <Button className="account-action" type="button" disabled={busy} onClick={() => { setConfirm('deactivate'); setActionError(''); }}>
                     Deactivate

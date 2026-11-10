@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&family=Jura:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -105,7 +103,7 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
-  font-family: 'Exo 2', Arial, sans-serif;
+  font-family: var(--font-exo2), Arial, sans-serif;
 }
 
 button,
@@ -297,7 +295,7 @@ button {
 
 .announcement__content strong {
   display: block;
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -316,7 +314,7 @@ button {
   display: block;
   margin-top: 8px;
   color: var(--hub-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .announcement__close {
@@ -462,7 +460,7 @@ button {
   padding-bottom: 0;
   border-bottom: 0;
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 20px;
   font-weight: 400;
   text-transform: uppercase;
@@ -499,8 +497,8 @@ button {
   flex: 0 0 auto;
   margin-bottom: 3px;
   color: var(--hub-blue);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9.5px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.18em;
@@ -532,7 +530,7 @@ button {
   background: transparent;
   color: var(--hud-nav);
   box-shadow: none;
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 16px;
   font-weight: 600;
   line-height: 1;
@@ -584,8 +582,8 @@ button {
   flex: 0 0 auto;
   margin-left: auto;
   color: #5f6b76;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   letter-spacing: 0.1em;
 }
 
@@ -670,7 +668,7 @@ button {
   display: grid;
   place-items: center;
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
@@ -686,7 +684,7 @@ button {
   display: block;
   overflow: hidden;
   color: var(--hud-value);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
@@ -698,8 +696,8 @@ button {
 .menu-auth__card small {
   display: block;
   color: var(--hud-dim-soft);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9.5px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.2;
   text-transform: uppercase;
@@ -710,8 +708,8 @@ button {
   flex: 0 0 auto;
   margin-left: auto;
   color: var(--hud-dim-soft);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9.5px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -731,7 +729,7 @@ button {
   border-radius: 7px;
   background: var(--hub-blue);
   color: var(--hud-on-accent);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 19px;
   font-weight: 700;
   line-height: 1;
@@ -802,7 +800,7 @@ button {
   }
 
   .side-menu__label {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .side-menu__link {
@@ -847,7 +845,7 @@ button {
 
   .menu-auth__card small,
   .menu-auth__go {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .side-menu__resume {
@@ -978,8 +976,7 @@ button {
 
 .feature-card:hover .feature-card__shade,
 .feature-card:focus-visible .feature-card__shade,
-.feature-card-shell.is-open .feature-card__shade,
-.link-card:hover .link-card__shade {
+.feature-card-shell.is-open .feature-card__shade {
   opacity: 0;
 }
 
@@ -997,12 +994,14 @@ button {
   align-items: center;
   justify-content: center;
   padding: 0 14px;
-  background: linear-gradient(180deg, rgba(6, 9, 14, 0.08), rgba(6, 9, 14, 0.52));
+  /* Strong enough that the label stays readable on the brightest card image,
+     including when hover removes the card shade. */
+  background: linear-gradient(180deg, rgba(6, 9, 14, 0.35), rgba(6, 9, 14, 0.82));
   text-align: center;
 }
 
 .feature-card__content strong {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: clamp(20px, 1.8vw, 23px);
   font-weight: 700;
   line-height: 1;
@@ -1137,7 +1136,7 @@ button {
   border-radius: 2px;
   background: rgba(54, 185, 236, 0.22);
   color: var(--hub-text-strong);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   text-transform: uppercase;
@@ -1156,7 +1155,7 @@ button {
 
 .panel-title,
 .link-group h2 {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
@@ -1189,7 +1188,7 @@ button {
 .link-group h2 {
   margin: 0;
   color: var(--hub-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .link-grid {
@@ -1353,7 +1352,7 @@ button {
     top: 6px;
     right: 6px;
     padding: 2px 5px;
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .link-grid--official,
@@ -1399,7 +1398,7 @@ button {
   background-position: 0 100%;
   background-size: 100% 2px;
   color: var(--hud-glyph);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
@@ -1470,18 +1469,20 @@ button {
 .xp-title span,
 .xp-field span,
 .xp-result span {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
 
 .page-hero h1 {
   margin: 0;
-  font-family: 'Jura', sans-serif;
-  font-size: clamp(42px, 7vw, 78px);
+  font-family: var(--font-jura), sans-serif;
+  font-size: clamp(26px, 7vw, 78px);
   font-weight: 700;
   line-height: 0.92;
   text-transform: uppercase;
+  overflow-wrap: break-word;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
 }
 
 .coming-soon {
@@ -1499,8 +1500,8 @@ button {
 
 .coming-soon span {
   color: var(--hub-muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -1508,7 +1509,7 @@ button {
 
 .coming-soon h2 {
   margin: 0;
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(30px, 4vw, 46px);
   font-weight: 700;
   line-height: 0.96;
@@ -1544,8 +1545,8 @@ button {
 .mc-server > span,
 .mc-mod > span {
   color: var(--hub-blue);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -1570,7 +1571,7 @@ button {
 
 .mc-ip strong {
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(28px, 5.4vw, 52px);
   font-weight: 500;
   line-height: 1;
@@ -1581,8 +1582,8 @@ button {
 
 .mc-ip small {
   color: var(--hud-dim-soft);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10.5px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -1631,7 +1632,7 @@ button {
   border-radius: 6px;
   background: var(--hub-blue);
   color: var(--hud-on-accent);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 16px;
   font-weight: 700;
   text-decoration: none;
@@ -1730,7 +1731,7 @@ button {
 
 .ip-start strong {
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(30px, 5vw, 46px);
   font-weight: 600;
   line-height: 1;
@@ -1740,8 +1741,8 @@ button {
 
 .ip-start small {
   color: var(--hud-dim-soft);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10.5px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 500;
   text-transform: none;
   letter-spacing: 0.08em;
@@ -1797,7 +1798,7 @@ button {
   background: var(--hub-field-focus-bg);
   color: var(--hud-row);
   cursor: pointer;
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 13px;
   font-weight: 600;
   pointer-events: auto;
@@ -1865,13 +1866,13 @@ button {
 
 .xp-title span {
   color: var(--hub-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .xp-title strong {
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 19px;
   font-weight: 700;
 }
@@ -1903,7 +1904,7 @@ button {
 
 .xp-field span {
   color: var(--hub-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -1917,7 +1918,7 @@ button {
   outline: 0;
   background: var(--hub-field-bg);
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 20px;
   font-weight: 700;
   transition: border-color 160ms ease, background 160ms ease;
@@ -1993,14 +1994,14 @@ button {
 
 .xp-result span {
   color: var(--hub-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .xp-result strong {
   overflow-wrap: anywhere;
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: clamp(21px, 2vw, 27px);
   font-weight: 700;
   line-height: 1;
@@ -2122,7 +2123,7 @@ button {
 .tt-time small,
 .tt-medal small,
 .tt-score {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   text-transform: uppercase;
   letter-spacing: 0.09em;
 }
@@ -2135,7 +2136,7 @@ button {
 .tt-row strong,
 .tt-score {
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 20px;
   font-weight: 700;
 }
@@ -2156,7 +2157,7 @@ button {
   outline: 0;
   background: var(--hub-field-bg);
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 20px;
   font-weight: 700;
   transition: border-color 160ms ease, background 160ms ease;
@@ -2169,7 +2170,7 @@ button {
 
 .tt-time small {
   color: var(--hub-danger);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -2272,7 +2273,7 @@ button {
   margin: 0;
   overflow: hidden;
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(24px, 5vw, 34px);
   font-weight: 400;
   line-height: 1;
@@ -2303,8 +2304,8 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -2396,7 +2397,7 @@ button {
   border-radius: 0;
   background: transparent;
   color: var(--hud-dim);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2447,7 +2448,7 @@ button {
   margin: 0;
   overflow: hidden;
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(26px, 6vw, 34px);
   font-weight: 400;
   line-height: 1;
@@ -2477,7 +2478,7 @@ button {
   border-radius: 0;
   background: transparent;
   color: var(--hud-glyph);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 26px;
   font-weight: 400;
   line-height: 1;
@@ -2517,7 +2518,7 @@ button {
   border-radius: 0;
   background: transparent;
   color: var(--hud-dim);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 15px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2576,8 +2577,8 @@ button {
 
 .account-group__label {
   color: var(--hub-blue);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -2608,7 +2609,7 @@ button {
 .account-id strong {
   overflow: hidden;
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 24px;
   font-weight: 500;
   line-height: 1;
@@ -2620,8 +2621,8 @@ button {
 .account-id small {
   overflow: hidden;
   color: var(--hud-dim);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 500;
   text-overflow: ellipsis;
   letter-spacing: 0.06em;
@@ -2642,8 +2643,8 @@ button {
   border-radius: 0;
   background: transparent;
   color: var(--hud-dim);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -2681,7 +2682,7 @@ button {
   outline: 0;
   background: var(--hud-field-bg);
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 17px;
 }
 
@@ -2703,7 +2704,7 @@ button {
   border-radius: 0;
   background: transparent;
   color: var(--hud-nav);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2741,7 +2742,7 @@ button {
 .account-avatar [data-slot="avatar-fallback"] {
   background: transparent;
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 24px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2768,7 +2769,7 @@ button {
 .account-facts dt {
   flex: 0 0 auto;
   color: var(--hud-dim);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2779,7 +2780,7 @@ button {
   min-width: 0;
   margin: 0;
   color: var(--hud-value);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: 12.5px;
   font-weight: 500;
   text-align: right;
@@ -2787,7 +2788,7 @@ button {
 }
 
 .account-facts__mono {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: 12.5px;
 }
 
@@ -2808,7 +2809,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: var(--hud-dim-soft);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2891,7 +2892,7 @@ button {
 
 .account-confirm__copy label {
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2932,8 +2933,8 @@ button {
 .account-error {
   display: block;
   color: var(--hub-muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
@@ -2986,8 +2987,8 @@ button {
 
 .account-picker span {
   color: var(--hub-blue);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -3042,7 +3043,7 @@ button {
 .account-picker__button strong {
   overflow: hidden;
   color: var(--hud-value);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 16px;
   font-weight: 600;
   line-height: 1;
@@ -3082,7 +3083,7 @@ button {
   border-radius: 0;
   background: transparent;
   color: var(--hud-nav);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 15px;
   font-weight: 600;
   text-align: left;
@@ -3142,8 +3143,8 @@ button {
 
 .account-tile small {
   color: var(--hud-dim);
-  font-family: 'Jura', sans-serif;
-  font-size: 11px;
+  font-family: var(--font-jura), sans-serif;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
   text-transform: uppercase;
@@ -3152,7 +3153,7 @@ button {
 
 .account-tile strong {
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(22px, 5vw, 30px);
   font-weight: 600;
   line-height: 1;
@@ -3173,8 +3174,8 @@ button {
 .account-table h3 {
   margin: 0;
   color: var(--hub-blue);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -3220,8 +3221,8 @@ button {
   z-index: 1;
   background: var(--hud-panel-bg);
   color: var(--hud-dim);
-  font-family: 'Jura', sans-serif;
-  font-size: 11px;
+  font-family: var(--font-jura), sans-serif;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -3232,7 +3233,7 @@ button {
   height: 34px;
   border-top: 1px solid var(--hud-hairline);
   color: var(--hud-value);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: 12.5px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -3240,7 +3241,7 @@ button {
 
 .account-table td:first-child {
   color: var(--hud-row);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
@@ -3261,7 +3262,7 @@ button {
   border-radius: 0;
   background: var(--hud-tile-bg);
   color: var(--hub-muted);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 14px;
   font-weight: 600;
   text-align: left;
@@ -3356,14 +3357,14 @@ button {
 
 .tt-medal small {
   color: var(--hub-muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .tt-medal strong {
   overflow-wrap: anywhere;
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 21px;
   font-weight: 700;
   line-height: 1;
@@ -3402,7 +3403,7 @@ button {
   border-radius: 2px;
   background: var(--hub-field-bg);
   color: var(--hub-text);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -3438,8 +3439,8 @@ button {
   border: 1px solid var(--hub-border);
   background: var(--hub-panel-bg);
   color: var(--hub-text);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
 }
 
 .map-options {
@@ -3551,8 +3552,8 @@ button {
   top: 50%;
   left: 50%;
   color: var(--hub-muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   transform: translate(-50%, -50%);
@@ -3606,7 +3607,7 @@ button {
 
 .search-card small,
 .search-url {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   opacity: 0.82;
@@ -3706,7 +3707,7 @@ button {
 
 .search-card small {
   color: var(--hub-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -3714,7 +3715,7 @@ button {
   overflow-wrap: anywhere;
   white-space: normal;
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 24px;
   font-weight: 700;
   line-height: 1;
@@ -3796,7 +3797,7 @@ button {
 .search-url {
   overflow: hidden; 
   color: var(--hub-blue);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3832,8 +3833,8 @@ button {
 .tech-search label > span,
 .search-panel label > span {
   color: var(--hub-blue);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -3855,7 +3856,7 @@ button {
   outline: 0;
   background: var(--hud-field-bg);
   color: var(--hud-value);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -3890,7 +3891,7 @@ button {
   border-radius: 0;
   background: transparent;
   color: var(--hud-dim);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 15px;
   font-weight: 600;
   text-transform: uppercase;
@@ -3998,7 +3999,7 @@ button {
   overflow-wrap: anywhere;
   white-space: normal;
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 25px;
   font-weight: 700;
   line-height: 1;
@@ -4061,8 +4062,8 @@ button {
   border-radius: 2px;
   background: rgba(5, 9, 15, 0.98);
   color: var(--hub-text);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.35;
   white-space: normal;
@@ -4173,7 +4174,7 @@ button {
 
 .tech-arrow {
   color: var(--hub-muted-soft);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: 19px;
   font-weight: 700;
 }
@@ -4264,7 +4265,7 @@ button {
   border-radius: 999px;
   background: var(--hud-active-bg);
   color: var(--hub-text);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
@@ -4272,7 +4273,7 @@ button {
 
 .ai-bar__name {
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -4332,7 +4333,7 @@ button {
 .ai-intro h2 {
   margin: 0;
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(26px, 4vw, 34px);
   font-weight: 600;
   line-height: 1;
@@ -4383,7 +4384,7 @@ button {
   border-radius: 999px;
   background: var(--hud-active-bg);
   color: var(--hub-text);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 17px;
   font-weight: 600;
   line-height: 1;
@@ -4422,8 +4423,8 @@ button {
   border-radius: 2px;
   background: var(--hub-blue);
   color: var(--hub-bg);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
 }
@@ -4431,8 +4432,8 @@ button {
 .ai-row__head time {
   flex: 0 0 auto;
   color: var(--hub-muted-faint);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   letter-spacing: 0.05em;
 }
 
@@ -4470,7 +4471,7 @@ button {
   border-radius: 2px;
   background: var(--hub-field-bg);
   color: var(--hub-text);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: 13px;
 }
 
@@ -4480,8 +4481,8 @@ button {
   gap: 8px;
   padding: 3px 0;
   color: var(--hub-muted-faint);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -4533,8 +4534,8 @@ button {
   border-radius: 2px;
   background: transparent;
   color: var(--hub-danger);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -4581,7 +4582,7 @@ button {
   outline: 0;
   background: transparent;
   color: var(--hub-text);
-  font-family: 'Exo 2', Arial, sans-serif;
+  font-family: var(--font-exo2), Arial, sans-serif;
   font-size: 15px;
   line-height: 1.5;
   resize: none;
@@ -4631,8 +4632,8 @@ button {
   margin: 0;
   padding: 0 4px;
   color: var(--hub-muted-faint);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   opacity: 0.75;
@@ -4673,7 +4674,7 @@ button {
 .ai-link strong {
   overflow-wrap: anywhere;
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 19px;
   font-weight: 700;
   line-height: 1.1;
@@ -4682,7 +4683,7 @@ button {
 .ai-link small {
   overflow: hidden;
   color: var(--hub-muted-faint);
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -4740,8 +4741,8 @@ button {
 
 .ai-card__head > span {
   color: var(--hub-muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -4750,7 +4751,7 @@ button {
 .ai-card__head strong {
   overflow-wrap: anywhere;
   color: var(--hub-text);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 25px;
   font-weight: 700;
   line-height: 1;
@@ -4794,8 +4795,8 @@ button {
 
 .ai-board__rank {
   color: var(--hub-muted-faint);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -4808,12 +4809,12 @@ button {
 
 .ai-board__name small {
   color: var(--hub-muted-faint);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ai-board__value {
   color: var(--hub-text);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: 12px;
 }
 
@@ -4888,8 +4889,8 @@ button {
   border-radius: 2px;
   background: transparent;
   color: var(--hub-muted);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -4925,7 +4926,7 @@ button {
   border-radius: 2px;
   background: var(--hub-control-bg);
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 17px;
   font-weight: 700;
   line-height: 1;
@@ -4974,7 +4975,7 @@ button {
 .ai-medal strong {
   overflow-wrap: anywhere;
   color: var(--hub-text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 17px;
   font-weight: 700;
   line-height: 1;
@@ -5010,7 +5011,7 @@ button {
 
 .ai-wr strong {
   color: var(--hub-text-strong);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 34px;
   font-weight: 700;
   line-height: 1;
@@ -5028,7 +5029,7 @@ button {
   margin-left: auto;
   text-align: right;
   color: var(--hub-blue);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 20px;
   font-weight: 700;
   line-height: 1;
@@ -5036,8 +5037,8 @@ button {
 
 .ai-wr__score small {
   color: var(--hub-muted-faint);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
 }
@@ -5201,8 +5202,8 @@ button.ai-hex:focus-visible {
   .tt-row > label::before {
     content: attr(data-label);
     color: var(--hub-muted);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
+    font-family: var(--font-plex-mono), monospace;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.09em;
@@ -5424,8 +5425,8 @@ button.ai-hex:focus-visible {
 .guessr-select__section legend,
 .guessr-select__start > span {
   color: var(--hub-muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -5500,7 +5501,7 @@ button.ai-hex:focus-visible {
 }
 
 .guessr-choice > span {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-rajdhani), sans-serif;
   font-size: 24px;
   font-weight: 700;
   line-height: 1;
@@ -5558,7 +5559,7 @@ button.ai-hex:focus-visible {
   min-height: 42px;
   padding: 0 22px;
   border-radius: 2px;
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
@@ -5651,8 +5652,8 @@ button.ai-hex:focus-visible {
   border-radius: 2px;
   background: var(--hub-panel);
   color: var(--hub-text);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   font-weight: 700;
   text-decoration: none;
   text-transform: uppercase;
@@ -5694,7 +5695,7 @@ button.ai-hex:focus-visible {
 .guessr-hud strong,
 .guessr-game-map__bar,
 .guessr-result span {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -5722,7 +5723,7 @@ button.ai-hex:focus-visible {
 }
 
 .guessr-game__loading strong {
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(68px, 12vw, 130px);
   line-height: 1;
   text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
@@ -5733,8 +5734,8 @@ button.ai-hex:focus-visible {
   border: 1px solid var(--hub-border);
   background: var(--hub-panel);
   color: var(--hub-muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
@@ -5808,7 +5809,7 @@ button.ai-hex:focus-visible {
   padding: 7px 9px 7px 13px;
   border-bottom: 1px solid var(--hub-border);
   background: var(--hub-panel-bg);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .guessr-game-map:hover .guessr-game-map__bar,
@@ -5821,7 +5822,7 @@ button.ai-hex:focus-visible {
 
 .guessr-game-map__bar > strong {
   color: var(--hub-text-strong);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .guessr-game-map__bar > span {
@@ -5876,7 +5877,7 @@ button.ai-hex:focus-visible {
   min-height: 38px;
   padding: 0 16px;
   border-radius: 2px;
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
@@ -5894,7 +5895,7 @@ button.ai-hex:focus-visible {
   border-radius: 2px;
   background: rgba(5, 9, 14, 0.94);
   color: var(--hub-text);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 15px;
   font-weight: 700;
   text-transform: uppercase;
@@ -5928,11 +5929,11 @@ button.ai-hex:focus-visible {
 
 .guessr-result span {
   color: var(--hub-muted);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .guessr-result strong {
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 18px;
 }
 
@@ -5971,7 +5972,7 @@ button.ai-hex:focus-visible {
 
 .guessr-final h1 {
   margin: 0;
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: clamp(42px, 9vw, 72px);
   font-weight: 700;
   line-height: 1;
@@ -6049,7 +6050,7 @@ button.ai-hex:focus-visible {
   }
 
   .guessr-hud strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .guessr-game-map,
@@ -6122,7 +6123,7 @@ button.ai-hex:focus-visible {
 
 .legal-page__eyebrow {
   color: var(--hub-blue);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -6132,7 +6133,7 @@ button.ai-hex:focus-visible {
 .legal-page h2 {
   margin: 0;
   color: var(--hub-text-strong);
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
 }
 
 .legal-page h1 {
@@ -6167,6 +6168,7 @@ button.ai-hex:focus-visible {
 .legal-page a,
 .analytics-notice a {
   color: var(--hub-blue);
+  text-decoration: underline;
   text-underline-offset: 3px;
 }
 
@@ -6176,7 +6178,7 @@ button.ai-hex:focus-visible {
 }
 
 .legal-page code {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-plex-mono), monospace;
   font-size: 0.9em;
 }
 
@@ -6202,6 +6204,9 @@ button.ai-hex:focus-visible {
 
 .legal-footer a,
 .legal-footer button {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
   padding: 0;
   border: 0;
   background: none;
@@ -6238,7 +6243,7 @@ button.ai-hex:focus-visible {
 }
 
 .analytics-notice strong {
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-jura), sans-serif;
   font-size: 20px;
 }
 
@@ -6272,11 +6277,6 @@ button.ai-hex:focus-visible {
   border-color: var(--hub-blue);
 }
 
-.analytics-notice__actions button:nth-child(2) {
-  background: var(--hub-blue);
-  color: var(--hud-on-accent);
-}
-
 @media (max-width: 640px) {
   .analytics-notice {
     align-items: stretch;
@@ -6286,4 +6286,73 @@ button.ai-hex:focus-visible {
   .analytics-notice__actions button {
     flex: 1;
   }
+}
+
+/* Keyboard focus ring for every interactive element. Component rules may
+   restyle the ring but must not remove it (WCAG 2.4.7). */
+:is(a, button, input, select, textarea, summary, [role='button'], [role='tab'], [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid var(--hub-blue);
+  outline-offset: 2px;
+}
+
+.not-found {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding: clamp(24px, 4vw, 42px);
+  border: 1px solid var(--hub-game-line);
+  border-radius: 2px;
+  background: var(--hub-panel-bg);
+  box-shadow: var(--hub-shadow-panel);
+}
+
+.not-found__code {
+  color: var(--hub-blue);
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.not-found h1 {
+  margin: 0;
+  font-family: var(--font-jura), sans-serif;
+  font-size: clamp(30px, 5vw, 52px);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.not-found p {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--hub-muted);
+  line-height: 1.5;
+}
+
+.not-found__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.not-found__links a {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid var(--hub-line-strong);
+  background: var(--hub-control-bg);
+  color: var(--hub-text);
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.not-found__links a:hover {
+  border-color: var(--hub-blue);
+  background: var(--hub-control-hover-bg);
 }

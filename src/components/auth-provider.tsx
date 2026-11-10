@@ -21,6 +21,7 @@ type AuthContextValue = {
   updateName: (name: string) => Promise<void>;
   deactivate: () => Promise<void>;
   deleteAccount: (confirm: string) => Promise<void>;
+  exportData: () => Promise<void>;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -231,6 +232,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const exportData = async () => {
+    setBusy(true);
+    try {
+      const current = getClientAuth().currentUser;
+      if (!current) throw new Error('Log in again.');
+      const response = await fetch('/api/account/export', {
+        headers: { authorization: `Bearer ${await current.getIdToken()}` },
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || 'Could not export your data.');
+      }
+
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'parkour-reborn-hub-data.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const cancelReactivation = async () => {
     setBusy(true);
     try {
@@ -274,6 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateName,
     deactivate,
     deleteAccount,
+    exportData,
     login,
     logout,
     clearError: () => setError(''),

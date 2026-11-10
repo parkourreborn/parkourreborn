@@ -9,6 +9,7 @@ import { HubDialog, HubDialogContent } from '@/components/ui/hub-dialog';
 import { images } from '@/lib/assets';
 import { fetchTimeTrials, fetchWorldRecords, trialKey, wrVideoURL } from '@/lib/pages/timetrials';
 import type { TimeTrial, WorldRecord } from '@/lib/pages/timetrials';
+import { youtubeEmbedUrl } from '@/lib/pages/techlist';
 import { cleanTimeInput, formatTime, parseTime } from '@/lib/pages/time';
 import { calculateWasansScore, formatWasansScore } from '@/lib/pages/wasans';
 
@@ -50,7 +51,7 @@ function EmbedVideo({ url }: { url: string }) {
 
   return (
     <iframe
-      src={url}
+      src={youtubeEmbedUrl(url) || url}
       title="Platinum route"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen

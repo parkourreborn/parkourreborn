@@ -59,7 +59,7 @@ export function logGap(id: string, gap: { question: string; routes: string[]; an
 
 export async function readLog(id: string) {
   const snapshot = await getAdminDb().collection('aiLogs').doc(id).get();
-  return snapshot.exists ? snapshot.data() as RequestLog & { feedback?: { vote: string } } : null;
+  return snapshot.exists ? snapshot.data() as RequestLog & { feedback?: { vote: string; note?: string; triage?: string | null } } : null;
 }
 
 export async function saveFeedback(id: string, feedback: { vote: 'up' | 'down'; note: string; triage: string | null }) {
