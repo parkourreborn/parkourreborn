@@ -76,7 +76,16 @@ function ResourceModal({ item, onClose }: ResourceModalProps) {
     <HubDialog onOpenChange={(next) => {
       if (!next) onClose();
     }}>
-      <HubDialogContent className={`tt-dialog search-dialog search-dialog--${item.type}`} aria-label={item.name}>
+      <HubDialogContent
+        className={`tt-dialog search-dialog search-dialog--${item.type}`}
+        aria-label={item.name}
+        onOpenAutoFocus={(event) => {
+          // Focus the dialog itself rather than its first button, so the copy
+          // button's tooltip does not pop open as soon as the dialog opens.
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus();
+        }}
+      >
         <header className="tt-dialog__head">
           <DialogTitle asChild><h2>{item.name}</h2></DialogTitle>
           <div className="search-head-actions">
@@ -110,11 +119,9 @@ function ResourceModal({ item, onClose }: ResourceModalProps) {
               {item.description ? <p>{item.description}</p> : <p>No description yet.</p>}
               {canOpen ? <a className="search-url" href={item.link} target="_blank" rel="noopener noreferrer">{item.link}</a> : <span className="search-url">Link looks broken.</span>}
               {canOpen ? (
-                <Button asChild className="account-action search-action">
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" download={item.type === 'file' && item.downloadable ? '' : undefined}>
-                    {action}
-                  </a>
-                </Button>
+                <a className="account-btn account-btn--go search-action" href={item.link} target="_blank" rel="noopener noreferrer" download={item.type === 'file' && item.downloadable ? '' : undefined}>
+                  {action}
+                </a>
               ) : null}
             </div>
           )}

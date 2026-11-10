@@ -10,8 +10,8 @@ import { menuSections } from '@/lib/site-nav';
 import MenuAuth from '@/components/menu-auth';
 import { Button } from '@/components/ui/button';
 
-const MenuIcon = ({ open }: { open: boolean }) => (
-  <span className={`menu-icon ${open ? 'is-open' : ''}`} aria-hidden="true">
+const MenuIcon = () => (
+  <span className="menu-icon" aria-hidden="true">
     <span />
     <span />
     <span />
@@ -124,14 +124,14 @@ export default function Menu() {
     <>
       <Button
         id="menu-toggle"
-        className={`menu-toggle ${open ? 'is-open' : ''}`}
+        className="menu-toggle"
         type="button"
         aria-label={open ? 'Close menu' : 'Open menu'}
         aria-expanded={open}
         aria-controls="site-menu"
         onClick={() => setOpen((current) => !current)}
       >
-        <MenuIcon open={open} />
+        <MenuIcon />
       </Button>
 
       <div

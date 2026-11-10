@@ -281,8 +281,7 @@ button {
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.menu-toggle:hover,
-.menu-toggle.is-open {
+.menu-toggle:hover {
   border-color: var(--hub-accent-line-strong);
   background: #0d131c;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
@@ -302,7 +301,7 @@ button {
   height: 2px;
   border-radius: 999px;
   background: var(--hub-icon);
-  transition: transform 190ms ease, opacity 190ms ease, top 190ms ease, background 190ms ease;
+  transition: background 160ms ease;
 }
 
 .menu-toggle:hover .menu-icon span {
@@ -319,21 +318,6 @@ button {
 
 .menu-icon span:nth-child(3) {
   top: 12px;
-}
-
-.menu-icon.is-open span:nth-child(1) {
-  top: 6px;
-  transform: rotate(45deg);
-}
-
-.menu-icon.is-open span:nth-child(2) {
-  opacity: 0;
-  transform: translateX(-6px);
-}
-
-.menu-icon.is-open span:nth-child(3) {
-  top: 6px;
-  transform: rotate(-45deg);
 }
 
 .hero-panel {
@@ -4439,14 +4423,8 @@ button.ai-hex:focus-visible {
   line-height: 1;
 }
 
-.guessr-choice__icon,
-.guessr-choice small {
+.guessr-choice__icon {
   color: var(--hub-muted);
-}
-
-.guessr-choice small {
-  font-size: 12px;
-  font-weight: 500;
 }
 
 .guessr-choice__check {
@@ -4459,17 +4437,9 @@ button.ai-hex:focus-visible {
 .guessr-choice--small {
   min-height: 84px;
   grid-template-columns: auto 1fr;
+  align-items: center;
   column-gap: 14px;
   padding-right: 40px;
-}
-
-.guessr-choice--small .guessr-choice__icon {
-  grid-row: span 2;
-  align-self: center;
-}
-
-.guessr-choice--small small {
-  grid-column: 2;
 }
 
 .guessr-select__start {
@@ -4943,10 +4913,6 @@ button.ai-hex:focus-visible {
     padding: 16px 40px 16px 16px;
   }
 
-  .guessr-choice:not(.guessr-choice--small) small {
-    grid-column: 2;
-  }
-
   .guessr-choice__check {
     top: 50%;
     transform: translateY(-50%);
@@ -5123,7 +5089,6 @@ button.ai-hex:focus-visible {
   gap: 12px 24px;
   margin-top: auto;
   padding: 20px clamp(16px, 4vw, 44px);
-  border-top: 1px solid var(--hub-line);
   color: var(--hub-muted);
   font-size: 13px;
 }

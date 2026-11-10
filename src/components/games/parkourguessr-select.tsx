@@ -13,8 +13,8 @@ const modeInfo = {
 };
 
 const difficultyInfo = {
-  normal: { name: 'Normal', text: 'Clear views', icon: ScanEye },
-  hard: { name: 'Hard', text: 'Fewer clues', icon: Crosshair },
+  normal: { name: 'Normal', icon: ScanEye },
+  hard: { name: 'Hard', icon: Crosshair },
 };
 
 export default function ParkourGuessrSelect({ notice }: { notice: string }) {
@@ -89,14 +89,12 @@ export default function ParkourGuessrSelect({ notice }: { notice: string }) {
                 <Icon className="guessr-choice__icon size-6" aria-hidden="true" />
                 <span>{modeInfo[item].name}</span>
                 {available && mode === item && <Check className="guessr-choice__check size-4" aria-hidden="true" />}
-                {!available && <small>{config || error ? 'Unavailable' : 'Loading...'}</small>}
               </Button>
             );
           })}
           <Button type="button" variant="outline" className="guessr-choice" disabled>
             <Users className="guessr-choice__icon size-6" aria-hidden="true" />
             <span>Multiplayer</span>
-            <small>Coming Soon</small>
           </Button>
         </div>
       </fieldset>
@@ -119,7 +117,6 @@ export default function ParkourGuessrSelect({ notice }: { notice: string }) {
               >
                 <Icon className="guessr-choice__icon size-6" aria-hidden="true" />
                 <span>{difficultyInfo[item].name}</span>
-                <small>{availability?.available ? difficultyInfo[item].text : config || error ? 'Unavailable' : 'Loading...'}</small>
                 {availability?.available && difficulty === item && <Check className="guessr-choice__check size-4" aria-hidden="true" />}
               </Button>
             );
