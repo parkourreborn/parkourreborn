@@ -2,9 +2,6 @@
   "name": "parkourreborn-frontend",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "kb:build": "node scripts/kb/build.mjs",
     "kb:check": "node scripts/kb/build.mjs --check",
@@ -25,7 +22,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase": "^13.2.0",
-    "firebase-admin": "14.5.0",
+    "firebase-admin": "13.10.0",
     "framer-motion": "^11.2.10",
     "lucide-react": "^1.22.0",
     "minisearch": "^7.2.0",
@@ -48,8 +45,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "glob": "^14.0.4",
-    "@grpc/grpc-js": "^1.14.7",
+    "glob": "^10.5.0",
     "@typescript-eslint/typescript-estree": {
       "minimatch": "^11.0.5"
     }

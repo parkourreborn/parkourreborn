@@ -1,4 +1,8 @@
 const dev = process.env.NODE_ENV !== 'production';
+// Vercel sets VERCEL_ENV at build time. Preview deployments show the Vercel
+// toolbar (vercel.live), which loads its own script, frame, styles and a
+// websocket; production does not get these.
+const toolbar = process.env.VERCEL_ENV === 'preview';
 
 // Report-only for now: violations are logged by /api/csp-report but nothing is
 // blocked. Once the reports are quiet, rename the header below to
@@ -13,13 +17,13 @@ const dev = process.env.NODE_ENV !== 'production';
 //   it loads on some mobile browsers.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://apis.google.com https://va.vercel-scripts.com${dev ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://apis.google.com https://va.vercel-scripts.com${toolbar ? ' https://vercel.live' : ''}${dev ? " 'unsafe-eval'" : ''}`,
+  `style-src 'self' 'unsafe-inline'${toolbar ? ' https://vercel.live' : ''}`,
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
-  "font-src 'self' data:",
-  `connect-src 'self' blob: data: https://*.googleapis.com https://va.vercel-scripts.com${dev ? ' ws:' : ''}`,
-  "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://*.firebaseapp.com",
+  `font-src 'self' data:${toolbar ? ' https://vercel.live https://assets.vercel.com' : ''}`,
+  `connect-src 'self' blob: data: https://*.googleapis.com https://va.vercel-scripts.com${toolbar ? ' https://vercel.live wss://ws-us3.pusher.com' : ''}${dev ? ' ws:' : ''}`,
+  `frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://*.firebaseapp.com${toolbar ? ' https://vercel.live' : ''}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowBigLeft, ArrowUpRight, X } from 'lucide-react';
+import { ArrowBigLeft, ArrowUpRight } from 'lucide-react';
 import { images } from '@/lib/assets';
 import { menuSections } from '@/lib/site-nav';
 import MenuAuth from '@/components/menu-auth';
@@ -153,10 +153,6 @@ export default function Menu() {
                 <Image src={images.logo.main} alt="" width={34} height={34} />
                 <span>PR Hub</span>
               </Link>
-              <button type="button" className="pause-menu__close" aria-label="Close menu" onClick={() => close(true)}>
-                <span aria-hidden="true">Esc</span>
-                <X aria-hidden="true" />
-              </button>
             </div>
 
             {menuSections.map((section) => (
