@@ -68,7 +68,7 @@ export default function LegalFooter() {
   return (
     <>
       <footer className="legal-footer">
-        <span>Parkour Reborn Hub by ElkkuT</span>
+        <span>Parkour Reborn Hub by <a href="https://discord.com/users/1020704620722528256" target="_blank" rel="noopener noreferrer">ElkkuT</a></span>
         <nav aria-label="Legal links">
           <Link href="/terms">Terms</Link>
           <Link href="/privacy">Privacy</Link>
