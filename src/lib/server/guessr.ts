@@ -10,7 +10,7 @@ export const roundCount = 5;
 export class GuessrMapError extends Error {}
 
 const mapSchema = z.object({
-  imageUrl: z.string().url(),
+  imageUrl: z.url(),
   width: z.coerce.number().int().positive(),
   height: z.coerce.number().int().positive(),
   active: z.literal(true),
@@ -21,14 +21,14 @@ export const pointSchema = z.object({
   y: z.number().min(0).max(1),
 });
 
-export const selectionSchema = z.object({
+export const selectionSchema = z.strictObject({
   mode: z.enum(guessrModes),
   difficulty: z.enum(guessrDifficulties),
   mapVersionId: z.string().trim().min(1),
-}).strict();
+});
 
 const imageSchema = z.object({
-  imageUrl: z.string().url(),
+  imageUrl: z.url(),
   mode: z.enum(guessrModes),
   difficulty: z.enum(guessrDifficulties),
   status: z.literal('published'),

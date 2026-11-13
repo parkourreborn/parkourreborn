@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import RichText from '@/components/tools/rebornai-text';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { images } from '@/lib/assets';
@@ -113,7 +114,7 @@ function Hex({ slot, core = false }: { slot: RecipeSlot | null; core?: boolean }
     <Tooltip>
       <TooltipTrigger asChild>
         <button className={className} type="button" aria-label={slot.name}>
-          <img src={slot.image} alt="" loading="lazy" />
+          <Image src={slot.image} alt="" width={64} height={52} />
         </button>
       </TooltipTrigger>
       <TooltipContent>{slot.name}</TooltipContent>

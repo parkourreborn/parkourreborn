@@ -1,6 +1,7 @@
 'use client';
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import type { Ref } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { LocateFixed, Minus, Plus, Settings2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ type MapCanvasProps = {
   onZoomChange?: (zoom: number) => void;
   onLoad?: (width: number, height: number) => void;
   onError?: () => void;
+  ref?: Ref<MapCanvasHandle>;
 };
 
 export type MapCanvasHandle = {
@@ -47,7 +49,7 @@ const maxZoom = 100;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const distance = (a: MapPoint, b: MapPoint) => Math.hypot(a.x - b.x, a.y - b.y);
 
-export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas({
+export function MapCanvas({
   image,
   width = 0,
   height = 0,
@@ -65,7 +67,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   onZoomChange,
   onLoad,
   onError,
-}, ref) {
+  ref,
+}: MapCanvasProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, MapPoint>());
@@ -326,7 +329,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       {(!ready || !loaded || loadError) && <span className="map-canvas__loading">{loadError ? 'Could not load map' : 'Loading map...'}</span>}
     </div>
   );
-});
+}
 
 export default function MapViewer({ image, open, onClose }: MapViewerProps) {
   const mapRef = useRef<MapCanvasHandle>(null);

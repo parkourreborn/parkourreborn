@@ -51,6 +51,9 @@ const config = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
+  async redirects() {
+    return [{ source: '/parkourguessr', destination: '/games/parkourguessr', permanent: true }];
+  },
 };
 
 export default config;

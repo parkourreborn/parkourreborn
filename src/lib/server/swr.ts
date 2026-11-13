@@ -38,11 +38,5 @@ export function swrCache<T>({ freshMs, maxStaleMs, maxEntries = 500 }: { freshMs
       const value = await refresh(key, load);
       return { value, at: entries.get(key)?.at ?? Date.now() };
     },
-    peek(key: string) {
-      return entries.get(key) ?? null;
-    },
-    clear() {
-      entries.clear();
-    },
   };
 }

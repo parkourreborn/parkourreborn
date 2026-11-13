@@ -16,11 +16,11 @@ const windows = [
   { seconds: 3600, max: 500 },
 ];
 
-const requestSchema = z.object({
-  gameId: z.string().uuid(),
+const requestSchema = z.strictObject({
+  gameId: z.uuid(),
   roundId: z.string().trim().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/),
   guess: pointSchema,
-}).strict();
+});
 
 const gameSchema = z.object({
   mode: z.enum(guessrModes),
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
   if (!rate.ok) return NextResponse.json({ error: 'Slow down a bit.' }, { status: 429, headers: { 'retry-after': String(rate.retryAfter) } });
 
   try {
-    const body = requestSchema.parse(await request.json());
+    const body = requestSchema.parse(await request.json().catch(() => null));
     const db = getAdminDb();
     const gameRef = db.collection('guessrGames').doc(body.gameId);
     const imageRef = db.collection('guessrImages').doc(body.roundId);

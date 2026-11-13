@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   if (!rate.ok) return NextResponse.json({ error: 'Slow down a bit.' }, { status: 429, headers: { 'retry-after': String(rate.retryAfter) } });
 
   try {
-    const body = selectionSchema.parse(await request.json());
+    const body = selectionSchema.parse(await request.json().catch(() => null));
     const map = await getActiveGuessrMap();
     if (body.mapVersionId !== map.id) return NextResponse.json({ error: 'The active map changed. Try again.' }, { status: 409 });
 

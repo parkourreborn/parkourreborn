@@ -620,5 +620,3 @@ export function createToolkit(viewer: Viewer = null) {
     },
   };
 }
-
-export type Toolkit = ReturnType<typeof createToolkit>;

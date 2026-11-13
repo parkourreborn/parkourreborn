@@ -1,5 +1,4 @@
-// Pure helpers for the OPENROUTER_MODEL list. Kept free of server-only imports
-// so they can be unit tested with plain node.
+// Pure helpers for the OPENROUTER_MODEL list.
 
 export const freeRouter = 'openrouter/free';
 

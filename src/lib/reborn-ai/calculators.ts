@@ -1,10 +1,10 @@
 // Number crunching the model is never trusted with. Every result carries its
 // numbers already formatted, so the answer can copy them and the number check
-// recognises them. Pure, so it is tested directly.
+// recognises them.
 
-import { calculateProgressBetweenLevels, formatComboScore, formatXP } from '../pages/xpcalc.ts';
-import { nextTier, tierForScore, timeForScore, wasansBronze, wasansPlatinum, wasansScore } from '../wasans-data.ts';
-import type { WasansTrial } from '../wasans-data.ts';
+import { calculateProgressBetweenLevels, formatComboScore, formatXP } from '@/lib/pages/xpcalc';
+import { nextTier, tierForScore, timeForScore, wasansBronze, wasansPlatinum, wasansScore } from '@/lib/wasans-data';
+import type { WasansTrial } from '@/lib/wasans-data';
 
 const seconds = (value: number) => value.toFixed(3);
 const score3 = (value: number) => value.toFixed(3);

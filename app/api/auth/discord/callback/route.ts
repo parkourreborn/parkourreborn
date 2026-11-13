@@ -79,15 +79,16 @@ export async function GET(request: NextRequest) {
 
   const db = getAdminDb();
   const stateRef = db.collection('discordAuthStates').doc(state);
-  const stateDoc = await stateRef.get();
-  const stateData = stateDoc.data() as { expiresAt?: number } | undefined;
-
-  if (!stateDoc.exists || !stateData?.expiresAt || stateData.expiresAt < Date.now()) {
-    await stateRef.delete().catch(() => {});
-    return NextResponse.redirect(home(request, 'expired'));
-  }
 
   try {
+    const stateDoc = await stateRef.get();
+    const stateData = stateDoc.data() as { expiresAt?: number } | undefined;
+
+    if (!stateDoc.exists || !stateData?.expiresAt || stateData.expiresAt < Date.now()) {
+      await stateRef.delete().catch(() => {});
+      return NextResponse.redirect(home(request, 'expired'));
+    }
+
     const token = await exchangeCode(code);
     const user = await getDiscordUser(token.access_token);
     const linkedAt = new Date().toISOString();

@@ -15,13 +15,13 @@ export type JevQuestion =
   | { type: 'choice'; instructions: string; criteria: Record<string, string> }
   | { type: 'score'; instructions: string; criteria: string[] };
 
-const answerSchema = z.object({
+const answerSchema = z.looseObject({
   noul: z.number().min(0).max(1).optional(),
   choice: z.string().optional(),
   score: z.number().optional(),
   confidence: z.number().min(0).max(1).optional(),
   probabilities: z.record(z.string(), z.number()).optional(),
-}).passthrough();
+});
 
 const responseSchema = z.object({
   model: z.string().optional(),

@@ -1,7 +1,12 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import FeatureNav from '@/components/feature-nav';
 import { images } from '@/lib/assets';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 type LinkCard = {
   name: string;

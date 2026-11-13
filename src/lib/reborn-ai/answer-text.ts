@@ -1,17 +1,16 @@
-// Pure text helpers for streaming answers. No server-only imports so they can
-// be unit tested with plain node.
+// Pure text helpers for streaming answers.
 
 const marker = /\[\[\s*cards?\s*:\s*([\d,\s]*)\]\]/gi;
 
 // The model ends its answer with [[cards:0,2]]. While streaming, nothing from
 // the first "[[" on is shown, so a half written marker never flashes up.
-export function visibleEnd(text: string) {
+function visibleEnd(text: string) {
   const open = text.indexOf('[[');
   if (open >= 0) return open;
   return text.endsWith('[') ? text.length - 1 : text.length;
 }
 
-export function splitCards(text: string) {
+function splitCards(text: string) {
   const indexes: number[] = [];
   const clean = text
     .replace(marker, (_, list: string) => {
@@ -56,7 +55,7 @@ export function answerStream(show: (delta: string) => void) {
 
 // Markdown out of a knowledge doc, made readable as plain chat text: headings
 // lose their #, bullets become dots, and table rows become "a · b · c".
-export function plainExcerpt(body: string, max: number) {
+function plainExcerpt(body: string, max: number) {
   const lines = body
     .split(/\r?\n/)
     .filter((line) => !/^\s*\|?\s*:?-{2,}/.test(line))

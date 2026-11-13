@@ -54,6 +54,6 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch {
-    return NextResponse.json({ error: 'Could not start Discord login' }, { status: 400 });
+    return NextResponse.json({ error: 'Could not start Discord login' }, { status: 500 });
   }
 }

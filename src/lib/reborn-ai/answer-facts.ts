@@ -20,7 +20,7 @@ const numberWords: Record<string, number> = {
 
 // "10.000" and "10" are the same number, "06.391" and "6.391" too. Version
 // strings like "1.2.3" are kept as written.
-export function normalizeNumber(raw: string) {
+function normalizeNumber(raw: string) {
   if (raw.split('.').length > 2) return raw;
   const value = Number(raw);
   return Number.isFinite(value) ? String(value) : raw;
@@ -31,7 +31,7 @@ function digitsIn(text: string) {
 }
 
 // Every number a source mentions, in digits or in words.
-export function allowedNumbers(sources: string[]) {
+function allowedNumbers(sources: string[]) {
   const allowed = new Set<string>(['0', '1']);
   for (const source of sources) {
     for (const number of digitsIn(source)) allowed.add(number);
@@ -44,7 +44,7 @@ export function allowedNumbers(sources: string[]) {
 }
 
 // Numbers the answer states, minus the "1." "2." markers of a numbered list.
-export function answerNumbers(answer: string) {
+function answerNumbers(answer: string) {
   return digitsIn(answer.replace(/^\s*\d{1,2}[.)](?=\s)/gm, ''));
 }
 

@@ -1,7 +1,7 @@
 // Builds src/generated/kb.json from the markdown in knowledge/.
 //
-//   node scripts/kb/build.mjs           build, print problems, fail on errors
-//   node scripts/kb/build.mjs --check   same, plus the full list of stubs and shared aliases
+//   node scripts/kb/build.mjs           build, print errors, fail on errors
+//   node scripts/kb/build.mjs --check   same, plus warnings and the full list of stubs and shared aliases
 //
 // The markdown stays the only place content is edited. This step checks it,
 // splits every doc into section chunks with a breadcrumb, pulls out the
@@ -18,7 +18,7 @@ const stubChars = 400;
 
 const unquote = (value) => value.trim().replace(/^['"]|['"]$/g, '').trim();
 
-export function parseFrontmatter(raw) {
+function parseFrontmatter(raw) {
   const head = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   if (!head) return { meta: {}, body: raw.trim() };
 
@@ -45,7 +45,7 @@ export function parseFrontmatter(raw) {
 const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : value ? [value] : []);
 const text = (value) => (Array.isArray(value) ? value[0] ?? '' : value ?? '');
 
-export const categoryLabel = (category) => category
+const categoryLabel = (category) => category
   .split('-')
   .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
   .join(' ');
@@ -53,7 +53,7 @@ export const categoryLabel = (category) => category
 // First plain sentence of the body, used when a doc has no summary of its own.
 // Docs that open with a list or table fall back to their first list item, then
 // to their section names.
-export function autoSummary(body, title = '') {
+function autoSummary(body, title = '') {
   const lines = body.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
   const plain = lines.find((value) => !value.startsWith('#') && !value.startsWith('|') && !/^[*-]\s/.test(value) && !/:$/.test(value));
   const bullet = lines.find((value) => /^[*-]\s/.test(value))?.replace(/^[*-]\s+/, '');
@@ -69,7 +69,7 @@ export function autoSummary(body, title = '') {
 //   Recipe:
 //   * Middle: Base Grappler
 //   * Override Module ×1
-export function extractRecipes(body) {
+function extractRecipes(body) {
   const recipes = [];
   const lines = [];
   let item = '';
@@ -115,7 +115,7 @@ export function extractRecipes(body) {
 }
 
 // | Time Trial | Difficulty | Location | tables in the district trial docs.
-export function extractTrials(body, district) {
+function extractTrials(body, district) {
   const rows = body.split(/\r?\n/).filter((line) => /^\s*\|/.test(line));
   if (rows.length < 3) return [];
   const header = rows[0].split('|').map((cell) => cell.trim().toLowerCase()).filter(Boolean);
@@ -160,7 +160,7 @@ function splitLong(content) {
 
 // Splits a doc into one chunk per section, each starting with where it sits:
 // "Gear › Grappler › Yank Grappler".
-export function chunkDoc(doc) {
+function chunkDoc(doc) {
   const sections = [];
   let h2 = '';
   let h3 = '';
@@ -229,7 +229,7 @@ export function chunkDoc(doc) {
   return chunks;
 }
 
-export function readDoc(id, raw) {
+function readDoc(id, raw) {
   const { meta, body: original } = parseFrontmatter(raw);
   const category = text(meta.category) || id.split('/')[0];
   const { recipes, body } = category === 'crafting' ? extractRecipes(original) : { recipes: [], body: original };
@@ -256,7 +256,7 @@ export function readDoc(id, raw) {
 }
 
 // Problems that break the build (errors) and ones worth knowing (warnings).
-export function lintDocs(docs) {
+function lintDocs(docs) {
   const errors = [];
   const warnings = [];
   const ids = new Set(docs.map((doc) => doc.id.replace(/\.md$/, '')));
@@ -302,7 +302,7 @@ function walk(dir, root, files = []) {
   return files;
 }
 
-export function buildKnowledge(root) {
+function buildKnowledge(root) {
   const files = walk(root, root).sort((a, b) => a.id.localeCompare(b.id));
   const docs = [];
   const recipes = [];
@@ -343,8 +343,8 @@ function main() {
   const { lint, ...kb } = buildKnowledge(join(repo, 'knowledge'));
 
   for (const error of lint.errors) console.error(`kb error: ${error}`);
-  for (const warning of lint.warnings) console.warn(`kb warning: ${warning}`);
   if (verbose) {
+    for (const warning of lint.warnings) console.warn(`kb warning: ${warning}`);
     for (const [alias, owners] of lint.shared) console.warn(`  shared alias "${alias}": ${owners.join(', ')}`);
     for (const id of lint.stubs) console.warn(`  stub: ${id}`);
   }
@@ -359,4 +359,4 @@ function main() {
   console.log(`kb: ${kb.docs.length} docs, ${kb.chunks.length} chunks, ${kb.recipes.length} recipes, ${kb.trials.length} trials -> src/generated/kb.json`);
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
+main();

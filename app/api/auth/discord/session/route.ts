@@ -35,34 +35,40 @@ const done = (body: Record<string, unknown>) => {
 
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return NextResponse.json({ error: 'Bad request.' }, { status: 403 });
-  const login = await pending(request);
-  if (!login) return done({ token: null });
-  if (login.data.reactivate) return NextResponse.json({ token: null, reactivate: true }, { headers: { 'cache-control': 'no-store' } });
 
-  const profile = await getAdminDb().collection('users').doc(login.data.uid!).get();
-  if (profile.data()?.status === 'deactivated' || profile.data()?.status === 'deleting' || profile.data()?.discord?.id !== login.data.discordId) {
+  try {
+    const login = await pending(request);
+    if (!login) return done({ token: null });
+    if (login.data.reactivate) return NextResponse.json({ token: null, reactivate: true }, { headers: { 'cache-control': 'no-store' } });
+
+    const profile = await getAdminDb().collection('users').doc(login.data.uid!).get();
+    if (profile.data()?.status === 'deactivated' || profile.data()?.status === 'deleting' || profile.data()?.discord?.id !== login.data.discordId) {
+      await login.ref.delete();
+      return done({ token: null });
+    }
+
+    const token = await getAdminAuth().createCustomToken(login.data.uid!, {
+      provider: 'discord',
+      discordId: login.data.discordId,
+    });
+
     await login.ref.delete();
-    return done({ token: null });
+    return done({ token });
+  } catch {
+    return NextResponse.json({ error: 'Could not finish login. Try again.' }, { status: 500 });
   }
-
-  const token = await getAdminAuth().createCustomToken(login.data.uid!, {
-    provider: 'discord',
-    discordId: login.data.discordId,
-  });
-
-  await login.ref.delete();
-  return done({ token });
 }
 
 export async function PUT(request: NextRequest) {
   if (!sameOrigin(request)) return NextResponse.json({ error: 'Bad request.' }, { status: 403 });
-  const login = await pending(request);
-  if (!login?.data.reactivate || !login.data.discord) return done({ token: null });
-
-  const { uid, discordId, discord } = login.data;
-  const ref = getAdminDb().collection('users').doc(uid!);
 
   try {
+    const login = await pending(request);
+    if (!login?.data.reactivate || !login.data.discord) return done({ token: null });
+
+    const { uid, discordId, discord } = login.data;
+    const ref = getAdminDb().collection('users').doc(uid!);
+
     await getAdminDb().runTransaction(async (tx) => {
       const doc = await tx.get(ref);
       const data = doc.data();
@@ -83,7 +89,12 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   if (!sameOrigin(request)) return NextResponse.json({ error: 'Bad request.' }, { status: 403 });
-  const login = await pending(request);
-  if (login) await login.ref.delete();
-  return done({ token: null });
+
+  try {
+    const login = await pending(request);
+    if (login) await login.ref.delete();
+    return done({ token: null });
+  } catch {
+    return NextResponse.json({ error: 'Could not cancel. Try again.' }, { status: 500 });
+  }
 }

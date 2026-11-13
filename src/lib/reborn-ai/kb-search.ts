@@ -1,5 +1,4 @@
 // Keyword search over the prebuilt knowledge chunks (src/generated/kb.json).
-// No server-only imports, so tests can build it straight from the JSON.
 
 import MiniSearch from 'minisearch';
 
@@ -70,7 +69,7 @@ export function padded(text: string) {
 }
 
 // Adds every word of a synonym group whose member appears in the query.
-export function expandQuery(query: string, groups: string[][]) {
+function expandQuery(query: string, groups: string[][]) {
   const haystack = padded(query);
   const extra = new Set<string>();
   for (const group of groups) {
@@ -239,5 +238,3 @@ export function createKnowledgeSearch(kb: KnowledgeBase) {
     synonyms: kb.synonyms,
   };
 }
-
-export type KnowledgeSearch = ReturnType<typeof createKnowledgeSearch>;

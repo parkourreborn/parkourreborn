@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const feedbackSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   vote: z.enum(['up', 'down']),
   note: z.string().trim().max(500).optional(),
 });

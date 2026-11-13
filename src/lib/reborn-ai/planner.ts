@@ -1,8 +1,7 @@
 // Turns "what the question is about" (routes from the router, entities from
-// the text) into the concrete tool calls to run. Pure, so it is tested
-// directly.
+// the text) into the concrete tool calls to run.
 
-import type { Entities } from './entities.ts';
+import type { Entities } from '@/lib/reborn-ai/entities';
 
 export const routeNames = [
   'records',

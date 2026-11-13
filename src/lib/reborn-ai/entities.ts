@@ -1,9 +1,8 @@
 // Pulls the things a question is about out of its text: trials, districts,
 // combo categories, players, and numbers like times, scores and levels.
-// Pure, so it is tested directly.
 
-import { comboCategories, wasansTrials } from '../wasans-data.ts';
-import type { ComboCategory, WasansTrial } from '../wasans-data.ts';
+import { comboCategories, wasansTrials } from '@/lib/wasans-data';
+import type { ComboCategory, WasansTrial } from '@/lib/wasans-data';
 
 export type Entities = {
   trials: WasansTrial[];
@@ -31,7 +30,7 @@ const flat = (text: string) => lower(text).replace(/[^a-z0-9]+/g, '');
 const wordTrials = new Set<WasansTrial>(['Crystal', 'Glass', 'Solar', 'Flow', 'Faith', 'Gale', 'Grip', 'Thread', 'Needle', 'Depot', 'Flame', 'Wisp']);
 const trialContext = /\b(trials?|tt|wrs?|world records?|records?|pbs?|personal best|leaderboards?|lb|times?|plat(?:inum)?|gold|silver|bronze|medals?|scores?|runs?|top|fastest|rank|ranked|place|placing|percentile|sub|route|wasans|holder|holds)\b/;
 
-export function findTrials(text: string): WasansTrial[] {
+function findTrials(text: string): WasansTrial[] {
   const words = ` ${lower(text).replace(/[^a-z0-9]+/g, ' ')} `;
   const squashed = flat(text);
   // A time ("7.2s") or a place ("#5", "2nd") also makes it about trials.
@@ -183,7 +182,7 @@ function inQuotes(value: string, key: string) {
 // Player names from the Wasans list that the question mentions, in the order
 // it mentions them. Names that look like ordinary words also need some sign
 // the question is about a player.
-export function findPlayers(text: string, names: string[]) {
+function findPlayers(text: string, names: string[]) {
   if (!names.length) return [];
   const value = lower(text);
   const words = ` ${value.replace(/[^a-z0-9_\-]+/g, ' ')} `;

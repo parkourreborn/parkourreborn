@@ -4247,10 +4247,6 @@ button.ai-hex:focus-visible {
 }
 
 @layer base {
-  .theme {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
-  }
   :root {
     --background: var(--hub-bg);
     --foreground: var(--hub-text);
@@ -4270,53 +4266,7 @@ button.ai-hex:focus-visible {
     --border: var(--hub-border);
     --input: var(--hub-border);
     --ring: var(--hub-focus);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
     --radius: 2px;
-    --sidebar: var(--hub-panel);
-    --sidebar-foreground: var(--hub-text);
-    --sidebar-primary: var(--hub-blue);
-    --sidebar-primary-foreground: var(--hub-bg);
-    --sidebar-accent: var(--hub-control-active-bg);
-    --sidebar-accent-foreground: var(--hub-text);
-    --sidebar-border: var(--hub-border);
-    --sidebar-ring: var(--hub-focus);
-  }
-  .dark {
-    --background: var(--hub-bg);
-    --foreground: var(--hub-text);
-    --card: var(--hub-panel-soft);
-    --card-foreground: var(--hub-text);
-    --popover: rgba(7, 10, 15, 0.96);
-    --popover-foreground: var(--hub-text);
-    --primary: var(--hub-blue);
-    --primary-foreground: var(--hub-bg);
-    --secondary: var(--hub-control-bg);
-    --secondary-foreground: var(--hub-text);
-    --muted: var(--hub-field-soft-bg);
-    --muted-foreground: var(--hub-muted);
-    --accent: var(--hub-control-active-bg);
-    --accent-foreground: var(--hub-text);
-    --destructive: var(--hub-danger);
-    --border: var(--hub-border);
-    --input: var(--hub-border);
-    --ring: var(--hub-focus);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: var(--hub-panel);
-    --sidebar-foreground: var(--hub-text);
-    --sidebar-primary: var(--hub-blue);
-    --sidebar-primary-foreground: var(--hub-bg);
-    --sidebar-accent: var(--hub-control-active-bg);
-    --sidebar-accent-foreground: var(--hub-text);
-    --sidebar-border: var(--hub-border);
-    --sidebar-ring: var(--hub-focus);
   }
   * {
     border-color: var(--border);

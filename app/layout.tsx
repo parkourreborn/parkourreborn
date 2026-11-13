@@ -46,7 +46,6 @@ export const metadata: Metadata = {
   creator: 'ElkkuT',
   publisher: 'Parkour Reborn Hub',
   category: 'gaming',
-  alternates: { canonical: '/' },
   robots: {
     index: true,
     follow: true,
@@ -78,7 +77,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={fontVariables}>
+    <html lang="en" className={`dark ${fontVariables}`}>
       <body>
         <div className="hub-bg" aria-hidden="true">
           <span className="hub-bg__icons" />
