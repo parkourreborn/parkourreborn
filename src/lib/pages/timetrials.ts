@@ -30,7 +30,7 @@ type WrItem = {
 };
 
 type WrResponse = {
-  results?: WrItem[];
+  data?: WrItem[];
 };
 
 export const trialKey = (name: string) => name.trim().toLowerCase();
@@ -55,7 +55,7 @@ export async function fetchWorldRecords(): Promise<Record<string, WorldRecord>> 
   const data = await response.json() as WrResponse;
   const records: Record<string, WorldRecord> = {};
 
-  for (const item of data.results ?? []) {
+  for (const item of data.data ?? []) {
     if (!item.trial_name || typeof item.time !== 'number') continue;
 
     records[trialKey(item.trial_name)] = {

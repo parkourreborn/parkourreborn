@@ -1,8 +1,16 @@
 import { randomBytes } from 'crypto';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/server/firebase-admin';
+import { checkMemoryLimit, clientKey } from '@/lib/server/rate-limit';
+import { crossSite } from '@/lib/server/session';
 
 const maxAge = 10 * 60;
+// Each start writes a Firestore doc before anyone has logged in, so it is
+// capped per IP to keep it from being used to run up writes.
+const windows = [
+  { seconds: 60, max: 10 },
+  { seconds: 3600, max: 60 },
+];
 
 const env = () => {
   const clientId = process.env.DISCORD_CLIENT_ID;
@@ -11,7 +19,13 @@ const env = () => {
   return { clientId, redirectUri };
 };
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  if (crossSite(request)) return NextResponse.json({ error: 'Could not start Discord login' }, { status: 403 });
+  const rate = checkMemoryLimit(`discord-start:${clientKey(request.headers)}`, windows);
+  if (!rate.ok) {
+    return NextResponse.json({ error: 'Too many login attempts. Try again in a minute.' }, { status: 429, headers: { 'retry-after': String(rate.retryAfter) } });
+  }
+
   try {
     const { clientId, redirectUri } = env();
     const state = randomBytes(32).toString('hex');
@@ -40,6 +54,6 @@ export async function POST() {
 
     return response;
   } catch {
-    return NextResponse.json({ error: 'Could not start Discord login' }, { status: 400 });
+    return NextResponse.json({ error: 'Could not start Discord login' }, { status: 500 });
   }
 }

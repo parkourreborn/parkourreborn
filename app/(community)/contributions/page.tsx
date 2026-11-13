@@ -1,27 +1,18 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import ComingSoon from '@/components/coming-soon';
-import PageHero from '@/components/page-hero';
-import { Button } from '@/components/ui/button';
+import HubPage from '@/components/hub-page';
 import { images } from '@/lib/assets';
 
 export const metadata: Metadata = {
   title: 'Contributions',
   description: 'Parkour Reborn Hub contributions.',
+  alternates: { canonical: '/contributions' },
 };
 
 export default function Page() {
   return (
-    <main className="hub-shell min-h-screen overflow-x-hidden">
-      <section className="hub-page hub-page--wide">
-        <div className="hub-container">
-          <Button asChild className="back-btn">
-            <Link href="/">Back</Link>
-          </Button>
-          <PageHero eyebrow="Community" title="Contributions" image={images.backgrounds.community.contributions} />
-          <ComingSoon />
-        </div>
-      </section>
-    </main>
+    <HubPage title="Contributions" image={images.backgrounds.community.contributions}>
+      <ComingSoon />
+    </HubPage>
   );
 }

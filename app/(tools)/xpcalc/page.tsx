@@ -1,24 +1,18 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import HubPage from '@/components/hub-page';
 import XPCalculator from '@/components/tools/xpcalc';
-import { Button } from '@/components/ui/button';
+import { images } from '@/lib/assets';
 
 export const metadata: Metadata = {
   title: 'XP Calculator',
   description: 'Calculate PARKOUR Reborn levels, XP, and combo score.',
+  alternates: { canonical: '/xpcalc' },
 };
 
 export default function Page() {
   return (
-    <main className="hub-shell min-h-screen overflow-x-hidden">
-      <section className="hub-page hub-page--wide">
-        <div className="hub-container">
-          <Button asChild className="back-btn">
-            <Link href="/">Back</Link>
-          </Button>
-          <XPCalculator />
-        </div>
-      </section>
-    </main>
+    <HubPage title="XP Calculator" image={images.backgrounds.tools.xpcalc}>
+      <XPCalculator />
+    </HubPage>
   );
 }

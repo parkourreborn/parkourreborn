@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createHash } from 'crypto';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/server/firebase-admin';
 
 export type RateWindow = {
@@ -41,6 +42,12 @@ function apply(slots: Record<string, Slot>, windows: RateWindow[], now: number):
   return { ok: retryAfter === 0, retryAfter };
 }
 
+// A per-instance check with no Firestore round trip, for cheap flood
+// protection before any real work starts.
+export function checkMemoryLimit(key: string, windows: RateWindow[]): RateResult {
+  return memoryLimit(`memory:${key}`, windows, Date.now());
+}
+
 function memoryLimit(key: string, windows: RateWindow[], now: number) {
   if (memory.size > memoryCap) memory.clear();
 
@@ -60,7 +67,11 @@ export async function checkRateLimit(key: string, windows: RateWindow[]): Promis
       const doc = await transaction.get(ref);
       const slots = (doc.data()?.slots ?? {}) as Record<string, Slot>;
       const result = apply(slots, windows, now);
-      transaction.set(ref, { slots, updatedAt: now }, { merge: true });
+      transaction.set(ref, {
+        slots,
+        updatedAt: now,
+        expiresAt: Timestamp.fromMillis(now + Math.max(...windows.map((window) => window.seconds)) * 1000),
+      }, { merge: true });
       return result;
     });
   } catch {

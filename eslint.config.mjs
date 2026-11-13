@@ -11,10 +11,22 @@ const eslintConfig = defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
+  {
+    files: [
+      'src/components/community/mapview.tsx',
+      'src/components/community/search.tsx',
+      'src/components/tools/rebornai-blocks.tsx',
+      'src/components/tools/techlist.tsx',
+    ],
+    rules: {
+      '@next/next/no-img-element': 'off',
+    },
+  },
   globalIgnores([
     '.next/**',
     'out/**',
     'build/**',
+    'public/**',
     'next-env.d.ts',
   ]),
 ]);

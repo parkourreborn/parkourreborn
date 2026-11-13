@@ -1,59 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { images } from '@/lib/assets';
-
-type NavItem = {
-  title: string;
-  image: string;
-  href: string;
-};
-
-type Feature = {
-  title: string;
-  bg: string;
-  items: NavItem[];
-};
-
-const features: Feature[] = [
-  {
-    title: 'Tools',
-    bg: images.backgrounds.tools.bg,
-    items: [
-      { title: 'Tech List', image: images.backgrounds.tools.techlist, href: '/techlist' },
-      { title: 'XP Calculator', image: images.backgrounds.tools.xpcalc, href: '/xpcalc' },
-      { title: 'Time Trial Hub', image: images.backgrounds.tools.timetrialhub, href: '/timetrialhub' },
-      { title: 'Reborn AI', image: images.backgrounds.tools.rebornai, href: '/rebornai' },
-    ],
-  },
-  {
-    title: 'Games',
-    bg: images.backgrounds.games.bg,
-    items: [
-      { title: 'Parkour Guessr', image: images.backgrounds.games.parkourguessr, href: '/parkourguessr' },
-      { title: 'Incremental Parkour', image: images.backgrounds.games.incrementalparkour, href: '/incrementalparkour' },
-      { title: 'Bag Opening Simulator', image: images.backgrounds.games.bagopensimulator, href: '/bagopensimulator' },
-      { title: 'Parkour MC', image: images.backgrounds.games.parkourmc, href: '/parkourmc' },
-    ],
-  },
-  {
-    title: 'Community',
-    bg: images.backgrounds.community.bg,
-    items: [
-      { title: 'Map', image: images.backgrounds.community.map, href: '/map' },
-      { title: 'Contributions', image: images.backgrounds.community.contributions, href: '/contributions' },
-      { title: 'Search', image: images.backgrounds.community.search, href: '/search' },
-    ],
-  },
-];
+import { hubSections as features } from '@/lib/site-nav';
 
 const columnsFor = (count: number) => (count === 4 ? 2 : Math.min(count, 3));
 
 const frameWidth = (columns: number) => {
-  if (window.innerWidth <= 532) return columns === 1 ? 188 : 365;
+  if (window.innerWidth <= 532) return columns === 1 ? 188 : 368;
   if (window.innerWidth <= 900) return columns === 1 ? 192 : 370;
   return columns === 1 ? 216 : columns === 2 ? 416 : 616;
 };
@@ -113,6 +69,9 @@ export default function FeatureNav() {
   }, [updateCols]);
 
   return (
+    // reducedMotion="user": panel animations are skipped for visitors who
+    // turned on "reduce motion" in their system settings.
+    <MotionConfig reducedMotion="user">
     <section className="feature-grid" aria-label="Hub sections" ref={navRef}>
       {features.map((card) => {
         const isOpen = open === card.title;
@@ -165,6 +124,7 @@ export default function FeatureNav() {
                           <span className="feature-nav__shade" />
                           <span className="feature-nav__content">
                             <strong>{item.title}</strong>
+                            {item.badge ? <span className="feature-nav__badge">{item.badge}</span> : null}
                           </span>
                         </Link>
                       ))}
@@ -177,5 +137,6 @@ export default function FeatureNav() {
         );
       })}
     </section>
+    </MotionConfig>
   );
 }

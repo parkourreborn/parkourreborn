@@ -9,10 +9,8 @@ import {
   xpRequiredBetweenLevels,
   xpToRequiredComboScore,
 } from '@/lib/pages/xpcalc';
-import PageHero from '@/components/page-hero';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { images } from '@/lib/assets';
 
 type FieldProps = {
   label: string;
@@ -142,10 +140,8 @@ export default function XPCalculator() {
 
   return (
     <div className="xp-page">
-      <PageHero eyebrow="Tool" title="XP Calculator" image={images.backgrounds.tools.xpcalc} />
-
       <section className="xp-layout">
-        <Card className="xp-panel ring-0 shadow-none">
+        <Card className="xp-panel">
           <div className="xp-title">
             <span>Current progress</span>
           </div>
@@ -160,7 +156,7 @@ export default function XPCalculator() {
           </Button>
         </Card>
 
-        <Card className="xp-panel ring-0 shadow-none">
+        <Card className="xp-panel">
           <div className="xp-title">
             <span>Next level</span>
           </div>
@@ -176,7 +172,7 @@ export default function XPCalculator() {
       <section className="xp-advanced">
         <div className="xp-title xp-title--section"><span>Advanced XP stuff</span></div>
 
-        <Card className="xp-panel ring-0 shadow-none">
+        <Card className="xp-panel">
           <div className="xp-title"><span>Sessions Needed</span></div>
           <div className="xp-fields xp-fields--tight">
             <Field label="Target level" value={sessionTargetLevel} min={1} onChange={setSessionTargetLevel} />
@@ -188,7 +184,7 @@ export default function XPCalculator() {
           </div>
         </Card>
 
-        <Card className="xp-panel ring-0 shadow-none">
+        <Card className="xp-panel">
           <div className="xp-title"><span>Level Goal</span></div>
           <div className="xp-fields xp-fields--tight">
             <Field label="Target level" value={targetLevel} min={1} onChange={setTargetLevel} />
@@ -200,7 +196,7 @@ export default function XPCalculator() {
           </div>
         </Card>
 
-        <Card className="xp-panel ring-0 shadow-none">
+        <Card className="xp-panel">
           <div className="xp-title"><span>Level gap</span></div>
           <div className="xp-fields xp-fields--tight">
             <Field label="Level A" value={startLevel} min={1} onChange={setStartLevel} />

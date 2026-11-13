@@ -14,6 +14,8 @@ tags:
   - versions
 ---
 
+These are recorded release dates, not patch notes. Alpha and Pre-Alpha are separate stages; the same version number can appear in both.
+
 ## Alpha Updates
 
 | Version | Date | Stage |

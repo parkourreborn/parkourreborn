@@ -1,28 +1,26 @@
-import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/server/firebase-admin';
+import { getAdminAuth } from '@/lib/server/firebase-admin';
 import { verifyBearer } from '@/lib/server/auth';
+
+const stamp = (value: string | undefined) => {
+  const time = value ? Date.parse(value) : NaN;
+  return Number.isFinite(time) ? new Date(time).toISOString() : null;
+};
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await verifyBearer(request.headers.get('authorization'));
-    const doc = await getAdminDb().collection('users').doc(token.uid).get();
-    const data = doc.data();
-    return NextResponse.json({ discord: data?.discord ?? null });
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-}
+    const { token, data } = await verifyBearer(request.headers.get('authorization'));
+    const user = await getAdminAuth().getUser(token.uid);
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const token = await verifyBearer(request.headers.get('authorization'));
-    await getAdminDb().collection('users').doc(token.uid).set({
-      discord: FieldValue.delete(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      discord: data.discord,
+      account: {
+        createdAt: stamp(user?.metadata.creationTime),
+        lastLogin: stamp(user?.metadata.lastSignInTime),
+        displayName: data.displayName ?? null,
+        nameChangedAt: data.nameChangedAt ?? null,
+      },
+    }, { headers: { 'cache-control': 'no-store' } });
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

@@ -1,7 +1,7 @@
 export const images = {
   logo: {
     main: '/logo/logo.webp',
-    icon: '/logo/icon.ico',
+    icon: '/logo/logo.ico',
     hero: '/logo/hero-logo.webp',
     og: '/logo/og-logo.webp',
     ai: '/logo/ai.webp',

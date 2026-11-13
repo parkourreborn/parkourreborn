@@ -1,7 +1,12 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import FeatureNav from '@/components/feature-nav';
 import { images } from '@/lib/assets';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 type LinkCard = {
   name: string;
@@ -55,13 +60,13 @@ const creatorLinks: LinkCard[] = [
 
 export default function Home() {
   return (
-    <main className="hub-shell min-h-screen overflow-x-hidden">
+    <main className="hub-shell overflow-x-hidden">
       <section className="hub-page">
         <div className="hub-container">
           <header className="hero-panel">
-            <div className="hero-panel__logo">
+            <h1 className="hero-panel__logo">
               <Image src={images.logo.hero} alt="Parkour Reborn Hub" width={520} height={240} priority />
-            </div>
+            </h1>
           </header>
           <FeatureNav />
           <section className="links-panel">

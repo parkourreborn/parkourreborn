@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import MapViewer from '@/components/community/mapview';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,7 +18,7 @@ export default function MapCard({ image }: MapCardProps) {
         <Button className="map-card__open" type="button" aria-label="Open fullscreen map" onClick={() => setOpen(true)}>
           Fullscreen
         </Button>
-        <img src={image} alt="PARKOUR Reborn world map" />
+        <Image src={image} alt="PARKOUR Reborn world map" width={5688} height={4800} sizes="(max-width: 1152px) 100vw, 1120px" />
       </Card>
       <MapViewer image={image} open={open} onClose={() => setOpen(false)} />
     </>

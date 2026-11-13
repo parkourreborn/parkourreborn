@@ -1,0 +1,78 @@
+import 'server-only';
+
+import { z } from 'zod';
+import { getAdminDb } from '@/lib/server/firebase-admin';
+import { guessrDifficulties, guessrModes } from '@/lib/guessr';
+import type { GuessrAvailability, GuessrDifficulty, GuessrMap, GuessrMode } from '@/lib/guessr';
+
+export const roundCount = 5;
+
+export class GuessrMapError extends Error {}
+
+const mapSchema = z.object({
+  imageUrl: z.url(),
+  width: z.coerce.number().int().positive(),
+  height: z.coerce.number().int().positive(),
+  active: z.literal(true),
+});
+
+export const pointSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+});
+
+export const selectionSchema = z.strictObject({
+  mode: z.enum(guessrModes),
+  difficulty: z.enum(guessrDifficulties),
+  mapVersionId: z.string().trim().min(1),
+});
+
+const imageSchema = z.object({
+  imageUrl: z.url(),
+  mode: z.enum(guessrModes),
+  difficulty: z.enum(guessrDifficulties),
+  status: z.literal('published'),
+  coordinates: pointSchema,
+  mapVersionId: z.string().trim().min(1),
+});
+
+let availability: { mapId: string; until: number; value: Promise<GuessrAvailability[]> } | null = null;
+
+export async function getActiveGuessrMap(): Promise<GuessrMap> {
+  const maps = await getAdminDb().collection('guessrMaps').where('active', '==', true).limit(2).get();
+  if (maps.empty) throw new GuessrMapError('Parkour Guessr is unavailable right now.');
+  if (maps.size > 1) throw new GuessrMapError('Parkour Guessr is unavailable while the map is being updated.');
+
+  const map = mapSchema.safeParse(maps.docs[0].data());
+  if (!map.success) throw new GuessrMapError('Parkour Guessr is unavailable right now.');
+  return { id: maps.docs[0].id, url: map.data.imageUrl, width: map.data.width, height: map.data.height };
+}
+
+export async function getPublishedGuessrImages(mapVersionId: string, mode: GuessrMode, difficulty: GuessrDifficulty) {
+  const snapshot = await getAdminDb()
+    .collection('guessrImages')
+    .where('status', '==', 'published')
+    .where('mapVersionId', '==', mapVersionId)
+    .where('mode', '==', mode)
+    .where('difficulty', '==', difficulty)
+    .get();
+
+  return snapshot.docs.flatMap((doc) => {
+    const image = imageSchema.safeParse(doc.data());
+    return image.success ? [{ id: doc.id, ...image.data }] : [];
+  });
+}
+
+export function getGuessrAvailability(mapId: string) {
+  if (availability?.mapId === mapId && availability.until > Date.now()) return availability.value;
+
+  const choices = guessrModes.flatMap((mode) => guessrDifficulties.map((difficulty) => ({ mode, difficulty })));
+  const value = Promise.all(choices.map(({ mode, difficulty }) => getPublishedGuessrImages(mapId, mode, difficulty)))
+    .then((images) => choices.map((choice, index) => ({ ...choice, count: images[index].length, available: images[index].length >= roundCount })))
+    .catch((error) => {
+      if (availability?.value === value) availability = null;
+      throw error;
+    });
+  availability = { mapId, until: Date.now() + 30000, value };
+  return value;
+}

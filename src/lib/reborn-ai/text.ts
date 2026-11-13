@@ -1,17 +1,7 @@
 const controlToken = /<\|[^|]*\|>/g;
-const openToken = /<\|[^|]*$/;
-const finalMarker = /<\|channel\|>final<\|message\|>|<\|start\|>assistant|assistantfinal/gi;
 const mdLink = /\[([^\]\n]*)\]\([^)\s]*\)/g;
 const placeholder = /\s*\[[^\][\n]{0,40}\b(?:link|url|video|clip|gif|image|watch|here|below)\b[^\][\n]{0,40}\]/gi;
 const heading = /^\s{0,3}#{1,6}\s+/gm;
-
-export function extractFinal(raw: string) {
-  const marks = Array.from(raw.matchAll(finalMarker));
-  const last = marks[marks.length - 1];
-  const text = last?.index === undefined ? raw : raw.slice(last.index + last[0].length);
-
-  return text.replace(controlToken, '').replace(openToken, '').replace(/^\s+/, '');
-}
 
 export function cleanReply(raw: string) {
   return raw

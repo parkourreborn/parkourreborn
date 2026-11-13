@@ -1,4 +1,5 @@
 import type { AssistantBlock, ChatEvent, ChatMessage } from '@/lib/reborn-ai/types';
+import { limits } from '@/lib/reborn-ai/limits';
 
 export type ChatEntry = {
   id: string;
@@ -6,7 +7,19 @@ export type ChatEntry = {
   content: string;
   blocks: AssistantBlock[];
   at: number;
+  // The server's id for this answer, used to file feedback on it.
+  requestId?: string;
+  vote?: 'up' | 'down';
 };
+
+export async function sendFeedback(requestId: string, vote: 'up' | 'down', note = '') {
+  const response = await fetch('/api/reborn-ai/feedback', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: requestId, vote, ...(note.trim() ? { note: note.trim().slice(0, 500) } : {}) }),
+  }).catch(() => null);
+  return Boolean(response?.ok);
+}
 
 const errors: Record<number, string> = {
   400: 'that message did not go through',
@@ -27,8 +40,22 @@ export const chatTime = (at: number) => new Date(at).toLocaleTimeString([], { ho
 
 export function toHistory(entries: ChatEntry[]): ChatMessage[] {
   return entries
-    .filter((entry) => entry.content.trim())
-    .map((entry) => ({ role: entry.role, content: entry.content.trim() }));
+    .slice(-limits.maxHistory)
+    .map((entry) => {
+      const references = entry.blocks.flatMap((block) => {
+        if (block.type === 'time_trial') return [`trial=${block.name}`];
+        if (block.type === 'world_record') return [`trial=${block.trial}`];
+        if (block.type === 'tech') return [`movement=${block.name}`];
+        if (block.type === 'recipe') return [`recipe=${block.item}`];
+        if (block.type === 'link' || block.type === 'gif') return [`resource=${block.title}`];
+        if (block.type === 'player') return [`player=${block.name}`];
+        return [];
+      });
+      const context = references.length ? `\n[context cards: ${references.join('; ')}]` : '';
+      const room = Math.max(0, limits.maxMessageChars - context.length);
+      return { role: entry.role, content: `${room ? entry.content.trim().slice(-room) : ''}${context}`.trim() };
+    })
+    .filter((entry) => entry.content);
 }
 
 export async function streamRebornAi(messages: ChatMessage[], signal: AbortSignal, onEvent: (event: ChatEvent) => void) {
@@ -40,7 +67,11 @@ export async function streamRebornAi(messages: ChatMessage[], signal: AbortSigna
   });
 
   if (!response.ok || !response.body) {
-    onEvent({ type: 'error', message: errors[response.status] ?? 'reborn ai is unavailable right now' });
+    onEvent({
+      type: 'error',
+      message: errors[response.status] ?? 'reborn ai is unavailable right now',
+      retryable: !(response.status in errors),
+    });
     return;
   }
 
@@ -75,5 +106,5 @@ export async function streamRebornAi(messages: ChatMessage[], signal: AbortSigna
 
   // A stream that stops without saying done got killed somewhere in between.
   // Without this the half written reply just disappears and nothing explains why.
-  if (!ended) onEvent({ type: 'error', message: 'that answer got cut off, try again' });
+  if (!ended) onEvent({ type: 'error', message: 'that answer got cut off, try again', retryable: true });
 }

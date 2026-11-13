@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, RotateCcw, Square } from 'lucide-react';
+import { ArrowUp, RotateCcw, Square, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import Blocks from '@/components/tools/rebornai-blocks';
 import RichText from '@/components/tools/rebornai-text';
@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { images } from '@/lib/assets';
 import { discordAvatar } from '@/lib/discord';
-import { chatTime, newEntry, streamRebornAi, toHistory } from '@/lib/pages/rebornai';
+import { chatTime, newEntry, sendFeedback, streamRebornAi, toHistory } from '@/lib/pages/rebornai';
 import type { ChatEntry } from '@/lib/pages/rebornai';
 import { limits } from '@/lib/reborn-ai/limits';
 import type { AssistantStatus } from '@/lib/reborn-ai/types';
@@ -20,13 +20,65 @@ type Who = {
   bot: boolean;
 };
 
+type Failure = {
+  message: string;
+  retryable: boolean;
+  question: string;
+  base: ChatEntry[];
+};
+
 const statusLabels: Record<AssistantStatus, string> = {
   thinking: 'thinking',
   looking: 'checking',
   writing: 'typing',
+  queued: 'busy, waiting in line',
 };
 
-function Row({ entry, who, status }: { entry: ChatEntry; who: Who; status: AssistantStatus | null }) {
+const autoRetryMs = 1500;
+
+function pause(ms: number, signal: AbortSignal) {
+  return new Promise<boolean>((resolve) => {
+    if (signal.aborted) return resolve(false);
+    const timer = setTimeout(() => resolve(true), ms);
+    signal.addEventListener('abort', () => {
+      clearTimeout(timer);
+      resolve(false);
+    }, { once: true });
+  });
+}
+
+function Feedback({ entry, onVote }: { entry: ChatEntry; onVote: (vote: 'up' | 'down', note?: string) => void }) {
+  const [note, setNote] = useState('');
+  const [sent, setSent] = useState(false);
+
+  return (
+    <div className="ai-feedback">
+      <button type="button" className={entry.vote === 'up' ? 'is-on' : ''} aria-label="Good answer" aria-pressed={entry.vote === 'up'} onClick={() => onVote('up')}>
+        <ThumbsUp aria-hidden="true" />
+      </button>
+      <button type="button" className={entry.vote === 'down' ? 'is-on' : ''} aria-label="Bad answer" aria-pressed={entry.vote === 'down'} onClick={() => onVote('down')}>
+        <ThumbsDown aria-hidden="true" />
+      </button>
+      {entry.vote === 'down' && !sent ? (
+        <form
+          className="ai-feedback__note"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!note.trim()) return;
+            onVote('down', note);
+            setSent(true);
+          }}
+        >
+          <input value={note} maxLength={500} placeholder="what was wrong? (optional)" aria-label="What was wrong with this answer" onChange={(event) => setNote(event.target.value)} />
+          <button type="submit" disabled={!note.trim()}>send</button>
+        </form>
+      ) : null}
+      {entry.vote && (entry.vote === 'up' || sent) ? <span className="ai-feedback__thanks">thanks</span> : null}
+    </div>
+  );
+}
+
+function Row({ entry, who, status, onVote }: { entry: ChatEntry; who: Who; status: AssistantStatus | null; onVote?: (vote: 'up' | 'down', note?: string) => void }) {
   const waiting = status !== null && !entry.content;
 
   return (
@@ -55,6 +107,7 @@ function Row({ entry, who, status }: { entry: ChatEntry; who: Who; status: Assis
             </span>
           ) : <RichText value={entry.content} />}
           <Blocks blocks={entry.blocks} />
+          {who.bot && status === null && entry.requestId && onVote ? <Feedback entry={entry} onVote={onVote} /> : null}
         </div>
       </div>
     </article>
@@ -62,11 +115,11 @@ function Row({ entry, who, status }: { entry: ChatEntry; who: Who; status: Assis
 }
 
 export default function RebornAi() {
-  const { discord } = useAuth();
+  const { account, discord } = useAuth();
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<AssistantStatus | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<Failure | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -75,7 +128,7 @@ export default function RebornAi() {
 
   const bot: Who = { name: 'Reborn AI', avatar: images.logo.ai, bot: true };
   const you: Who = {
-    name: discord?.globalName || discord?.username || 'You',
+    name: account?.displayName || discord?.globalName || discord?.username || 'You',
     avatar: discord ? discordAvatar(discord) : '',
     bot: false,
   };
@@ -99,17 +152,16 @@ export default function RebornAi() {
     field.style.height = `${Math.min(field.scrollHeight, 168)}px`;
   }, [input]);
 
-  const send = async (text: string) => {
-    const message = text.trim().slice(0, limits.maxMessageChars);
-    if (!message || busy) return;
-
+  // Sends `message` on top of `base`. A failed attempt that showed nothing is
+  // retried once on its own when the error is a passing one; anything else
+  // leaves a retry button that asks the same question again.
+  const ask = async (message: string, base: ChatEntry[], autoRetry: boolean) => {
     const question = newEntry('user', message);
     const answer = newEntry('assistant', '');
-    const history = toHistory([...entries, question]);
+    const history = toHistory([...base, question]);
 
-    setInput('');
-    setError('');
-    setEntries((current) => [...current, question, answer]);
+    setError(null);
+    setEntries([...base, question, answer]);
     setStatus('thinking');
     pinned.current = true;
 
@@ -120,21 +172,62 @@ export default function RebornAi() {
       setEntries((current) => current.map((entry) => (entry.id === answer.id ? change(entry) : entry)));
     };
 
+    let received = false;
+    let failure: Omit<Failure, 'question' | 'base'> | null = null;
+
     try {
       await streamRebornAi(history, controller.signal, (event) => {
+        if (event.type === 'meta') update((entry) => ({ ...entry, requestId: event.id }));
         if (event.type === 'status') setStatus(event.state);
-        if (event.type === 'reset') update((entry) => ({ ...entry, content: '' }));
-        if (event.type === 'text') update((entry) => ({ ...entry, content: entry.content + event.delta }));
-        if (event.type === 'blocks') update((entry) => ({ ...entry, blocks: event.blocks }));
-        if (event.type === 'error') setError(event.message);
+        if (event.type === 'reset') update((entry) => ({ ...entry, content: '', blocks: [] }));
+        if (event.type === 'text') {
+          received = true;
+          update((entry) => ({ ...entry, content: entry.content + event.delta }));
+        }
+        if (event.type === 'blocks') {
+          received = true;
+          update((entry) => ({ ...entry, blocks: event.blocks }));
+        }
+        if (event.type === 'error') failure = { message: event.message, retryable: event.retryable === true };
       });
     } catch (issue) {
-      if (!(issue instanceof DOMException && issue.name === 'AbortError')) setError('connection dropped, try again');
-    } finally {
-      abortRef.current = null;
-      setStatus(null);
-      setEntries((current) => current.filter((entry) => entry.id !== answer.id || entry.content.trim() || entry.blocks.length));
+      if (!(issue instanceof DOMException && issue.name === 'AbortError')) {
+        failure = { message: 'connection dropped, try again', retryable: true };
+      }
     }
+
+    setEntries((current) => current.filter((entry) => entry.id !== answer.id || entry.content.trim() || entry.blocks.length));
+    if (controller.signal.aborted) return;
+
+    const failed = failure as Omit<Failure, 'question' | 'base'> | null;
+    if (failed?.retryable && autoRetry && !received) {
+      setStatus('thinking');
+      if (await pause(autoRetryMs, controller.signal)) return ask(message, base, false);
+      return;
+    }
+
+    abortRef.current = null;
+    setStatus(null);
+    if (failed) setError({ ...failed, question: message, base });
+  };
+
+  // Files a thumbs up/down on one answer; a note can follow a thumbs down.
+  const castVote = (entry: ChatEntry, vote: 'up' | 'down', note?: string) => {
+    if (!entry.requestId) return;
+    setEntries((current) => current.map((item) => (item.id === entry.id ? { ...item, vote } : item)));
+    void sendFeedback(entry.requestId, vote, note);
+  };
+
+  const send = (text: string) => {
+    const message = text.trim().slice(0, limits.maxMessageChars);
+    if (!message || busy) return;
+    setInput('');
+    void ask(message, entries, true);
+  };
+
+  const retry = () => {
+    if (!error || busy) return;
+    void ask(error.question, error.base, false);
   };
 
   const stop = () => {
@@ -146,7 +239,7 @@ export default function RebornAi() {
   const reset = () => {
     stop();
     setEntries([]);
-    setError('');
+    setError(null);
     setInput('');
   };
 
@@ -154,10 +247,12 @@ export default function RebornAi() {
     <div className="ai-page">
       <section className="ai-chat">
         <header className="ai-bar">
-          <span className="ai-bar__hash" aria-hidden="true">#</span>
-          <span className="ai-bar__name">reborn-ai</span>
-          <span className="ai-bar__split" aria-hidden="true" />
-          <span className="ai-bar__topic">techs, trials, records and whatever else</span>
+          <Avatar className="ai-bar__avatar">
+            <AvatarImage src={images.logo.ai} alt="" />
+            <AvatarFallback>R</AvatarFallback>
+          </Avatar>
+          <span className="ai-bar__name">Reborn AI</span>
+          <span className="ai-tag">BOT</span>
           <Button className="ai-bar__reset" type="button" aria-label="Clear chat" disabled={!entries.length || busy} onClick={reset}>
             <RotateCcw aria-hidden="true" />
           </Button>
@@ -175,8 +270,8 @@ export default function RebornAi() {
         >
           <div className="ai-intro">
             <span className="ai-intro__mark" style={{ backgroundImage: `url(${images.logo.ai})` }} aria-hidden="true" />
-            <h2>#reborn-ai</h2>
-            <p>start of the channel. ask about techs, time trials, world records, crafting, or anything else in the game.</p>
+            <h2>Reborn AI</h2>
+            <p>ask about techs, time trials, world records, crafting, or anything else in the game.</p>
           </div>
 
           {entries.map((entry, index) => (
@@ -185,17 +280,26 @@ export default function RebornAi() {
               key={entry.id}
               who={entry.role === 'user' ? you : bot}
               status={busy && index === entries.length - 1 && entry.role === 'assistant' ? status : null}
+              onVote={(vote, note) => castVote(entry, vote, note)}
             />
           ))}
         </div>
 
-        {error ? <div className="ai-error">{error}</div> : null}
+        {error ? (
+          <div className="ai-error" role="alert">
+            <span>{error.message}</span>
+            <button className="ai-error__retry" type="button" onClick={retry}>
+              <RotateCcw aria-hidden="true" />
+              retry
+            </button>
+          </div>
+        ) : null}
 
         <form
           className="ai-composer"
           onSubmit={(event) => {
             event.preventDefault();
-            void send(input);
+            send(input);
           }}
         >
           <div className="ai-input">
@@ -204,13 +308,13 @@ export default function RebornAi() {
               value={input}
               rows={1}
               maxLength={limits.maxMessageChars}
-              placeholder="message reborn ai"
+              placeholder="Message @Reborn AI"
               aria-label="Message Reborn AI"
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' || event.shiftKey) return;
                 event.preventDefault();
-                void send(input);
+                send(input);
               }}
             />
             {busy ? (
@@ -223,11 +327,7 @@ export default function RebornAi() {
               </Button>
             )}
           </div>
-          <p className="ai-hint">
-            <span><b>Enter</b> send</span>
-            <span><b>Shift+Enter</b> new line</span>
-            <span className="ai-hint__warn">can get things wrong, double check anything important</span>
-          </p>
+          <p className="ai-hint">can get things wrong, double check anything important</p>
         </form>
       </section>
     </div>

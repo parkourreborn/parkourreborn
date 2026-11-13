@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScreenReaderLoading, Skeleton } from '@/components/skeleton';
-import PageHero from '@/components/page-hero';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DialogClose, DialogTitle } from '@/components/ui/dialog';
@@ -10,6 +9,7 @@ import { HubDialog, HubDialogContent } from '@/components/ui/hub-dialog';
 import { images } from '@/lib/assets';
 import { fetchTimeTrials, fetchWorldRecords, trialKey, wrVideoURL } from '@/lib/pages/timetrials';
 import type { TimeTrial, WorldRecord } from '@/lib/pages/timetrials';
+import { youtubeEmbedUrl } from '@/lib/pages/techlist';
 import { cleanTimeInput, formatTime, parseTime } from '@/lib/pages/time';
 import { calculateWasansScore, formatWasansScore } from '@/lib/pages/wasans';
 
@@ -51,7 +51,7 @@ function EmbedVideo({ url }: { url: string }) {
 
   return (
     <iframe
-      src={url}
+      src={youtubeEmbedUrl(url) || url}
       title="Platinum route"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen
@@ -81,15 +81,11 @@ function TrialModal({ trial, wr, onClose }: { trial: TimeTrial; wr?: WorldRecord
     <HubDialog onOpenChange={(next) => {
       if (!next) onClose();
     }}>
-      <HubDialogContent className="tt-dialog" aria-label={`${trial.name} route videos`}>
+      <HubDialogContent className="tt-dialog tt-trial-dialog" aria-label={`${trial.name} route videos`}>
         <header className="tt-dialog__head">
-          <div>
-            <span>{trial.district}</span>
-            <DialogTitle asChild>
-              <h2>{trial.name}</h2>
-            </DialogTitle>
-            <small>{trial.difficulty}</small>
-          </div>
+          <DialogTitle asChild>
+            <h2>{trial.name}</h2>
+          </DialogTitle>
           <DialogClose asChild>
             <Button className="tt-close" type="button" aria-label="Close">
               <span className="tt-close__icon" />
@@ -97,40 +93,47 @@ function TrialModal({ trial, wr, onClose }: { trial: TimeTrial; wr?: WorldRecord
           </DialogClose>
         </header>
 
-        <div className="tt-tabs" role="tablist" aria-label="Route video">
-          <Button className={mode === 'plat1' ? 'is-on' : ''} type="button" role="tab" aria-selected={mode === 'plat1'} onClick={() => setMode('plat1')}>
-            Plat 1
-          </Button>
-          <Button className={mode === 'plat2' ? 'is-on' : ''} type="button" role="tab" aria-selected={mode === 'plat2'} onClick={() => setMode('plat2')}>
-            Plat 2
-          </Button>
-          <Button className={mode === 'wr' ? 'is-on' : ''} type="button" role="tab" aria-selected={mode === 'wr'} onClick={() => setMode('wr')}>
-            WR
-          </Button>
-        </div>
+        <div className="tt-dialog__body">
+          <div className="tt-meta">
+            <span>{trial.district}</span>
+            <span>{trial.difficulty}</span>
+          </div>
 
-        {mode === 'plat1' ? (
-          <div className="tt-video"><EmbedVideo url={trial.videoURL} /></div>
-        ) : null}
-        {mode === 'plat2' ? (
-          <div className="tt-video"><EmbedVideo url={trial.videoURL2} /></div>
-        ) : null}
-        {mode === 'wr' ? (
-          <div className="tt-video"><RecordVideo url={wrURL} /></div>
-        ) : null}
+          <div className="tt-tabs" role="tablist" aria-label="Route video">
+            <Button className={mode === 'plat1' ? 'is-on' : ''} type="button" role="tab" aria-selected={mode === 'plat1'} onClick={() => setMode('plat1')}>
+              Plat 1
+            </Button>
+            <Button className={mode === 'plat2' ? 'is-on' : ''} type="button" role="tab" aria-selected={mode === 'plat2'} onClick={() => setMode('plat2')}>
+              Plat 2
+            </Button>
+            <Button className={mode === 'wr' ? 'is-on' : ''} type="button" role="tab" aria-selected={mode === 'wr'} onClick={() => setMode('wr')}>
+              WR
+            </Button>
+          </div>
 
-        <footer className="tt-medals">
-          {medals.map(([icon, label, key]) => (
-            <Card className="tt-medal" key={label}>
-              <span className="tt-medal__icon" style={{ backgroundImage: `url(${icon})` }} />
-              <strong>{formatTime(trial[key])}</strong>
+          {mode === 'plat1' ? (
+            <div className="tt-video"><EmbedVideo url={trial.videoURL} /></div>
+          ) : null}
+          {mode === 'plat2' ? (
+            <div className="tt-video"><EmbedVideo url={trial.videoURL2} /></div>
+          ) : null}
+          {mode === 'wr' ? (
+            <div className="tt-video"><RecordVideo url={wrURL} /></div>
+          ) : null}
+
+          <footer className="tt-medals">
+            {medals.map(([icon, label, key]) => (
+              <Card className="tt-medal" key={label}>
+                <span className="tt-medal__icon" style={{ backgroundImage: `url(${icon})` }} />
+                <strong>{formatTime(trial[key])}</strong>
+              </Card>
+            ))}
+            <Card className="tt-medal">
+              <span className="tt-medal__icon" style={{ backgroundImage: `url(${images.elements.timetrials.worldrecord})` }} />
+              <strong>{wr ? formatTime(wr.time) : 'N/A'}</strong>
             </Card>
-          ))}
-          <Card className="tt-medal">
-            <span className="tt-medal__icon" style={{ backgroundImage: `url(${images.elements.timetrials.worldrecord})` }} />
-            <strong>{wr ? formatTime(wr.time) : 'N/A'}</strong>
-          </Card>
-        </footer>
+          </footer>
+        </div>
       </HubDialogContent>
     </HubDialog>
   );
@@ -197,8 +200,6 @@ export default function TimeTrialHub() {
 
   return (
     <div className="tt-page">
-      <PageHero eyebrow="Tool" title="Time Trial Hub" image={images.backgrounds.tools.timetrialhub} />
-
       <section className="tt-summary">
         <Card className="xp-result xp-result--big tt-average">
           <span>Average Wasans score</span>

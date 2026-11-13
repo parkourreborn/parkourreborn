@@ -116,23 +116,10 @@ function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; 
     }}>
       <HubDialogContent className="tt-dialog tech-dialog" aria-label={entry.name}>
         <header className="tt-dialog__head">
-          <div>
-            <span>{kindLabels[entry.kind]}</span>
-            <div className="tech-title">
-              <DialogTitle asChild>
-                <h2>{entry.name}</h2>
-              </DialogTitle>
-              <span className="tech-info-wrap" onMouseEnter={showTip(aliases)} onMouseMove={showTip(aliases)} onMouseLeave={() => setTip(null)}>
-                <Info className="tech-info" aria-hidden="true" />
-              </span>
-            </div>
-          </div>
+          <DialogTitle asChild>
+            <h2>{entry.name}</h2>
+          </DialogTitle>
           <div className="tech-head-actions">
-            <DialogClose asChild>
-              <Button className="tt-close" type="button" aria-label="Close" autoFocus>
-                <span className="tt-close__icon" />
-              </Button>
-            </DialogClose>
             <Button
               className={`tt-copy tech-advanced-toggle${advanced ? ' is-on' : ''}`}
               type="button"
@@ -146,69 +133,84 @@ function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; 
             >
               {advanced ? <ToggleRight /> : <ToggleLeft />}
             </Button>
+            <DialogClose asChild>
+              <Button className="tt-close" type="button" aria-label="Close" autoFocus>
+                <span className="tt-close__icon" />
+              </Button>
+            </DialogClose>
           </div>
         </header>
 
-        {tutorial ? (
-          <div className="tt-tabs" role="tablist" aria-label="Tech list tabs">
-            <Button className={tab === 'overview' ? 'is-on' : ''} type="button" role="tab" aria-selected={tab === 'overview'} onClick={() => setTab('overview')}>
-              Overview
-            </Button>
-            <Button className={tab === 'tutorial' ? 'is-on' : ''} type="button" role="tab" aria-selected={tab === 'tutorial'} onClick={() => setTab('tutorial')}>
-              Tutorial
-            </Button>
+        <div className="tt-dialog__body">
+          <div className="tt-meta">
+            <span>{kindLabels[entry.kind]}</span>
+            <span className="tech-info-wrap" onMouseEnter={showTip(aliases)} onMouseMove={showTip(aliases)} onMouseLeave={() => setTip(null)}>
+              <Info className="tech-info" aria-hidden="true" />
+            </span>
           </div>
-        ) : null}
 
-        {tab === 'overview' ? (
-          <div className="tech-overview">
-            {steps.length ? (
-              <Card className="tech-steps">
-                {steps.map(({ step, index: stepIndex, item }, index) => {
-                  const match = findStepEntry(entries, item.label);
-                  const mark = item.optional ? '*' : item.add ? '+' : item.remove ? '-' : '';
-                  const tipText = item.optional ? 'Optional' : item.add ? 'Addition' : '';
-                  const stepButton = (
-                    <Button
-                      className={`tech-step${item.optional ? ' is-optional' : ''}${item.add ? ' is-addition' : ''}${item.remove ? ' is-remove' : ''}`}
-                      type="button"
-                      tabIndex={-1}
-                      onClick={() => {
-                        if (match) onPick(match);
-                      }}
-                    >
-                      <span>{item.label}{mark ? <b className={item.add ? 'is-addition' : item.remove ? 'is-remove' : ''} aria-hidden="true">{mark}</b> : null}</span>
-                    </Button>
-                  );
+          {tutorial ? (
+            <div className="tt-tabs" role="tablist" aria-label="Tech list tabs">
+              <Button className={tab === 'overview' ? 'is-on' : ''} type="button" role="tab" aria-selected={tab === 'overview'} onClick={() => setTab('overview')}>
+                Overview
+              </Button>
+              <Button className={tab === 'tutorial' ? 'is-on' : ''} type="button" role="tab" aria-selected={tab === 'tutorial'} onClick={() => setTab('tutorial')}>
+                Tutorial
+              </Button>
+            </div>
+          ) : null}
 
-                  return (
-                    <span className="tech-step-wrap" key={`${step}-${stepIndex}`}>
-                      {tipText ? (
-                        <span className="tech-step-tip-wrap" onMouseEnter={showTip(tipText)} onMouseMove={showTip(tipText)} onMouseLeave={() => setTip(null)}>
-                          {stepButton}
-                        </span>
-                      ) : stepButton}
-                      {index < steps.length - 1 ? <span className="tech-arrow" aria-hidden="true">&rarr;</span> : null}
-                    </span>
-                  );
-                })}
-              </Card>
-            ) : null}
+          {tab === 'overview' ? (
+            <div className="tech-overview">
+              {steps.length ? (
+                <Card className="tech-steps">
+                  {steps.map(({ step, index: stepIndex, item }, index) => {
+                    const match = findStepEntry(entries, item.label);
+                    const mark = item.optional ? '*' : item.add ? '+' : item.remove ? '-' : '';
+                    const tipText = item.optional ? 'Optional' : item.add ? 'Addition' : '';
+                    const stepButton = (
+                      <Button
+                        className={`tech-step${item.optional ? ' is-optional' : ''}${item.add ? ' is-addition' : ''}${item.remove ? ' is-remove' : ''}`}
+                        type="button"
+                        tabIndex={match ? undefined : -1}
+                        aria-disabled={match ? undefined : true}
+                        onClick={() => {
+                          if (match) onPick(match);
+                        }}
+                      >
+                        <span>{item.label}{mark ? <b className={item.add ? 'is-addition' : item.remove ? 'is-remove' : ''} aria-hidden="true">{mark}</b> : null}</span>
+                      </Button>
+                    );
 
-            <Preview entry={entry} />
-          </div>
-        ) : null}
+                    return (
+                      <span className="tech-step-wrap" key={`${step}-${stepIndex}`}>
+                        {tipText ? (
+                          <span className="tech-step-tip-wrap" onMouseEnter={showTip(tipText)} onMouseMove={showTip(tipText)} onMouseLeave={() => setTip(null)}>
+                            {stepButton}
+                          </span>
+                        ) : stepButton}
+                        {index < steps.length - 1 ? <span className="tech-arrow" aria-hidden="true">&rarr;</span> : null}
+                      </span>
+                    );
+                  })}
+                </Card>
+              ) : null}
 
-        {tab === 'tutorial' && tutorial ? (
-          <div className="tech-tutorial">
-            <iframe
-              src={tutorial}
-              title={`${entry.name} tutorial`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        ) : null}
+              <Preview entry={entry} />
+            </div>
+          ) : null}
+
+          {tab === 'tutorial' && tutorial ? (
+            <div className="tech-tutorial">
+              <iframe
+                src={tutorial}
+                title={`${entry.name} tutorial`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : null}
+        </div>
       </HubDialogContent>
       {tip && typeof document !== 'undefined' ? createPortal(
         <div

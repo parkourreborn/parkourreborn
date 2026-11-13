@@ -1,27 +1,18 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import ComingSoon from '@/components/coming-soon';
-import PageHero from '@/components/page-hero';
-import { Button } from '@/components/ui/button';
+import IncrementalParkour from '@/components/games/incrementalparkour';
+import HubPage from '@/components/hub-page';
 import { images } from '@/lib/assets';
 
 export const metadata: Metadata = {
   title: 'Incremental Parkour',
   description: 'Play PARKOUR Reborn 2d incremental game.',
+  alternates: { canonical: '/incrementalparkour' },
 };
 
 export default function Page() {
   return (
-    <main className="hub-shell min-h-screen overflow-x-hidden">
-      <section className="hub-page hub-page--wide">
-        <div className="hub-container">
-          <Button asChild className="back-btn">
-            <Link href="/">Back</Link>
-          </Button>
-          <PageHero eyebrow="Games" title="Incremental Parkour" image={images.backgrounds.games.incrementalparkour} />
-          <ComingSoon />
-        </div>
-      </section>
-    </main>
+    <HubPage title="Incremental Parkour" image={images.backgrounds.games.incrementalparkour}>
+      <IncrementalParkour />
+    </HubPage>
   );
 }

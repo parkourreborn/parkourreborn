@@ -27,11 +27,8 @@ export default function ParkourMC() {
       </div>
 
       <div className="mc-mod">
-        <div>
-          <span>Fabric mod required</span>
-          <p>Download the Fabric mod to play the server.</p>
-        </div>
-        <a className="mc-download" href="https://modrinth.com/mod/parkour-reborn" target="_blank" rel="noopener noreferrer">Download Fabric mod</a>
+        <span>Fabric mod required</span>
+        <a className="mc-download" href="https://modrinth.com/mod/parkour-reborn" target="_blank" rel="noopener noreferrer">Download</a>
       </div>
     </section>
   );

@@ -1,9 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import type { Ref } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
+import { LocateFixed, Minus, Plus, Settings2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogClose, DialogPortal, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogPortal, DialogTitle } from '@/components/ui/dialog';
+import { mapDistance, metersPerStud } from '@/lib/guessr-score';
+import type { MapPoint } from '@/lib/guessr';
 
 type MapViewerProps = {
   image: string;
@@ -11,130 +15,119 @@ type MapViewerProps = {
   onClose: () => void;
 };
 
-type Point = {
-  x: number;
-  y: number;
+type MapCanvasProps = {
+  image: string;
+  width?: number;
+  height?: number;
+  padding?: number;
+  value?: MapPoint | null;
+  target?: MapPoint | null;
+  points?: MapPoint[];
+  valueLabel?: string;
+  disabled?: boolean;
+  className?: string;
+  alt?: string;
+  inputLabel?: string;
+  onChange?: (point: MapPoint) => void;
+  onRemove?: (index: number) => void;
+  onZoomChange?: (zoom: number) => void;
+  onLoad?: (width: number, height: number) => void;
+  onError?: () => void;
+  ref?: Ref<MapCanvasHandle>;
 };
 
-const maxZoom = 8;
+export type MapCanvasHandle = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  reset: () => void;
+};
 
+type Drag = { id: number; x: number; y: number; startX: number; startY: number; moved: boolean };
+type Pinch = { distance: number; zoom: number; pan: MapPoint; center: MapPoint };
+
+const maxZoom = 100;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const distance = (a: MapPoint, b: MapPoint) => Math.hypot(a.x - b.x, a.y - b.y);
 
-const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
-
-export default function MapViewer({ image, open, onClose }: MapViewerProps) {
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
-  const [size, setSize] = useState({ width: 0, height: 0 });
-  const [natural, setNatural] = useState({ width: 0, height: 0 });
-  const modalRef = useRef<HTMLDivElement>(null);
+export function MapCanvas({
+  image,
+  width = 0,
+  height = 0,
+  padding = 24,
+  value = null,
+  target = null,
+  points,
+  valueLabel = 'Your guess',
+  disabled = false,
+  className = '',
+  alt = 'PARKOUR Reborn world map',
+  inputLabel = 'Parkour Reborn guess map. Drag to pan and tap to place a marker.',
+  onChange,
+  onRemove,
+  onZoomChange,
+  onLoad,
+  onError,
+  ref,
+}: MapCanvasProps) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const pointers = useRef(new Map<number, Point>());
-  const drag = useRef<Point | null>(null);
-  const pinch = useRef<{ distance: number; zoom: number; pan: Point; center: Point } | null>(null);
-  const ready = size.width > 16 && size.height > 16 && natural.width > 0 && natural.height > 0;
+  const layerRef = useRef<HTMLDivElement>(null);
+  const pointers = useRef(new Map<number, MapPoint>());
+  const drag = useRef<Drag | null>(null);
+  const pinch = useRef<Pinch | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<MapPoint>({ x: 0, y: 0 });
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [natural, setNatural] = useState({ width, height });
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const mapWidth = width || natural.width;
+  const mapHeight = height || natural.height;
+  const ready = size.width > 16 && size.height > 16 && mapWidth > 0 && mapHeight > 0;
 
-  const fit = useMemo(() => {
-    if (!ready) return 1;
-    const widthFit = (size.width - 32) / natural.width;
-    const heightFit = (size.height - 96) / natural.height;
-    return Math.max(0.001, Math.min(widthFit, heightFit, 1));
-  }, [natural.height, natural.width, ready, size.height, size.width]);
+  const base = useMemo(() => {
+    if (!ready) return { width: 0, height: 0 };
+    const scale = Math.min(Math.max(1, size.width - padding) / mapWidth, Math.max(1, size.height - padding) / mapHeight);
+    return { width: mapWidth * scale, height: mapHeight * scale };
+  }, [mapHeight, mapWidth, padding, ready, size.height, size.width]);
 
-  const clampPan = useCallback((next: Point, nextZoom = zoom) => {
-    const mapWidth = natural.width * nextZoom;
-    const mapHeight = natural.height * nextZoom;
-    const maxX = Math.max(0, (mapWidth - size.width) / 2 + 80);
-    const maxY = Math.max(0, (mapHeight - size.height) / 2 + 80);
+  const clampPan = useCallback((next: MapPoint, nextZoom = zoom) => {
+    const maxX = Math.max(0, (base.width * nextZoom - size.width) / 2);
+    const maxY = Math.max(0, (base.height * nextZoom - size.height) / 2);
     return { x: clamp(next.x, -maxX, maxX), y: clamp(next.y, -maxY, maxY) };
-  }, [natural.height, natural.width, size.height, size.width, zoom]);
+  }, [base.height, base.width, size.height, size.width, zoom]);
 
-  const setClampedZoom = useCallback((next: number) => {
-    const value = clamp(next, fit, maxZoom);
-    setZoom(value);
-    setPan((current) => clampPan(current, value));
-  }, [clampPan, fit]);
-
-  const setZoomAt = useCallback((next: number, anchor: Point, startZoom = zoom, startPan = pan) => {
-    const value = clamp(next, fit, maxZoom);
-    const ratio = value / startZoom;
+  const changeZoom = useCallback((next: number, anchor: MapPoint = { x: 0, y: 0 }) => {
+    const value = clamp(next, 1, maxZoom);
+    const ratio = value / zoom;
     const nextPan = {
-      x: anchor.x - (anchor.x - startPan.x) * ratio,
-      y: anchor.y - (anchor.y - startPan.y) * ratio,
+      x: anchor.x - (anchor.x - pan.x) * ratio,
+      y: anchor.y - (anchor.y - pan.y) * ratio,
     };
-
     setZoom(value);
     setPan(clampPan(nextPan, value));
-  }, [clampPan, fit, pan, zoom]);
+  }, [clampPan, pan.x, pan.y, zoom]);
 
-  const pointInStage = useCallback((point: Point) => {
-    const rect = stageRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    return { x: point.x - rect.left - rect.width / 2, y: point.y - rect.top - rect.height / 2 };
+  const reset = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => changeZoom(zoom * 1.22),
+    zoomOut: () => changeZoom(zoom / 1.22),
+    reset,
+  }), [changeZoom, reset, zoom]);
+
+  useEffect(() => {
+    onZoomChange?.(zoom);
+  }, [onZoomChange, zoom]);
 
   const measure = useCallback(() => {
     const rect = stageRef.current?.getBoundingClientRect();
     if (rect && rect.width > 0 && rect.height > 0) setSize({ width: rect.width, height: rect.height });
-
-    const img = imageRef.current;
-    if (img?.naturalWidth && img.naturalHeight) setNatural({ width: img.naturalWidth, height: img.naturalHeight });
   }, []);
 
-  const reset = useCallback(() => {
-    if (!ready) return;
-    setZoom(fit);
-    setPan({ x: 0, y: 0 });
-  }, [fit, ready]);
-
   useEffect(() => {
-    if (!open) return;
-
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    requestAnimationFrame(() => {
-      modalRef.current?.focus();
-      measure();
-      requestAnimationFrame(measure);
-    });
-
-    const timer = window.setTimeout(measure, 80);
-
-    return () => {
-      window.clearTimeout(timer);
-      document.body.style.overflow = previous;
-    };
-  }, [measure, open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key !== 'Tab') return;
-
-      const focusable = modalRef.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (!focusable?.length) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose, open]);
-
-  useEffect(() => {
-    if (!open) return;
-
     measure();
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
     if (stageRef.current) observer?.observe(stageRef.current);
@@ -143,35 +136,45 @@ export default function MapViewer({ image, open, onClose }: MapViewerProps) {
       observer?.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [measure, open]);
+  }, [measure]);
 
   useEffect(() => {
-    if (open && ready) reset();
-  }, [open, ready, reset]);
+    reset();
+  }, [image, mapHeight, mapWidth, reset]);
 
   useEffect(() => {
-    if (open) return;
-    pointers.current.clear();
-    drag.current = null;
-    pinch.current = null;
-  }, [open]);
+    setPan((current) => clampPan(current));
+  }, [clampPan]);
+
+  const pointInStage = (clientX: number, clientY: number) => {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 };
+  };
+
+  const pointOnMap = (clientX: number, clientY: number) => {
+    const rect = layerRef.current?.getBoundingClientRect();
+    if (!rect?.width || !rect.height) return null;
+    const point = { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+    if (point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1) return null;
+    return point;
+  };
 
   useEffect(() => {
-    if (!open) return;
-
     const stage = stageRef.current;
     if (!stage) return;
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      setZoomAt(zoom * (event.deltaY > 0 ? 0.9 : 1.1), pointInStage({ x: event.clientX, y: event.clientY }));
+      changeZoom(zoom * (event.deltaY > 0 ? 0.88 : 1.12), pointInStage(event.clientX, event.clientY));
     };
 
     stage.addEventListener('wheel', onWheel, { passive: false });
     return () => stage.removeEventListener('wheel', onWheel);
-  }, [open, pointInStage, setZoomAt, zoom]);
+  }, [changeZoom, zoom]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = { x: event.clientX, y: event.clientY };
     pointers.current.set(event.pointerId, point);
@@ -182,37 +185,192 @@ export default function MapViewer({ image, open, onClose }: MapViewerProps) {
         distance: distance(a, b),
         zoom,
         pan,
-        center: pointInStage({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }),
+        center: pointInStage((a.x + b.x) / 2, (a.y + b.y) / 2),
       };
       drag.current = null;
     } else {
-      drag.current = { x: point.x - pan.x, y: point.y - pan.y };
+      drag.current = { id: event.pointerId, x: point.x, y: point.y, startX: point.x, startY: point.y, moved: false };
     }
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const point = { x: event.clientX, y: event.clientY };
     if (!pointers.current.has(event.pointerId)) return;
+    const point = { x: event.clientX, y: event.clientY };
     pointers.current.set(event.pointerId, point);
 
     if (pointers.current.size === 2 && pinch.current) {
       const [a, b] = Array.from(pointers.current.values());
-      const center = pointInStage({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-      const nextZoom = pinch.current.zoom * (distance(a, b) / pinch.current.distance);
-      const centerDrift = { x: center.x - pinch.current.center.x, y: center.y - pinch.current.center.y };
-      const nextPan = { x: pinch.current.pan.x + centerDrift.x, y: pinch.current.pan.y + centerDrift.y };
-      setZoomAt(nextZoom, center, pinch.current.zoom, nextPan);
+      const center = pointInStage((a.x + b.x) / 2, (a.y + b.y) / 2);
+      const nextZoom = clamp(pinch.current.zoom * (distance(a, b) / Math.max(1, pinch.current.distance)), 1, maxZoom);
+      const ratio = nextZoom / pinch.current.zoom;
+      const nextPan = {
+        x: center.x - (pinch.current.center.x - pinch.current.pan.x) * ratio,
+        y: center.y - (pinch.current.center.y - pinch.current.pan.y) * ratio,
+      };
+      setZoom(nextZoom);
+      setPan(clampPan(nextPan, nextZoom));
       return;
     }
 
-    if (drag.current) setPan(clampPan({ x: point.x - drag.current.x, y: point.y - drag.current.y }));
+    const current = drag.current;
+    if (!current || current.id !== event.pointerId) return;
+    if (Math.hypot(point.x - current.startX, point.y - current.startY) > 5) current.moved = true;
+    const dx = point.x - current.x;
+    const dy = point.y - current.y;
+    if (current.moved) setPan((value) => clampPan({ x: value.x + dx, y: value.y + dy }));
+    current.x = point.x;
+    current.y = point.y;
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    const current = drag.current;
+    const place = event.type === 'pointerup' && pointers.current.size === 1 && current?.id === event.pointerId && !current.moved && !pinch.current;
     pointers.current.delete(event.pointerId);
+
+    if (pointers.current.size === 1) {
+      const [id, point] = Array.from(pointers.current.entries())[0];
+      drag.current = { id, x: point.x, y: point.y, startX: point.x, startY: point.y, moved: true };
+    } else {
+      drag.current = null;
+    }
     pinch.current = null;
-    drag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+
+    if (place && loaded && !disabled) {
+      const rect = layerRef.current?.getBoundingClientRect();
+      const index = rect && points?.findIndex((point) => {
+        const x = rect.left + point.x * rect.width;
+        const y = rect.top + point.y * rect.height;
+        return Math.abs(event.clientX - x) <= 20 && event.clientY >= y - 36 && event.clientY <= y + 12;
+      });
+      if (index !== undefined && index >= 0 && onRemove) {
+        onRemove(index);
+        return;
+      }
+      const point = pointOnMap(event.clientX, event.clientY);
+      if (point) onChange?.(point);
+    }
   };
+
+  return (
+    <div
+      ref={stageRef}
+      className={`map-canvas ${className}`.trim()}
+      style={{ touchAction: 'none' }}
+      role="application"
+      aria-label={onChange ? disabled ? 'Parkour Reborn result map' : inputLabel : `${alt}. Drag to pan and scroll or pinch to zoom.`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onLostPointerCapture={onPointerUp}
+    >
+      {(!mapWidth || !mapHeight) && (
+        <img
+          className="map-canvas__probe"
+          src={image}
+          alt=""
+          aria-hidden="true"
+          onLoad={(event) => {
+            setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
+            onLoad?.(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight);
+            measure();
+          }}
+          onError={onError}
+        />
+      )}
+      {ready && (
+        <div
+          ref={layerRef}
+          className="map-canvas__layer"
+          style={{ width: base.width * zoom, height: base.height * zoom, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px)` }}
+        >
+          <img
+            className="map-canvas__image"
+            src={image}
+            alt={alt}
+            draggable={false}
+            onLoad={(event) => {
+              if (!width || !height) setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
+              setLoaded(true);
+              onLoad?.(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight);
+              measure();
+            }}
+            onError={() => {
+              setLoadError(true);
+              onError?.();
+            }}
+          />
+          {value && target && (
+            <svg className="map-canvas__line" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
+              <line x1={value.x * mapWidth} y1={value.y * mapHeight} x2={target.x * mapWidth} y2={target.y * mapHeight} />
+            </svg>
+          )}
+          {points && points.length > 1 && (
+            <svg className="map-canvas__line" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
+              <polyline points={points.map((point) => `${point.x * mapWidth},${point.y * mapHeight}`).join(' ')} />
+            </svg>
+          )}
+          {[{ point: value, name: 'guess', label: valueLabel }, { point: target, name: 'target', label: 'Actual location' }].map(({ point, name, label }) => point && (
+            <svg key={name} className={`map-marker map-marker--${name}`} style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, transform: 'translate(-50%, -100%)' }} viewBox="0 0 24 30" role="img" aria-label={label}>
+              <path d="M12 29C10 25 2 17 2 11a10 10 0 0 1 20 0c0 6-8 14-10 18Z" fill="currentColor" stroke="#24171c" strokeWidth="2" />
+              <circle cx="12" cy="11" r="4" fill="#24171c" />
+            </svg>
+          ))}
+          {points?.map((point, index) => (
+            <svg key={index} className="map-marker map-marker--measure" style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%`, transform: 'translate(-50%, -100%)' }} viewBox="0 0 24 30" role="img" aria-label={`Measurement point ${index + 1}`}>
+              <path d="M12 29C10 25 2 17 2 11a10 10 0 0 1 20 0c0 6-8 14-10 18Z" fill="currentColor" stroke="#24171c" strokeWidth="2" />
+              <circle cx="12" cy="11" r="4" fill="#24171c" />
+            </svg>
+          ))}
+        </div>
+      )}
+      {(!ready || !loaded || loadError) && <span className="map-canvas__loading">{loadError ? 'Could not load map' : 'Loading map...'}</span>}
+    </div>
+  );
+}
+
+export default function MapViewer({ image, open, onClose }: MapViewerProps) {
+  const mapRef = useRef<MapCanvasHandle>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [measuring, setMeasuring] = useState(false);
+  const [points, setPoints] = useState<MapPoint[]>([]);
+  const [cursor, setCursor] = useState<MapPoint | null>(null);
+  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
+  const [ready, setReady] = useState(false);
+  const total = points.reduce((sum, point, index) => index ? sum + mapDistance(points[index - 1], point, mapSize.width, mapSize.height) : sum, 0);
+
+  const toggleMeasure = () => {
+    setMeasuring((current) => !current);
+    setPoints([]);
+    setCursor(null);
+  };
+
+  const addPoint = (point: MapPoint) => {
+    setPoints((current) => [...current, point]);
+    setCursor(null);
+  };
+
+  const removePoint = (index: number) => {
+    setPoints((current) => current.filter((_, pointIndex) => pointIndex !== index));
+    setCursor(null);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+      stageRef.current?.focus({ preventScroll: true });
+      mapRef.current?.reset();
+    });
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -221,38 +379,53 @@ export default function MapViewer({ image, open, onClose }: MapViewerProps) {
       if (!next) onClose();
     }}>
       <DialogPortal>
-        <DialogPrimitive.Content className="map-modal" aria-label="Map viewer" ref={modalRef} tabIndex={-1}>
-          <DialogTitle className="sr-only">Map viewer</DialogTitle>
-          <div className="map-modal__bar">
-            <Button type="button" onClick={() => setClampedZoom(zoom * 1.18)}>Zoom In</Button>
-            <Button type="button" onClick={() => setClampedZoom(zoom / 1.18)}>Zoom Out</Button>
-            <Button type="button" onClick={reset}>Reset</Button>
-            <span>{Math.round(zoom * 100)}%</span>
-          </div>
-          <div className="map-modal__close-slot">
-            <DialogClose asChild>
-              <Button className="tt-close" type="button" aria-label="Close map">
-                <span className="tt-close__icon" />
-              </Button>
-            </DialogClose>
-          </div>
-          <div
-            className="map-modal__stage"
-            ref={stageRef}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-          >
-            <img
-              ref={imageRef}
-              src={image}
-              alt="PARKOUR Reborn world map"
-              draggable={false}
-              onLoad={measure}
-              style={{ transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
-            />
-          </div>
+        <DialogPrimitive.Content className="map-modal" aria-label="Map viewer">
+          <DialogTitle className="sr-only">Map</DialogTitle>
+          <section className="guessr-game-map is-open is-fullscreen" aria-label="Map">
+            <div className="guessr-game-map__bar">
+              <strong>Map</strong>
+              <span>{Math.round(zoom * 100)}%</span>
+              <div className="guessr-game-map__tools">
+                <Button type="button" size="icon" aria-label="Zoom out" onClick={() => mapRef.current?.zoomOut()}><Minus /></Button>
+                <Button type="button" size="icon" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn()}><Plus /></Button>
+                <Button type="button" size="icon" aria-label="Reset map view" onClick={() => mapRef.current?.reset()}><LocateFixed /></Button>
+                <Button type="button" size="icon" aria-label="Map options" aria-expanded={optionsOpen} aria-controls="map-options" onClick={() => setOptionsOpen((current) => !current)}><Settings2 /></Button>
+                <Button type="button" size="icon" aria-label="Close map" onClick={onClose}><X /></Button>
+              </div>
+            </div>
+            <div ref={stageRef} className="guessr-game-map__stage" tabIndex={0} role="group" aria-label={measuring ? 'Measure map. Use arrow keys to move a point, Enter to add it.' : 'Map. Drag to pan and scroll or pinch to zoom.'} onKeyDown={(event) => {
+              if (!measuring || !ready || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', ' '].includes(event.key)) return;
+              event.preventDefault();
+              const current = cursor ?? points.at(-1) ?? { x: 0.5, y: 0.5 };
+              if (event.key === 'Enter' || event.key === ' ') {
+                addPoint(current);
+                return;
+              }
+              const step = event.shiftKey ? 0.01 : 0.002;
+              setCursor({
+                x: Math.min(1, Math.max(0, current.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0))),
+                y: Math.min(1, Math.max(0, current.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0))),
+              });
+            }}>
+              <MapCanvas ref={mapRef} image={image} value={cursor} valueLabel="Measure cursor" points={measuring ? points : undefined} disabled={!measuring} inputLabel="Parkour Reborn measure map. Drag to pan and tap to add a point." onChange={measuring ? addPoint : undefined} onRemove={measuring ? removePoint : undefined} onZoomChange={setZoom} onLoad={(width, height) => {
+                setMapSize({ width, height });
+                setReady(true);
+              }} onError={() => setReady(false)} />
+            </div>
+            {optionsOpen && (
+              <aside id="map-options" className="map-options" aria-label="Map options">
+                <strong>Options</strong>
+                <Button type="button" aria-pressed={measuring} onClick={toggleMeasure}>Measure {measuring ? 'On' : 'Off'}</Button>
+                {measuring && <p>Tap to add points. Tap a pin to remove it.</p>}
+                {measuring && points.length > 0 && (
+                  <ol>
+                    {points.map((_, index) => <li key={index}><span>Point {index + 1}</span><Button type="button" size="icon" aria-label={`Remove point ${index + 1}`} onClick={() => removePoint(index)}><X /></Button></li>)}
+                  </ol>
+                )}
+              </aside>
+            )}
+            {measuring && <div className="map-measure" role="status"><span>{points.length} points</span><strong>{total.toFixed(1)} meters ({(total / metersPerStud).toFixed(1)} studs)</strong></div>}
+          </section>
         </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>

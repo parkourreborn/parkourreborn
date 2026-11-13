@@ -4,13 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { CardSkeleton, ScreenReaderLoading, Skeleton } from '@/components/skeleton';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogTitle } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { HubDialog, HubDialogContent } from '@/components/ui/hub-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { fetchCommunityResources } from '@/lib/pages/search';
@@ -83,16 +76,19 @@ function ResourceModal({ item, onClose }: ResourceModalProps) {
     <HubDialog onOpenChange={(next) => {
       if (!next) onClose();
     }}>
-      <HubDialogContent className={`tt-dialog search-dialog search-dialog--${item.type}`} aria-label={item.name}>
+      <HubDialogContent
+        className={`tt-dialog search-dialog search-dialog--${item.type}`}
+        aria-label={item.name}
+        onOpenAutoFocus={(event) => {
+          // Focus the dialog itself rather than its first button, so the copy
+          // button's tooltip does not pop open as soon as the dialog opens.
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus();
+        }}
+      >
         <header className="tt-dialog__head">
-          <div>
-            <span>{labels[item.type]}</span>
-            <DialogTitle asChild><h2>{item.name}</h2></DialogTitle>
-          </div>
+          <DialogTitle asChild><h2>{item.name}</h2></DialogTitle>
           <div className="search-head-actions">
-            <DialogClose asChild>
-              <Button className="tt-close" type="button" aria-label="Close"><span className="tt-close__icon" /></Button>
-            </DialogClose>
             {item.type === 'gif' ? (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -101,30 +97,35 @@ function ResourceModal({ item, onClose }: ResourceModalProps) {
                 <TooltipContent>Copy GIF link</TooltipContent>
               </Tooltip>
             ) : null}
+            <DialogClose asChild>
+              <Button className="tt-close" type="button" aria-label="Close"><span className="tt-close__icon" /></Button>
+            </DialogClose>
           </div>
         </header>
 
-        {item.type === 'gif' ? (
-          <div className="search-gif">
-            {canOpen ? (
-              <a className="search-gif__link" href={openURL} target="_blank" rel="noopener noreferrer">
-                <img src={item.link} alt={item.name} />
-              </a>
-            ) : <img src={item.link} alt={item.name} />}
-          </div>
-        ) : (
-          <div className="search-info">
-            {item.description ? <p>{item.description}</p> : <p>No description yet.</p>}
-            {canOpen ? <a className="search-url" href={item.link} target="_blank" rel="noopener noreferrer">{item.link}</a> : <span className="search-url">Link looks broken.</span>}
-            {canOpen ? (
-              <Button asChild className="account-action search-action">
-                <a href={item.link} target="_blank" rel="noopener noreferrer" download={item.type === 'file' && item.downloadable ? '' : undefined}>
+        <div className="tt-dialog__body">
+          <div className="tt-meta"><span>{labels[item.type]}</span></div>
+
+          {item.type === 'gif' ? (
+            <div className="search-gif">
+              {canOpen ? (
+                <a className="search-gif__link" href={openURL} target="_blank" rel="noopener noreferrer">
+                  <img src={item.link} alt={item.name} />
+                </a>
+              ) : <img src={item.link} alt={item.name} />}
+            </div>
+          ) : (
+            <div className="search-info">
+              {item.description ? <p>{item.description}</p> : <p>No description yet.</p>}
+              {canOpen ? <a className="search-url" href={item.link} target="_blank" rel="noopener noreferrer">{item.link}</a> : <span className="search-url">Link looks broken.</span>}
+              {canOpen ? (
+                <a className="account-btn account-btn--go search-action" href={item.link} target="_blank" rel="noopener noreferrer" download={item.type === 'file' && item.downloadable ? '' : undefined}>
                   {action}
                 </a>
-              </Button>
-            ) : null}
-          </div>
-        )}
+              ) : null}
+            </div>
+          )}
+        </div>
       </HubDialogContent>
     </HubDialog>
   );
@@ -153,11 +154,9 @@ export default function CommunitySearch() {
   const [items, setItems] = useState<CommunityResource[]>([]);
   const [query, setQuery] = useState('');
   const [type, setType] = useState<CommunityResourceType>('gif');
-  const [typeOpen, setTypeOpen] = useState(false);
   const [selected, setSelected] = useState<CommunityResource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const activeType = typeOptions.find((option) => option.id === type) ?? typeOptions[0];
 
   useEffect(() => {
     fetchCommunityResources()
@@ -182,37 +181,18 @@ export default function CommunitySearch() {
   return (
     <div className="search-page">
       <section className="search-panel">
-        <label className="search-field">
+        <label>
           <span>Search library</span>
           <input value={query} placeholder="Search..." onChange={(event) => setQuery(event.target.value)} />
         </label>
 
-        <DropdownMenu open={typeOpen} onOpenChange={setTypeOpen}>
-          <div className={`search-select${typeOpen ? ' is-open' : ''}`}>
-            <span id="search-type-label">Type</span>
-            <DropdownMenuTrigger asChild>
-              <Button className="search-select__button" type="button" aria-haspopup="listbox" aria-expanded={typeOpen} aria-labelledby="search-type-label search-type-value">
-                <strong id="search-type-value">{activeType.label}</strong>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="search-select__menu" sideOffset={7} align="start" aria-labelledby="search-type-label" style={{ width: 'var(--radix-dropdown-menu-trigger-width)' }}>
-              <DropdownMenuRadioGroup value={type} onValueChange={(value) => {
-                setType(value as CommunityResourceType);
-                setTypeOpen(false);
-              }}>
-                {typeOptions.map((option) => (
-                  <DropdownMenuRadioItem
-                    className={option.id === type ? 'is-on' : ''}
-                    value={option.id}
-                    key={option.id}
-                  >
-                    {option.label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </div>
-        </DropdownMenu>
+        <div className="search-filters" aria-label="Resource type">
+          {typeOptions.map((option) => (
+            <Button className={type === option.id ? 'is-on' : ''} type="button" aria-pressed={type === option.id} key={option.id} onClick={() => setType(option.id)}>
+              {option.label}
+            </Button>
+          ))}
+        </div>
       </section>
 
       {error ? <div className="tt-note tt-note--bad">{error}</div> : null}

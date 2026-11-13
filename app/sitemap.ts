@@ -8,11 +8,15 @@ const pages = [
   '/xpcalc',
   '/timetrialhub',
   '/rebornai',
-  '/parkourguessr',
+  '/games/parkourguessr',
   '/incrementalparkour',
+  '/parkourmc',
   '/bagopensimulator',
   '/map',
+  '/search',
   '/contributions',
+  '/terms',
+  '/privacy',
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
