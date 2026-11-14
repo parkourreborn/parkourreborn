@@ -9,9 +9,9 @@ import { hubSections as features } from '@/lib/site-nav';
 const columnsFor = (count: number) => (count === 4 ? 2 : Math.min(count, 3));
 
 const frameWidth = (columns: number) => {
-  if (window.innerWidth <= 532) return columns === 1 ? 188 : 368;
-  if (window.innerWidth <= 900) return columns === 1 ? 192 : 370;
-  return columns === 1 ? 216 : columns === 2 ? 416 : 616;
+  if (window.innerWidth <= 532) return columns === 1 ? 192 : 370;
+  if (window.innerWidth <= 900) return columns === 1 ? 196 : 374;
+  return columns === 1 ? 220 : columns === 2 ? 420 : 620;
 };
 
 export default function FeatureNav() {

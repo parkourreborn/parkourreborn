@@ -478,15 +478,15 @@ button {
 }
 
 .feature-nav-frame--1 {
-  width: min(216px, calc(100vw - 32px));
+  width: min(220px, calc(100vw - 32px));
 }
 
 .feature-nav-frame--2 {
-  width: min(416px, calc(100vw - 32px));
+  width: min(420px, calc(100vw - 32px));
 }
 
 .feature-nav-frame--3 {
-  width: min(616px, calc(100vw - 32px));
+  width: min(620px, calc(100vw - 32px));
 }
 
 .feature-nav {
@@ -724,15 +724,15 @@ button {
   }
 
   .feature-nav-frame--1 {
-    width: min(192px, calc(100vw - 22px));
+    width: min(196px, calc(100vw - 22px));
   }
 
   .feature-nav-frame--2 {
-    width: min(370px, calc(100vw - 22px));
+    width: min(374px, calc(100vw - 22px));
   }
 
   .feature-nav-frame--3 {
-    width: min(370px, calc(100vw - 22px));
+    width: min(374px, calc(100vw - 22px));
   }
 
   .feature-nav {
@@ -780,12 +780,12 @@ button {
   .feature-nav-frame--1,
   .feature-nav-frame--2,
   .feature-nav-frame--3 {
-    width: min(368px, calc(100vw - 14px));
+    width: min(370px, calc(100vw - 14px));
     max-width: calc(100vw - 14px);
   }
 
   .feature-nav-frame--1 {
-    width: min(188px, calc(100vw - 14px));
+    width: min(192px, calc(100vw - 14px));
   }
 
   .feature-nav {
@@ -834,7 +834,7 @@ button {
   .feature-nav-frame--1,
   .feature-nav-frame--2,
   .feature-nav-frame--3 {
-    width: min(188px, calc(100vw - 14px));
+    width: min(192px, calc(100vw - 14px));
   }
 }
 
