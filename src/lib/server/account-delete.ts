@@ -48,7 +48,8 @@ export async function finishAccountDeletion(uid: string, discordId: string) {
     await batch.commit();
   }
 
-  const content = ['movement', 'timetrials', 'links', 'files', 'announcements', 'guessrImages', 'admins'];
+  // gifs: the admin dashboard records who added each GIF in createdBy.
+  const content = ['movement', 'timetrials', 'links', 'files', 'gifs', 'announcements', 'guessrImages', 'admins'];
   for (const collection of content) {
     await changeRows(collection, 'createdBy', uid, () => ({
       createdBy: gone,
