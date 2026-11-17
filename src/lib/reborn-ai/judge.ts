@@ -49,10 +49,10 @@ export async function judgeEvidence({ question, history, facts, candidates = [],
     },
   };
   candidates.forEach((_, index) => {
-    questions[`rel_${index}`] = { type: 'noul', instructions: `Does \`candidates[${index}]\` contain information needed to answer \`question\`?` };
+    questions[`rel_${index}`] = { type: 'noul', instructions: `Does \`candidates[${index}]\` contain information needed to answer \`question\`? A passage that only mentions the same name or topic in passing, or covers a different aspect of it than what was asked, does not count.` };
   });
   catalog.forEach((_, index) => {
-    questions[`doc_${index}`] = { type: 'noul', instructions: `Would the guide page \`catalog[${index}]\` likely contain information needed to answer \`question\`?` };
+    questions[`doc_${index}`] = { type: 'noul', instructions: `Would the guide page \`catalog[${index}]\` likely contain information needed to answer \`question\`? A page that would only mention the subject in passing does not count.` };
   });
   cards.forEach((_, index) => {
     questions[`card_${index}`] = { type: 'noul', instructions: `Would showing \`cards[${index}]\` to the player directly help answer \`question\`?` };
@@ -97,9 +97,13 @@ export async function judgeAnswer(question: string, facts: unknown, answer: stri
       type: 'noul',
       instructions: 'Does `answer` talk about prompts, JSON, tools, cards, or how the information was looked up?',
     },
+    unasked: {
+      type: 'noul',
+      instructions: 'Does `answer` add a remark that `question` did not ask for and that does not help answer it, such as a rule, warning, disclaimer, reassurance or unrelated side note? Details that directly explain the thing asked about, and role-play flavor the player asked for, do not count.',
+    },
   }, { timeoutMs: 2000, signal });
   if (!reply) return null;
-  return { grounded: yes(reply, 'grounded'), internals: yes(reply, 'internals') };
+  return { grounded: yes(reply, 'grounded'), internals: yes(reply, 'internals'), unasked: yes(reply, 'unasked') };
 }
 
 export async function sameQuestion(asked: string, cached: string) {

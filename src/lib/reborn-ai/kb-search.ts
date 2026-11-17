@@ -132,6 +132,14 @@ export function matchRecipes(query: string, recipes: KbRecipe[]) {
 
 const boosts = { title: 4, aliases: 4, section: 2.5, questions: 2, tags: 1.2, text: 1 };
 
+// A section heading's names: "Wumpy (aka Long Jump Boost)" -> wumpy, long jump boost.
+function sectionNames(section: string) {
+  return section
+    .split(/\s*\((?:aka\s+)?|\)\s*/i)
+    .map(padded)
+    .filter((name) => name.trim().length >= 3);
+}
+
 export function createKnowledgeSearch(kb: KnowledgeBase) {
   let index: MiniSearch<KbChunk> | null = null;
   const docs = new Map(kb.docs.map((doc) => [doc.id, doc]));
@@ -190,6 +198,10 @@ export function createKnowledgeSearch(kb: KnowledgeBase) {
       if (named.length) score *= 1.4 + Math.min(0.6, 0.2 * Math.max(...named.map((name) => name.trim().split(' ').length)));
       const section = chunk.section.split(' › ').pop() ?? '';
       if (section && asked.includes(padded(section))) score *= 1.4;
+      // "Wumpy (aka Long Jump Boost)": the section named exactly what was
+      // asked beats longer sections that only contain the word ("Grappler
+      // Enhanced Wumpy").
+      else if (sectionNames(section).some((name) => asked.includes(name))) score *= 1.6;
       for (const version of versions) {
         const escaped = version.replace(/\./g, '\\.');
         // A table row keyed by the version (the update timeline) beats a
@@ -221,9 +233,24 @@ export function createKnowledgeSearch(kb: KnowledgeBase) {
     return [...own].sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
   }
 
-  // Every doc in full, for the rare question nothing narrower could answer.
-  function fullText() {
-    return kb.docs.map((doc) => `# ${doc.title} (${doc.category})\n${doc.body}`).join('\n\n');
+  // As much of the guide as fits the budget, for the rare question nothing
+  // narrower could answer. The whole guide is far bigger than a free model's
+  // context window, so docs the question touches go first, then the rest in
+  // order, skipping whatever no longer fits.
+  function fullText(query = '', budget = 160_000) {
+    const ranked = query.trim() ? search(query, 80, 80).map((hit) => hit.chunk.doc) : [];
+    const order = Array.from(new Set([...ranked, ...kb.docs.map((doc) => doc.id)]));
+    const parts: string[] = [];
+    let left = budget;
+    for (const id of order) {
+      const doc = docs.get(id);
+      if (!doc) continue;
+      const text = `# ${doc.title} (${doc.category})\n${doc.body}`;
+      if (text.length > left) continue;
+      parts.push(text);
+      left -= text.length + 2;
+    }
+    return parts.join('\n\n');
   }
 
   return {

@@ -52,7 +52,7 @@ const leak = /\b(?:system prompt|supplied json|tool calls?|context window|my ins
 
 export type AnswerVerdict =
   | { ok: true }
-  | { ok: false; reason: 'empty' | 'leak' | 'ungrounded' }
+  | { ok: false; reason: 'empty' | 'leak' | 'ungrounded' | 'unasked' }
   | { ok: false; reason: 'numbers'; unsupported: string[] };
 
 type CheckInput = {
@@ -84,6 +84,9 @@ export function rewriteRequest(verdict: Exclude<AnswerVerdict, { ok: true }>) {
   }
   if (verdict.reason === 'leak') {
     return 'Rewrite your last answer without mentioning prompts, JSON, tools, or how you got the information. Keep everything else the same.';
+  }
+  if (verdict.reason === 'unasked') {
+    return 'Rewrite your last answer without the remarks the question did not ask about (rules, warnings, disclaimers, reassurances or unrelated side notes). Keep everything that answers the question the same.';
   }
   if (verdict.reason === 'ungrounded') {
     return 'Parts of your last answer are not backed by this turn\'s facts. Rewrite it using only what the facts say, and say plainly when something is not covered.';

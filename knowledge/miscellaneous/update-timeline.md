@@ -14,12 +14,15 @@ tags:
   - versions
 ---
 
-These are recorded release dates, not patch notes. Alpha and Pre-Alpha are separate stages; the same version number can appear in both.
+<!-- wiki:start page="Update Logs" (synced from parkourreborn.wiki by npm run kb:wiki; text between these markers is replaced on every sync) -->
+
+These are recorded release dates. Each version also has its own patch notes page (for example "Alpha 1.73 Patch Notes"). Alpha and Pre-Alpha are separate stages; the same version number can appear in both. The newest update is Alpha 1.731 (October 17, 2026).
 
 ## Alpha Updates
 
 | Version | Date | Stage |
 | :---- | :---- | :---- |
+| 1.731 | October 17, 2026 | Halloween Alpha |
 | 1.73 | June 5, 2026 | Alpha |
 | 1.72 | March 6, 2026 | Alpha |
 | 1.71 | December 23, 2025 | Christmas Alpha |
@@ -41,7 +44,6 @@ These are recorded release dates, not patch notes. Alpha and Pre-Alpha are separ
 | 1.4 | December 24, 2024 | Alpha |
 | 1.31 | October 11, 2024 | Alpha |
 | 1.3 | August 30, 2024 | Alpha |
-| 1.21 | June 6, 2024 | Alpha |
 | 1.2 | May 31, 2024 | Alpha |
 | 1.14 | April 10, 2024 | Alpha |
 | 1.13 | March 7, 2024 | Alpha |
@@ -69,3 +71,5 @@ These are recorded release dates, not patch notes. Alpha and Pre-Alpha are separ
 | 1.21 | November 7, 2023 | Pre-Alpha |
 | 1.2 | November 6, 2023 | Pre-Alpha |
 | 1.1 | November 5, 2023 | Pre-Alpha |
+
+<!-- wiki:end -->

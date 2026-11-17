@@ -1,0 +1,42 @@
+name: Sync knowledge base from the wiki
+
+# Pulls parkourreborn.wiki into knowledge/ (scripts/kb/sync-wiki.mjs) and
+# commits the result to preview, but only when the retrieval checks pass.
+# Scheduled runs only start once this file is on the default branch.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kb-wiki-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - run: npm run kb:wiki
+      - run: npm run kb:eval
+      - name: Commit changes
+        run: |
+          if [ -z "$(git status --porcelain -- knowledge)" ]; then
+            echo "The wiki has no changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+          git add knowledge
+          git commit -m "Sync knowledge base from the wiki"
+          git push origin HEAD:preview

@@ -66,7 +66,12 @@ type Evidence = {
 const guideRoutes: RouteName[] = ['crafting', 'lore', 'game_knowledge', 'mechanics', 'movement'];
 const cutNote = '\n\n(that answer got cut short, ask me to continue if you need the rest)';
 const uncheckedNote = '\n\n(i couldn’t double-check everything here against the game data, so verify anything important)';
+// Pages Jev may pick by title when keyword search missed them. Patch notes
+// and people are found reliably by their version number or name, and each
+// catalog entry is one more Jev question, so they stay out.
+const catalogDocs = knowledge.docs.filter((doc) => doc.category !== 'updates' && doc.category !== 'players');
 const relevantChunk = 0.35;
+const supportChunk = 0.55;
 const lowAnswerable = 0.35;
 
 function failureText(error: unknown) {
@@ -291,7 +296,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
       history: priorText,
       facts: evidence.filter((item) => item.tool !== 'search_knowledge').map(({ source, status, result }) => ({ source, status, result })),
       candidates: candidates.map((hit) => ({ id: hit.chunk.id, title: hit.chunk.breadcrumb, text: hit.chunk.text })),
-      catalog: wantsGuide ? knowledge.docs.map((doc) => ({ id: doc.id, title: doc.title, summary: doc.summary })) : [],
+      catalog: wantsGuide ? catalogDocs.map((doc) => ({ id: doc.id, title: doc.title, summary: doc.summary })) : [],
       cards: available.map((block, index) => ({ index, type: block.type, title: cardTitle(block) })),
       signal,
     });
@@ -299,7 +304,9 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
       answerable = verdict.answerable;
       if (wantsGuide) setGuide(chooseChunks(verdict, candidates, query));
       else if (supportOnly) {
-        setGuide(candidates.filter((hit) => (verdict?.relevance.get(hit.chunk.id) ?? 0) >= relevantChunk).slice(0, 3));
+        // Riding along with other lookups, a chunk has to clearly help: a
+        // passing mention (a rule that names the tech asked about) is noise.
+        setGuide(candidates.filter((hit) => (verdict?.relevance.get(hit.chunk.id) ?? 0) >= supportChunk).slice(0, 3));
       }
     }
   }
@@ -319,7 +326,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
     if (recheck !== null) answerable = recheck;
     if ((recheck !== null && recheck < lowAnswerable) || (recheck === null && nothingFound)) {
       escalated = true;
-      evidence.push({ tool: 'guide_full', route: 'game_knowledge', source: sourceFor('guide_full'), status: 'ok', checkedAt: null, result: knowledge.fullText() });
+      evidence.push({ tool: 'guide_full', route: 'game_knowledge', source: sourceFor('guide_full'), status: 'ok', checkedAt: null, result: knowledge.fullText(`${question.content} ${query}`) });
     }
     logGap(id, { question: question.content, routes: decision.routes, answerable, escalated });
   }
@@ -431,6 +438,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
     if (!judged) return local;
     if ((judged.internals ?? 0) > 0.8) return { ok: false, reason: 'leak' };
     if (judged.grounded !== null && judged.grounded < 0.2) return { ok: false, reason: 'ungrounded' };
+    if ((judged.unasked ?? 0) > 0.8) return { ok: false, reason: 'unasked' };
     // Jev reading the facts outranks the number pattern match.
     if (!local.ok && judged.grounded !== null && judged.grounded >= 0.5) return { ok: true };
     return local;

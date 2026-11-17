@@ -38,6 +38,17 @@
     ["district", "area", "zone"],
     ["update", "patch", "version"],
     ["gamepass", "gamepasses", "robux"],
-    ["fps", "framerate", "frame rate", "ticks"]
+    ["fps", "framerate", "frame rate", "ticks"],
+    ["wumpy", "long jump boost"],
+    ["gumpy", "grappler enhanced wumpy"],
+    ["horizontal climb boost", "hcb"],
+    ["spawn region", "spawn regions", "transceiver", "transceivers", "respawn transceiver", "terminal"],
+    ["administrator", "administrators", "admin", "admins"],
+    ["developer", "developers", "dev", "devs", "dev team"],
+    ["creator", "owner", "founder"],
+    ["devlog", "devlogs", "dev log", "progress update"],
+    ["patch notes", "changelog", "update log", "changes"],
+    ["pumpkin", "pumpkins", "jack o lantern"],
+    ["graffiti", "spray", "sprayed"]
   ]
 }

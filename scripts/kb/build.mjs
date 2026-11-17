@@ -230,7 +230,9 @@ function chunkDoc(doc) {
 }
 
 function readDoc(id, raw) {
-  const { meta, body: original } = parseFrontmatter(raw);
+  const { meta, body: withComments } = parseFrontmatter(raw);
+  // HTML comments are notes for editors, like the wiki sync markers.
+  const original = withComments.replace(/<!--[\s\S]*?-->/g, '').replace(/\n{3,}/g, '\n\n').trim();
   const category = text(meta.category) || id.split('/')[0];
   const { recipes, body } = category === 'crafting' ? extractRecipes(original) : { recipes: [], body: original };
 
@@ -240,7 +242,8 @@ function readDoc(id, raw) {
       title: text(meta.title),
       category,
       summary: text(meta.summary) || autoSummary(body, text(meta.title)),
-      aliases: list(meta.aliases),
+      // wiki_aliases are owned by the wiki sync (sync-wiki.mjs), aliases by you.
+      aliases: Array.from(new Set([...list(meta.aliases), ...list(meta.wiki_aliases)].map((alias) => alias.toLowerCase()))),
       tags: list(meta.tags),
       questions: list(meta.questions),
       related: list(meta.related),
