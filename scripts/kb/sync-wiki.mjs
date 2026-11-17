@@ -397,13 +397,15 @@ function races(text, source) {
   for (let t = 1; t < tabs.length; t += 2) {
     const tab = tabs[t].trim();
     if (tab === 'TIME TRIALS') {
-      out.push('## Time Trials', '', 'Medal targets are bronze / silver / gold / platinum, in seconds. Bronze gives 1 rank star, silver 2, gold 3 and platinum 4 (a full rank up), counting every lower medal. Difficulties from easiest: basic, moderate, tough, advanced, insane. Players can teleport to time trials they have interacted with.', '');
+      // Medal times and difficulties come live from the time trials tool,
+      // so only where each trial is goes in the KB.
+      out.push('## Time Trials', '', 'Every time trial has bronze, silver, gold and platinum medal times. Bronze gives 1 rank star, silver 2, gold 3 and platinum 4 (a full rank up), counting every lower medal. Difficulties from easiest: basic, moderate, tough, advanced, insane. Players can teleport to time trials they have interacted with.', '');
       for (const [name, body] of sections(tabs[t + 1])) {
         const rows = [...body.matchAll(/\{\{Time Trial\s*\n([\s\S]*?)\n\}\}/g)].map(([, inner]) => {
           const f = templateFields(inner);
-          return `| ${f.title ?? ''} | ${f.difficulty ?? ''} | ${f.desc ?? ''} | ${f.bronze ?? ''} | ${f.silver ?? ''} | ${f.gold ?? ''} | ${f.platinum ?? ''} |`;
+          return `| ${f.title ?? ''} | ${f.desc ?? ''} |`;
         });
-        if (rows.length) out.push(`### ${name} Time Trials`, '', '| Trial | Difficulty | Location | Bronze | Silver | Gold | Platinum |', '| --- | --- | --- | --- | --- | --- | --- |', ...rows, '');
+        if (rows.length) out.push(`### ${name} Time Trials`, '', '| Trial | Location |', '| --- | --- |', ...rows, '');
       }
     } else if (tab === 'CHALLENGES') {
       out.push('## Challenges', '', 'To complete a challenge you reach its end goal through a series of checkpoints within a time limit. Rewards are rank stars (some challenges teach an ability, advancement challenges unlock the next 10 ranks). Completed challenges can be warped to from the map.', '');

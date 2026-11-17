@@ -30,66 +30,66 @@ Races are short courses spread across the city: time trials and challenges. Ther
 
 ## Time Trials
 
-Medal targets are bronze / silver / gold / platinum, in seconds. Bronze gives 1 rank star, silver 2, gold 3 and platinum 4 (a full rank up), counting every lower medal. Difficulties from easiest: basic, moderate, tough, advanced, insane. Players can teleport to time trials they have interacted with.
+Every time trial has bronze, silver, gold and platinum medal times. Bronze gives 1 rank star, silver 2, gold 3 and platinum 4 (a full rank up), counting every lower medal. Difficulties from easiest: basic, moderate, tough, advanced, insane. Players can teleport to time trials they have interacted with.
 
 ### Downtown Time Trials
 
-| Trial | Difficulty | Location | Bronze | Silver | Gold | Platinum |
-| --- | --- | --- | --- | --- | --- | --- |
-| Crystal | Basic | Northwest from Main Spawn | 25.000 | 20.000 | 15.000 | 10.500 |
-| Glass | Moderate | At Main Spawn | 30.000 | 23.000 | 17.000 | 12.500 |
-| Riser | Moderate | Southeast corner of Downtown | 25.000 | 20.000 | 16.000 | 10.750 |
-| Genesis | Tough | Start of the Tutorial | 70.000 | 35.000 | 20.000 | 12.500 |
-| Vestibule | Tough | East of the tallest crane | 24.000 | 18.000 | 14.000 | 10.500 |
-| Solar | Advanced | Southwest from the Tutorial | 40.000 | 32.000 | 25.000 | 18.000 |
+| Trial | Location |
+| --- | --- |
+| Crystal | Northwest from Main Spawn |
+| Glass | At Main Spawn |
+| Riser | Southeast corner of Downtown |
+| Genesis | Start of the Tutorial |
+| Vestibule | East of the tallest crane |
+| Solar | Southwest from the Tutorial |
 
 ### Dirwik Time Trials
 
-| Trial | Difficulty | Location | Bronze | Silver | Gold | Platinum |
-| --- | --- | --- | --- | --- | --- | --- |
-| Circulation | Tough | Near Martyr | 35.000 | 25.000 | 19.000 | 14.000 |
-| Martyr | Tough | Northwest corner of Dirwik | 35.000 | 30.000 | 20.000 | 12.500 |
-| Sawdust | Tough | East from Dirwik Construction | 40.000 | 35.000 | 24.000 | 16.500 |
-| Celsius | Tough | Northern side of Dirwik | 25.000 | 19.000 | 16.000 | 12.000 |
-| Flow | Advanced | Near Martyr | 32.000 | 26.000 | 19.000 | 16.500 |
-| Neon Bold | Insane | North from Dirwik Construction | 40.000 | 35.000 | 30.000 | 25.000 |
+| Trial | Location |
+| --- | --- |
+| Circulation | Near Martyr |
+| Martyr | Northwest corner of Dirwik |
+| Sawdust | East from Dirwik Construction |
+| Celsius | Northern side of Dirwik |
+| Flow | Near Martyr |
+| Neon Bold | North from Dirwik Construction |
 
 ### Fragment Time Trials
 
-| Trial | Difficulty | Location | Bronze | Silver | Gold | Platinum |
-| --- | --- | --- | --- | --- | --- | --- |
-| Ascension | Moderate | On top of Aven, the building where Harper is located | 25.000 | 20.000 | 18.000 | 12.000 |
-| Thread | Moderate | On a part of a building closer to the ground, southwest of Ascension. | 25.000 | 22.000 | 18.000 | 14.000 |
-| Gale | Moderate | In Zephyr, at the end of a corridor after progressing past the Zephyr Recording Room checkpoint | 15.000 | 13.000 | 10.500 | 8.250 |
-| Faith | Tough | Northeast corner of Fragment | 30.000 | 25.000 | 20.000 | 15.000 |
-| Grip | Advanced | East from Legacy Foundation | 35.000 | 24.000 | 19.000 | 17.000 |
-| Umbrel | Insane | Southeastern corner of Fragment | 35.000 | 31.000 | 27.000 | 23.000 |
+| Trial | Location |
+| --- | --- |
+| Ascension | On top of Aven, the building where Harper is located |
+| Thread | On a part of a building closer to the ground, southwest of Ascension. |
+| Gale | In Zephyr, at the end of a corridor after progressing past the Zephyr Recording Room checkpoint |
+| Faith | Northeast corner of Fragment |
+| Grip | East from Legacy Foundation |
+| Umbrel | Southeastern corner of Fragment |
 
 ### Stack Time Trials
 
-| Trial | Difficulty | Location | Bronze | Silver | Gold | Platinum |
-| --- | --- | --- | --- | --- | --- | --- |
-| Wisp | Moderate | At the Stack Garage checkpoint | 22.000 | 19.000 | 16.000 | 13.000 |
-| Monoxide | Tough | On a building north of the Sigh checkpoint | 27.000 | 23.000 | 19.000 | 14.500 |
-| Depot | Advanced | North of the First Glance checkpoint | 50.000 | 32.000 | 24.000 | 19.500 |
-| Flame | Advanced | Along the northern edge of the district, west of the Wells checkpoint | 30.000 | 22.500 | 17.500 | 13.500 |
-| Ironsing | Advanced | Along the northern edge of the district, northeast of the Sigh checkpoint | 29.000 | 25.000 | 21.000 | 17.500 |
-| Rust Belt | Advanced | On a building just west of the Slant checkpoint | 35.000 | 28.000 | 22.000 | 18.500 |
+| Trial | Location |
+| --- | --- |
+| Wisp | At the Stack Garage checkpoint |
+| Monoxide | On a building north of the Sigh checkpoint |
+| Depot | North of the First Glance checkpoint |
+| Flame | Along the northern edge of the district, west of the Wells checkpoint |
+| Ironsing | Along the northern edge of the district, northeast of the Sigh checkpoint |
+| Rust Belt | On a building just west of the Slant checkpoint |
 
 ### Removed Time Trials
 
-| Trial | Difficulty | Location | Bronze | Silver | Gold | Platinum |
-| --- | --- | --- | --- | --- | --- | --- |
-| Apollo | Tough | Next to Apollo | 26.000 | 20.000 | 16.000 | 13.000 |
-| Needle | Tough | Just beyond the southeast corner of Downtown | 30.000 | 20.000 | 16.000 | 13.000 |
+| Trial | Location |
+| --- | --- |
+| Apollo | Next to Apollo |
+| Needle | Just beyond the southeast corner of Downtown |
 
 ### Unreleased Time Trials
 
-| Trial | Difficulty | Location | Bronze | Silver | Gold | Platinum |
-| --- | --- | --- | --- | --- | --- | --- |
-| Carbon | Moderate | Near The Mirror Café | 24.000 | 20.000 | 17.500 | 12.000 |
-| Nimbus | Tough | South from Riser | 25.000 | 20.000 | 18.000 | 14.000 |
-| Fiber | Tough | Southwest from Umbrel | 30.000 | 25.000 | 18.000 | 14.000 |
+| Trial | Location |
+| --- | --- |
+| Carbon | Near The Mirror Café |
+| Nimbus | South from Riser |
+| Fiber | Southwest from Umbrel |
 
 ## Challenges
 

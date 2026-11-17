@@ -17,11 +17,11 @@ tags:
   - list
 ---
 
-| Time Trial | Difficulty | Location |
-| :---- | ----: | :---- |
-| Circulation | Tough | Near Martyr |
-| Martyr | Tough | Northwest corner of Dirwik |
-| Sawdust | Tough | East from Dirwik Construction |
-| Celsius | Tough | Northern side of Dirwik |
-| Flow | Advanced | Near Martyr |
-| Neon Bold | Insane | North from Dirwik Construction |
+| Time Trial | Location |
+| :---- | :---- |
+| Circulation | Near Martyr |
+| Martyr | Northwest corner of Dirwik |
+| Sawdust | East from Dirwik Construction |
+| Celsius | Northern side of Dirwik |
+| Flow | Near Martyr |
+| Neon Bold | North from Dirwik Construction |

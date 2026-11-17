@@ -17,11 +17,11 @@ tags:
   - list
 ---
 
-| Time Trial | Difficulty | Location |
-| :---- | ----: | :---- |
-| Crystal | Basic | Northwest from Main Spawn |
-| Glass | Moderate | At Main Spawn |
-| Riser | Moderate | Southeast corner of Downtown |
-| Genesis | Tough | Start of the Tutorial |
-| Vestibule | Tough | East of the tallest crane |
-| Solar | Advanced | Southwest from the Tutorial |
+| Time Trial | Location |
+| :---- | :---- |
+| Crystal | Northwest from Main Spawn |
+| Glass | At Main Spawn |
+| Riser | Southeast corner of Downtown |
+| Genesis | Start of the Tutorial |
+| Vestibule | East of the tallest crane |
+| Solar | Southwest from the Tutorial |

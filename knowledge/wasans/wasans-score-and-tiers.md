@@ -28,7 +28,6 @@ questions:
   - does an unplayed trial count
 related:
   - wasans/wasans-overview
-  - wasans/wasans-medal-cutoffs
   - wasans/wasans-discord-and-staff
   - wasans/wasans-origin-and-lore
 ---
@@ -40,7 +39,7 @@ related:
 * **It moves when world records move.** Everything is measured against the current world records. When a new world record is approved, everyone's score on that trial is recalculated, usually a little lower.
 * Higher is better. 1.000 would mean holding every current world record.
 
-The Wasans bronze and platinum cutoffs for each trial are listed in Wasans Medal Cutoffs.
+Each trial has its own bronze and platinum times, and they can change between updates.
 
 The formula for one trial, with the current world record time (wr), the run's time, and that trial's Wasans bronze and platinum cutoffs:
 
