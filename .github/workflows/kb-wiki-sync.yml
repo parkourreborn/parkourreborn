@@ -2,11 +2,9 @@ name: Sync knowledge base from the wiki
 
 # Pulls parkourreborn.wiki into knowledge/ (scripts/kb/sync-wiki.mjs) and
 # commits the result to preview, but only when the retrieval checks pass.
-# Scheduled runs only start once this file is on the default branch.
+# Runs only by hand: Actions > Sync knowledge base from the wiki > Run workflow.
 
 on:
-  schedule:
-    - cron: '0 6 * * 1'
   workflow_dispatch:
 
 permissions:

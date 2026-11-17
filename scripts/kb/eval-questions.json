@@ -2,9 +2,10 @@
   "_about": "Retrieval checks for npm run kb:eval. Each question must find one of the expected docs (and, if given, a section containing the text) in the top results of the knowledge search. Add a line here whenever Reborn AI misses something it should know.",
   "top": 5,
   "questions": [
-    { "q": "what is wumpy", "docs": ["mechanics/movement-guide.md"], "section": "Wumpy" },
-    { "q": "how do i do a pogo", "docs": ["mechanics/movement-guide.md"], "section": "Pogo" },
-    { "q": "what is gumpy", "docs": ["mechanics/movement-guide.md"], "section": "Gumpy" },
+    { "q": "what is coyote time", "docs": ["mechanics/movement-guide.md"], "section": "Coyote Time" },
+    { "q": "what does wall boost do", "docs": ["mechanics/movement-guide.md"], "section": "Wall Boost" },
+    { "q": "what is a jump boost", "docs": ["mechanics/movement-guide.md"], "section": "Jump Boost" },
+    { "q": "how does chaining work", "docs": ["mechanics/movement-guide.md"], "section": "Chain" },
     { "q": "how do i unlock dash", "docs": ["mechanics/movement-guide.md", "mechanics/unlockable-movement-abilities.md"], "section": "Dash" },
     { "q": "are techs bugs", "docs": ["rules/game-rules.md"] },
     { "q": "who is hudzell", "docs": ["players/hudzell.md"] },

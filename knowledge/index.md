@@ -149,7 +149,6 @@ tags:
 * [Basic Movement](mechanics/basic-movement.md)
 * [Combat Ability](mechanics/combat-ability.md)
 * [Combo System](mechanics/combo-system.md)
-* [Community Techniques](mechanics/community-techniques.md)
 * [Core Physics Foundation](mechanics/core-physics-foundation.md)
 * [Drag and Movement Influence](mechanics/drag-and-movement-influence.md)
 * [Falling, Stabilization, and Landing](mechanics/falling-stabilization-and-landing.md)

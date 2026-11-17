@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { z } from 'zod';
-import { searchTechs } from '@/lib/pages/techlist';
+import { parseStep, searchTechs } from '@/lib/pages/techlist';
 import { formatTime } from '@/lib/pages/time';
 import { wrVideoURL } from '@/lib/pages/timetrials';
 import { scoreForTime, tierInfo, timeGaps, timeNeededForScore, xpProgress } from '@/lib/reborn-ai/calculators';
@@ -85,6 +85,43 @@ const time3 = (value: number) => value.toFixed(3);
 const score3 = (value?: number | null) => (typeof value === 'number' ? value.toFixed(3) : null);
 const submissionUrl = (id?: string) => (cleanPathPart(id ?? '') ? `https://wasans.tully.sh/submissions/${cleanPathPart(id ?? '')}` : '');
 const playerUrl = (uuid: string) => `https://wasans.tully.sh/players/${encodeURIComponent(uuid)}`;
+
+// The tech list only names each step ("Wall Climb Boost → Coyote Time →
+// Jump"), so every step comes with the guide's description of that ability,
+// letting the model explain why the combination works. Keys are tech-list
+// step names; values are guide sections (doc, heading) when the names differ.
+const movementDoc = 'mechanics/movement-guide.md';
+const stepSections: Record<string, [string, string][]> = {
+  'wall climb boost': [[movementDoc, 'Wall Boost']],
+  'coyote time': [[movementDoc, 'Coyote Time'], [movementDoc, 'Jump Boost']],
+  jump: [[movementDoc, 'High Jump'], [movementDoc, 'Chain']],
+  slide: [[movementDoc, 'Slide Not To Be Confused With Powerslide']],
+  grapple: [['gear/grappler.md', 'Usage']],
+  swing: [['gear/grappler.md', 'Swing Grappler']],
+  'mag bounce': [['gear/mag-rail.md', 'Usage']],
+  'mag launch': [['gear/mag-rail.md', 'Usage']],
+  'mag pull': [['gear/mag-rail.md', 'Usage']],
+};
+const inputKeys: Record<string, string> = {
+  ascend: 'Ascend is the jump input.',
+  descend: 'Descend is the crouch/slide input.',
+  'use augment': 'Use Augment is the input that uses the equipped gear (grappler, mag rail).',
+  attack: 'Attack is the input for combat abilities such as Dropkick.',
+};
+// General physics every tech leans on: momentum vs velocity, and additive
+// jump velocity.
+const movementBasics = () => [
+  knowledge.sectionText(movementDoc, 'Mechanics'),
+  ...knowledge.sectionText(movementDoc, 'Notes').split('\n').filter((line) => /additive/i.test(line)),
+].filter(Boolean).join('\n');
+
+function stepMechanics(label: string) {
+  const name = key(label);
+  if (inputKeys[name]) return inputKeys[name];
+  const sections = stepSections[name] ?? [[movementDoc, label]];
+  const texts = Array.from(new Set(sections.map(([doc, heading]) => knowledge.sectionText(doc, heading)).filter(Boolean)));
+  return texts.join('\n') || null;
+}
 
 const trialPlaces = new Map(knowledge.trials.map((trial) => [key(trial.name), trial]));
 
@@ -205,7 +242,35 @@ export function createToolkit(viewer: Viewer = null) {
       videoUrl: entry.videoUrl,
       tutorialUrl: entry.tutorialUrl,
     })));
-    return found;
+    // Each step's ability description, once per call. A step that is itself
+    // a tech or concept on the list gets its own steps too.
+    const described = new Set<string>();
+    const shaped = found.map((entry) => {
+      const stepsExplained: { step: string; howItWorks: string }[] = [];
+      for (const step of entry.steps) {
+        const label = parseStep(step).label;
+        if (described.has(key(label)) || key(label) === key(entry.name)) continue;
+        described.add(key(label));
+        const listed = entries.find((other) => other.kind !== 'basic' && key(other.name) === key(label) && other.steps.length);
+        const how = listed ? `${listed.name} is itself on the movement list: ${listed.steps.join(' → ')}` : stepMechanics(label);
+        if (how) stepsExplained.push({ step: label, howItWorks: how });
+      }
+      const own = entry.kind === 'tech' ? null : [entry.name, ...entry.aliases].map(stepMechanics).find(Boolean);
+      return {
+        name: entry.name,
+        kind: entry.kind,
+        aliases: entry.aliases,
+        steps: entry.steps.join(' → '),
+        ...(own ? { description: own } : {}),
+        ...(stepsExplained.length ? { stepsExplained } : {}),
+        videoUrl: entry.videoUrl,
+        tutorialUrl: entry.tutorialUrl,
+      };
+    });
+    if (shaped.some((entry) => entry.kind === 'tech' || entry.kind === 'concept')) {
+      return [...shaped, { movementBasics: movementBasics(), stepNotation: 'Steps are in order. A step ending in * is optional; one ending in + is only in the advanced version and one ending in - only in the basic version.' }];
+    }
+    return shaped;
   }
 
   async function runTrials(args: z.infer<typeof schemas.get_time_trials>) {

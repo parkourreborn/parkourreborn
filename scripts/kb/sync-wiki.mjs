@@ -668,6 +668,7 @@ async function main() {
       if (config.handler === 'races') text = races(text, sources.Races);
       if (config.handler === 'store') text = store(text);
       if (config.handler === 'upcoming') ({ body: text, extra } = upcoming(text));
+      if (config.cutFrom) text = text.split(`\n## ${config.cutFrom}\n`)[0];
       if (config.dropSections) text = dropSections(text, config.dropSections);
       text = cleanNoise(text);
       await sleep(300);

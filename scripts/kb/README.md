@@ -24,9 +24,13 @@ The sync only writes what it owns, so your own edits are safe:
 
 Useful flags: `node scripts/kb/sync-wiki.mjs --dry` lists what would change without writing. `--adopt` takes over an existing doc that has no markers yet; everything above its `## Quick Facts` section is treated as wiki text.
 
-### Weekly sync
+### Running it on GitHub
 
-`.github/workflows/kb-wiki-sync.yml` runs the sync every Monday at 06:00 UTC, and can also be started by hand. It checks out `preview`, runs `kb:wiki` and `kb:eval`, and commits `knowledge/` to `preview` only if the eval passes. A failing eval fails the job instead of committing. GitHub only runs scheduled workflows from the default branch, so the schedule starts once this file is on `main`.
+`.github/workflows/kb-wiki-sync.yml` only runs by hand: Actions > "Sync knowledge base from the wiki" > Run workflow. It checks out `preview`, runs `kb:wiki` and `kb:eval`, and commits `knowledge/` to `preview` only if the eval passes. A failing eval fails the job instead of committing. GitHub only lists the workflow once the file is on `main`.
+
+### Techs are not in the KB
+
+Movement techs come only from the site's tech list (the `movement` Firestore collection, shown on the tech list page). The sync keeps the wiki's Movement page up to its abilities and mechanics and cuts everything from the "Gearless" techs tab on (`cutFrom` in `wiki-pages.mjs`). The wiki's Community Techniques page isn't synced. To add or fix a tech, edit the tech list, not `knowledge/`.
 
 ## Retrieval eval
 
@@ -35,5 +39,6 @@ Useful flags: `node scripts/kb/sync-wiki.mjs --dry` lists what would change with
 ## Answer rules worth knowing
 
 - Search results often only mention the subject in passing. The prompt tells the model to use only facts that help answer the question. Jev's relevance check ignores passing mentions, and Jev's answer check triggers one rewrite when an answer adds unasked rules, warnings or side notes. This is what stops "techs aren't bugs" from showing up in a Wumpy answer.
+- A tech-list lookup (`search_techs` in `src/lib/reborn-ai/tools.ts`) sends each step with the guide's description of that ability (`stepsExplained`), plus the general momentum and velocity notes (`movementBasics`). The prompt tells the model to keep the list's steps exactly and explain why the combination works from those descriptions, so a tech only needs its steps on the tech list. When a tech-list step name differs from the guide heading (Wall Climb Boost is the guide's Wall Boost), map it in `stepSections` in `tools.ts`.
 - When nothing narrower answers a question, the model gets a large slice of the guide: the docs the question touches first, capped at 160,000 characters so it fits free models' context windows.
 - Jev's page catalog leaves out patch notes and people pages. Search finds those reliably by version number or name, and every catalog page is one more Jev question.

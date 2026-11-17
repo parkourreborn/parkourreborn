@@ -233,6 +233,19 @@ export function createKnowledgeSearch(kb: KnowledgeBase) {
     return [...own].sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
   }
 
+  // A doc's sections whose heading (or one of its aka names) is `name`, as
+  // plain text without the breadcrumb line.
+  function sectionText(docId: string, name: string) {
+    const wanted = padded(name);
+    return kb.chunks
+      .filter((chunk) => {
+        const heading = chunk.section.split(' › ').pop() ?? '';
+        return chunk.doc === docId && (padded(heading) === wanted || sectionNames(heading).includes(wanted));
+      })
+      .map((chunk) => chunk.text.slice(chunk.text.indexOf('\n') + 1).trim())
+      .join('\n');
+  }
+
   // As much of the guide as fits the budget, for the rare question nothing
   // narrower could answer. The whole guide is far bigger than a free model's
   // context window, so docs the question touches go first, then the rest in
@@ -257,6 +270,7 @@ export function createKnowledgeSearch(kb: KnowledgeBase) {
     hash: kb.hash,
     search,
     chunksOf,
+    sectionText,
     fullText,
     doc: (id: string) => docs.get(id),
     docs: kb.docs,

@@ -25,11 +25,10 @@ hudzell is the creator of PARKOUR Reborn and the owner of A Mongoose Studio, the
 * He has the Roblox Studio badge in-game.
 
 ## Streams and Announcements
-* hudzell runs developer livestreams on Twitch and Discord (including bi-weekly Twitch streams and Q&As), where he shows upcoming content and answers questions. Much of what is known about upcoming content comes from these streams.
+* hudzell used to run developer livestreams on Twitch and Discord (bi-weekly Twitch streams), where he shows upcoming content and answers questions. Much of what is known about upcoming content comes from these streams.
 * Mag Rail was first teased as a "secret gear" in one of his livestreams.
 * He teased the Glove for alpha 1.1 with a screenshot posted in the game's Discord.
 * He has said Reborn will never get VR support, because it is nearly impossible with how the game is designed and would waste development resources.
-* About players who bought the briefly available Yank Grappler III before it was removed, he said: "if people go through all that trouble to get yank 3, congrats".
 
 ## In-Game References
 * hudzell's graffiti is at the top of Vertigo.

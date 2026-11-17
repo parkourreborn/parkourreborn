@@ -59,8 +59,9 @@ export const wikiPages = {
   Checkpoints: { path: 'locations/checkpoints.md', handler: 'checkpoints' },
   'Easter Eggs & Badges': { path: 'easter-eggs/easter-eggs-and-badges.md', title: 'Easter Eggs and Badges', category: 'easter-eggs', aliases: ['easter eggs and badges', 'all easter eggs', 'badges', 'roblox badges', 'graffiti', 'billboards', 'posters'], tags: ['easter-eggs', 'badges', 'graffiti'], handler: 'gallery' },
   Missions: { path: 'missions/missions-guide.md', title: 'Missions Guide', category: 'missions', aliases: ['missions guide', 'all missions', 'quests'], tags: ['missions', 'quests'] },
-  Movement: { path: 'mechanics/movement-guide.md', title: 'Movement Guide', category: 'mechanics', aliases: ['movement guide', 'all movement', 'abilities', 'movement abilities', 'combat', 'dropkick', 'techniques'], tags: ['movement', 'mechanics', 'abilities'], handler: 'abilities' },
-  'Movement/Community Techniques': { path: 'mechanics/community-techniques.md', title: 'Community Techniques', category: 'mechanics', aliases: ['community techniques', 'community techs', 'tech list wiki'], tags: ['movement', 'techniques'], handler: 'abilities' },
+  // Abilities and mechanics only: techs come from the site's tech list
+  // (search_techs), so the wiki's tech tabs from "Gearless" on are cut.
+  Movement: { path: 'mechanics/movement-guide.md', title: 'Movement Guide', category: 'mechanics', aliases: ['movement guide', 'all movement', 'abilities', 'movement abilities', 'combat', 'dropkick'], tags: ['movement', 'mechanics', 'abilities'], handler: 'abilities', cutFrom: 'Gearless', dropSections: ['Names Are Subject To Change'] },
   Multipliers: { path: 'progression/multipliers-and-combos.md', title: 'Multipliers and Combos', category: 'progression', aliases: ['multipliers', 'xp multiplier', 'combo multiplier', 'combos'], tags: ['progression', 'xp', 'combo'] },
   Races: { path: 'time-trials/races-guide.md', title: 'Races Guide', category: 'time-trials', aliases: ['races guide', 'all time trials', 'challenges list', 'pvp races'], tags: ['time-trials', 'races', 'challenges'], handler: 'races' },
   Recurrences: { path: 'gameplay/recurring-objects.md', title: 'Recurring Objects', category: 'gameplay', aliases: ['recurring objects', 'objects', 'scenery', 'structures', 'dummy'], tags: ['gameplay', 'objects'] },
