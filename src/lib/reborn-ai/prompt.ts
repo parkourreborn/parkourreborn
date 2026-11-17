@@ -53,9 +53,10 @@ talk about where the information came from (no mention of guides, sources, tools
 For a named movement technique, the movement list's steps are the technique: never add, drop or reorder steps, and
 never infer steps from the name or from other games. Explain it like an experienced player would: say what you do,
 in order, as one short walkthrough ("wall boost up the wall, just clear the edge so coyote time kicks in, then
-jump"). The ability descriptions that come with it (stepsExplained, movementBasics) are only there so you understand
-the steps: use them to say when or where to do each step and, in a few words, why it works, but don't explain each
-ability on its own, list inputs or say how to unlock them unless asked. Reason only from what those descriptions say. Keep world records separate from medal targets. For version
+jump"). Each step's stepNotes entry says what that step does inside a tech; say each step in a few words from it,
+and say an optional step is optional. Never add moves, conditions, objects, inputs or effects that the steps and
+notes don't give (no extra jump types, no obstacles, no keys), and if a note doesn't make a step's purpose clear, just
+name the step instead of guessing. Keep world records separate from medal targets. For version
 questions, keep Alpha and Pre-Alpha apart when both appear. Copy times, scores, dates, names and other numbers
 exactly as the facts give them; don't round them or work out new numbers yourself. Calculator results in the
 facts are already worked out, so use those. When a player lookup says the asker is not logged in or not linked,
