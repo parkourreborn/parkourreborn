@@ -32,6 +32,24 @@ export type KbChunk = {
 
 export type KbRecipe = { item: string; doc: string; middle: string; items: { name: string; quantity: number }[] };
 export type KbTrial = { name: string; district: string; difficulty: string; location: string };
+export type KbMove = {
+  name: string;
+  aliases: string[];
+  kind: 'input' | 'basic' | 'concept' | 'step';
+  inputs?: string;
+  needs?: string;
+  effect?: string;
+  speed?: string;
+  state?: string;
+  vertical?: string;
+  stores?: string;
+  refreshes?: string;
+  leads?: string;
+  mistakes?: string;
+  rules?: string[];
+  unconfirmed?: string;
+  confirm?: string;
+};
 
 export type KnowledgeBase = {
   version: number;
@@ -41,6 +59,8 @@ export type KnowledgeBase = {
   recipes: KbRecipe[];
   trials: KbTrial[];
   synonyms: string[][];
+  core: string;
+  moves: KbMove[];
 };
 
 export type ChunkHit = { chunk: KbChunk; score: number };
@@ -269,5 +289,7 @@ export function createKnowledgeSearch(kb: KnowledgeBase) {
     recipes: kb.recipes,
     trials: kb.trials,
     synonyms: kb.synonyms,
+    core: kb.core,
+    moves: kb.moves,
   };
 }

@@ -23,6 +23,7 @@ export type RouteName = typeof routeNames[number];
 export type ToolName =
   | 'search_knowledge'
   | 'search_techs'
+  | 'explain_sequence'
   | 'search_community'
   | 'get_time_trials'
   | 'get_world_records'
@@ -70,7 +71,7 @@ export function ruleRoutes(message: string, entities: Entities): { routes: Route
   if ((entities.trials.length && entities.times.length) || entities.score !== null || entities.levels.length
     || /\b(how much xp|xp (?:to|for|needed)|wasans score|what score|what tier|how far (?:off|from)|gap to)\b/.test(text)) routes.add('calculator');
   if (/\b(tech|techs|technique|tutorial|steps?|combo|chain)\b/.test(text) && !entities.combo) routes.add('movement');
-  if (/\b(mechanic|physics|momentum|velocity|coyote)\b/.test(text)) routes.add('mechanics');
+  if (/\b(mechanics?|physics|momentum|velocity|coyote|ct|ledge grace|bank(?:ed|s)?|additive|grounded|falling state|jumping state|fps|frame ?rate|frames?|slide ?jump|flick|run speed)\b/.test(text)) routes.add('mechanics');
   if (/\b(craft|recipe|ingredient|resource|upgrade)\b/.test(text) || /\b(?:make|build|get)\b.*\b(?:grappler|glove|mag ?rail|springhook|binoculars?)\b/.test(text)) routes.add('crafting');
   if (/\b(lore|story|npc|vendor|character|district|location|where is|who is)\b/.test(text) && !entities.players.length) routes.add('lore');
   if (/\b(gif|meme|discord|community (?:file|link)|invite link)\b/.test(text)) routes.add('community');
@@ -89,6 +90,7 @@ type PlanInput = {
   message: string;
   query: string;
   maxKnowledge: number;
+  sequence?: string[] | null;
 };
 
 const has = (pattern: RegExp, text: string) => pattern.test(text.toLowerCase());
@@ -100,7 +102,7 @@ function targets(entities: Entities) {
   return entities.me ? ['me'] : [];
 }
 
-export function planTools({ routes, entities, message, query, maxKnowledge }: PlanInput): ToolCall[] {
+export function planTools({ routes, entities, message, query, maxKnowledge, sequence }: PlanInput): ToolCall[] {
   const calls: ToolCall[] = [];
   const add = (route: RouteName, name: ToolName, args: Record<string, unknown> = {}) => {
     const key = `${name}:${JSON.stringify(args)}`;
@@ -111,6 +113,8 @@ export function planTools({ routes, entities, message, query, maxKnowledge }: Pl
     }
     calls.push({ name, args, routes: [route] });
   };
+
+  if (sequence?.length) add(routes.includes('mechanics') ? 'mechanics' : 'movement', 'explain_sequence', { steps: sequence });
 
   const trial = entities.trials[0];
   const people = targets(entities);

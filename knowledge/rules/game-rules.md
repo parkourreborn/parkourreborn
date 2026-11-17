@@ -7,6 +7,8 @@ aliases:
   - bans
   - bug abuse
   - cheating
+  - are techs bugs
+  - are techs allowed
 tags:
   - rules
   - moderation

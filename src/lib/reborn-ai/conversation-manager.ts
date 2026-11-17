@@ -13,7 +13,7 @@ import { extractEntities } from '@/lib/reborn-ai/entities';
 import { hasJev, judgeAnswer, judgeAnswerable, judgeEvidence, sameQuestion } from '@/lib/reborn-ai/judge';
 import type { EvidenceVerdict } from '@/lib/reborn-ai/judge';
 import type { ChunkHit } from '@/lib/reborn-ai/kb-search';
-import { knowledge } from '@/lib/reborn-ai/knowledge-retriever';
+import { knowledge, movement } from '@/lib/reborn-ai/knowledge-retriever';
 import { limits } from '@/lib/reborn-ai/limits';
 import { configuredModels, freeModelQuota } from '@/lib/reborn-ai/models';
 import { ModelError, streamAnswer } from '@/lib/reborn-ai/openrouter';
@@ -55,7 +55,7 @@ export type ConversationOptions = {
 };
 
 type Evidence = {
-  tool: ToolName | 'guide_full' | 'recipes';
+  tool: ToolName | 'guide_full' | 'recipes' | 'moves';
   route: RouteName;
   source: string;
   status: 'ok' | 'empty' | 'unavailable';
@@ -120,7 +120,7 @@ function references(history: ChatMessage[], question: string) {
 const hasItems = (value: unknown): value is unknown[] => Array.isArray(value) && value.length > 0;
 const hasContent = (value: unknown) => (Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined);
 
-function sourceFor(tool: ToolName | 'guide_full' | 'recipes') {
+function sourceFor(tool: ToolName | 'guide_full' | 'recipes' | 'moves') {
   if (tool === 'get_world_records' || tool === 'get_wr_history') return 'Wasans world records';
   if (tool === 'get_trial_leaderboard' || tool === 'get_overall_leaderboard' || tool === 'get_combo_leaderboard') return 'Wasans leaderboards';
   if (tool === 'get_player' || tool === 'get_player_analytics') return 'Wasans player profiles';
@@ -128,6 +128,8 @@ function sourceFor(tool: ToolName | 'guide_full' | 'recipes') {
   if (tool === 'wasans_score' || tool === 'time_for_score' || tool === 'tier_for_score' || tool === 'time_gaps' || tool === 'xp_progress') return 'Calculators';
   if (tool === 'get_time_trials') return 'Parkour Reborn time trials';
   if (tool === 'search_techs') return 'Parkour Reborn movement list';
+  if (tool === 'explain_sequence') return 'Parkour Reborn movement sequence';
+  if (tool === 'moves') return 'Parkour Reborn moves (what each step does)';
   if (tool === 'search_community') return 'Parkour Reborn community library';
   if (tool === 'guide_full') return 'Parkour Reborn guide (complete)';
   if (tool === 'recipes') return 'Parkour Reborn crafting recipes';
@@ -252,9 +254,11 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
 
   const viewer = await viewerPromise;
   const toolkit = createToolkit(viewer);
+  const sequence = decision.handling === 'conversation' ? null : movement.sequenceIn(question.content);
+  if (sequence && !decision.routes.includes('mechanics')) decision.routes.push('mechanics');
   const calls = decision.handling === 'conversation'
     ? []
-    : planTools({ routes: decision.routes, entities: decision.entities, message: question.content, query, maxKnowledge: limits.maxKnowledgeDocs });
+    : planTools({ routes: decision.routes, entities: decision.entities, message: question.content, query, maxKnowledge: limits.maxKnowledgeDocs, sequence });
   const evidence: Evidence[] = [];
 
   if (calls.length) {
@@ -270,6 +274,10 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
   if (toolkit.recipes.length) {
     evidence.push({ tool: 'recipes', route: 'crafting', source: sourceFor('recipes'), status: 'ok', checkedAt: null, result: toolkit.recipes.map(recipeFact) });
   }
+  if (toolkit.moves.length) {
+    evidence.push({ tool: 'moves', route: 'movement', source: sourceFor('moves'), status: 'ok', checkedAt: null, result: toolkit.moves });
+  }
+  const reference = decision.routes.some((route) => route === 'movement' || route === 'mechanics') || toolkit.moves.length ? knowledge.core : null;
   const fetchedAt = performance.now();
 
   // Jev's look at the evidence: which guide chunks matter, whether the facts
@@ -300,6 +308,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
       question: question.content,
       history: priorText,
       facts: evidence.filter((item) => item.tool !== 'search_knowledge').map(({ source, status, result }) => ({ source, status, result })),
+      reference,
       candidates: candidates.map((hit) => ({ id: hit.chunk.id, title: hit.chunk.breadcrumb, text: hit.chunk.text })),
       catalog: wantsGuide ? catalogDocs.map((doc) => ({ id: doc.id, title: doc.title, summary: doc.summary })) : [],
       cards: available.map((block, index) => ({ index, type: block.type, title: cardTitle(block) })),
@@ -327,7 +336,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
       const ids = new Set(((current?.result as { id: string }[]) ?? []).map((item) => item.id));
       setGuide([...wider.filter((hit) => !ids.has(hit.chunk.id)), ...candidates.filter((hit) => ids.has(hit.chunk.id))].slice(0, 12));
     }
-    const recheck = hasJev() ? await judgeAnswerable(question.content, evidence.map(({ source, result }) => ({ source, result })), signal) : null;
+    const recheck = hasJev() ? await judgeAnswerable(question.content, evidence.map(({ source, result }) => ({ source, result })), signal, reference) : null;
     if (recheck !== null) answerable = recheck;
     if ((recheck !== null && recheck < lowAnswerable) || (recheck === null && nothingFound)) {
       escalated = true;
@@ -349,12 +358,13 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
       ...(decision.handling === 'unsupported' ? { note: 'Part of this asks for something you cannot see or do (such as the player\'s own in-game inventory, level or save, or doing things in the game). Say so for that part only and answer the rest.' } : {}),
       ...(decision.handling === 'unclear' ? { note: 'It is not clear what this refers to. Answer what you can and ask one short question about the rest.' } : {}),
     },
+    ...(reference ? { physics: reference } : {}),
     facts,
     ...(cardMode === 'marker' ? { attachments: available.map((block, index) => ({ index, type: block.type, name: cardTitle(block) })) } : {}),
     ...(cardMode === 'chosen' && picked ? { shownCards: picked.map((block) => ({ type: block.type, name: cardTitle(block) })) } : {}),
   };
   const messages: ModelMessage[] = [
-    { role: 'system', content: buildSystemPrompt({ style: decision.style, guard: decision.guard, cards: cardMode, fullGuide: escalated }) },
+    { role: 'system', content: buildSystemPrompt({ style: decision.style, guard: decision.guard, cards: cardMode, fullGuide: escalated, physics: Boolean(reference) }) },
     { role: 'user', content: JSON.stringify(input) },
   ];
 
@@ -398,7 +408,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
   const left = await withTimeout(quota, 800, null);
   const cacheTtl = (left?.remaining ?? 1000) < 100 ? 60 * 60_000 : 10 * 60_000;
   const cacheable = !followUp && !decision.guard;
-  const fingerprint = factsFingerprint({ routes: decision.routes, style: decision.style, cardMode, facts, cards: (picked ?? available).map(cardTitle), kb: knowledge.hash });
+  const fingerprint = factsFingerprint({ routes: decision.routes, style: decision.style, cardMode, facts, cards: (picked ?? available).map(cardTitle), kb: knowledge.hash, physics: Boolean(reference) });
   let hit = cacheable ? getCached(question.content, fingerprint, cacheTtl) : null;
   if (!hit && cacheable && hasJev()) {
     for (const entry of similarCached(question.content, fingerprint, cacheTtl)) {
@@ -435,11 +445,12 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
       question: question.content,
       history: priorText,
       facts,
+      reference,
       checkNumbers: decision.routes.length > 0,
     });
     if (!local.ok && local.reason !== 'numbers') return local;
     if (!hasJev() || escalated || !draft.answer.trim()) return local;
-    const judged = await judgeAnswer(question.content, facts, draft.answer, signal);
+    const judged = await judgeAnswer(question.content, facts, draft.answer, signal, reference);
     if (!judged) return local;
     if ((judged.internals ?? 0) > 0.8) return { ok: false, reason: 'leak' };
     if (judged.grounded !== null && judged.grounded < 0.2) return { ok: false, reason: 'ungrounded' };

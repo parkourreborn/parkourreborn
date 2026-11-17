@@ -135,6 +135,79 @@ function extractTrials(body, district) {
   }).filter((trial) => trial.name);
 }
 
+const moveFields = {
+  'Aliases': 'aliases',
+  'Kind': 'kind',
+  'Inputs': 'inputs',
+  'Needs': 'needs',
+  'Effect': 'effect',
+  'Speed': 'speed',
+  'State after': 'state',
+  'Vertical after': 'vertical',
+  'Stores / Uses': 'stores',
+  'Refreshes': 'refreshes',
+  'Leads into': 'leads',
+  'Mistakes': 'mistakes',
+  'Rules': 'rules',
+  'Unconfirmed': 'unconfirmed',
+  'Mapping to confirm': 'confirm',
+};
+
+const moveStates = [
+  'Jumping',
+  'Falling',
+  'Jumping while held, then Falling',
+  'Jumping from the ground, Falling in the air',
+  'Unchanged',
+  'Ground',
+  'Attached',
+];
+const moveVerticals = ['rising', 'not rising', 'kept', 'varies'];
+
+function extractMoves(body) {
+  const moves = [];
+  for (const block of body.split(/^## /m).slice(1)) {
+    const [head, ...rest] = block.split('\n');
+    const move = { name: head.trim(), aliases: [] };
+    for (const line of rest) {
+      const field = line.match(/^- \*\*(.+?):\*\*\s*(.*)$/);
+      if (!field || !moveFields[field[1]]) continue;
+      const name = moveFields[field[1]];
+      const value = field[2].replace(/\*\*/g, '').trim();
+      if (name === 'aliases') move.aliases = value === 'none' ? [] : value.split(',').map((alias) => alias.trim()).filter(Boolean);
+      else if (name === 'rules') move.rules = value.split(',').map((rule) => rule.trim()).filter(Boolean);
+      else move[name] = value;
+    }
+    if (move.kind) moves.push(move);
+  }
+  return moves;
+}
+
+function lintMoves(core, moves) {
+  const errors = [];
+  if (!core) errors.push('mechanics/physics-core.md: missing');
+  if (!moves.length) errors.push('mechanics/moves.md: no moves found');
+  const rules = new Set(Array.from(core.matchAll(/^## (C\d+)\./gm), (match) => match[1]));
+  const names = new Set();
+  for (const move of moves) {
+    const id = `mechanics/moves.md: ${move.name}`;
+    for (const name of [move.name, ...move.aliases]) {
+      const key = `${move.kind === 'input' ? 'input' : 'move'}:${name.toLowerCase()}`;
+      if (names.has(key)) errors.push(`${id}: name or alias "${name}" is used twice`);
+      names.add(key);
+    }
+    if (!['input', 'basic', 'concept', 'step'].includes(move.kind)) errors.push(`${id}: unknown kind "${move.kind}"`);
+    if (move.kind === 'input') continue;
+    if (!moveStates.includes(move.state)) errors.push(`${id}: unknown state after "${move.state ?? ''}"`);
+    if (!moveVerticals.includes(move.vertical)) errors.push(`${id}: unknown vertical after "${move.vertical ?? ''}"`);
+    if (!move.effect) errors.push(`${id}: missing effect`);
+    for (const rule of move.rules ?? []) {
+      if (!rules.has(rule)) errors.push(`${id}: rule ${rule} is not in the physics core`);
+    }
+  }
+  return errors;
+}
+
 function splitLong(content) {
   if (content.length <= chunkLimit) return [content];
 
@@ -326,6 +399,10 @@ function buildKnowledge(root) {
   const synonymsRaw = readFileSync(join(root, 'synonyms.json'), 'utf8');
   hash.update(synonymsRaw);
   const synonyms = JSON.parse(synonymsRaw).groups;
+  const core = docs.find((doc) => doc.id === 'mechanics/physics-core.md')?.body ?? '';
+  const moves = extractMoves(docs.find((doc) => doc.id === 'mechanics/moves.md')?.body ?? '');
+  const lint = lintDocs(docs);
+  lint.errors.push(...lintMoves(core, moves));
 
   return {
     version: 2,
@@ -335,7 +412,9 @@ function buildKnowledge(root) {
     recipes,
     trials,
     synonyms,
-    lint: lintDocs(docs),
+    core,
+    moves,
+    lint,
   };
 }
 
@@ -359,7 +438,7 @@ function main() {
   const out = join(repo, 'src', 'generated', 'kb.json');
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify(kb));
-  console.log(`kb: ${kb.docs.length} docs, ${kb.chunks.length} chunks, ${kb.recipes.length} recipes, ${kb.trials.length} trials -> src/generated/kb.json`);
+  console.log(`kb: ${kb.docs.length} docs, ${kb.chunks.length} chunks, ${kb.recipes.length} recipes, ${kb.trials.length} trials, ${kb.moves.length} moves -> src/generated/kb.json`);
 }
 
 main();

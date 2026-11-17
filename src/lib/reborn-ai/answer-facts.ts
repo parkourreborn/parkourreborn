@@ -61,19 +61,20 @@ type CheckInput = {
   question: string;
   history: string[];
   facts: unknown;
+  reference?: string | null;
   checkNumbers: boolean;
 };
 
 // A light check on a finished answer. It never blocks a reply on its own; a
 // failed verdict earns the model one rewrite, and after that the answer is
 // shown with a note.
-export function checkAnswer({ answer, hasCards, question, history, facts, checkNumbers }: CheckInput): AnswerVerdict {
+export function checkAnswer({ answer, hasCards, question, history, facts, reference, checkNumbers }: CheckInput): AnswerVerdict {
   const text = answer.trim();
   if (!text) return hasCards ? { ok: true } : { ok: false, reason: 'empty' };
   if (leak.test(text)) return { ok: false, reason: 'leak' };
   if (!checkNumbers) return { ok: true };
 
-  const allowed = allowedNumbers([question, ...history, JSON.stringify(facts ?? null)]);
+  const allowed = allowedNumbers([question, ...history, JSON.stringify(facts ?? null), reference ?? '']);
   const unsupported = Array.from(new Set(answerNumbers(text).filter((number) => !allowed.has(number))));
   return unsupported.length ? { ok: false, reason: 'numbers', unsupported } : { ok: true };
 }

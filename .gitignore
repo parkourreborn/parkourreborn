@@ -9,6 +9,7 @@ CLAUDE.md
 .vercel
 .claude
 .env*
-docs
+docs/*
+!docs/parkour-reborn-physics.md
 # built from knowledge/ by scripts/kb/build.mjs
 src/generated/

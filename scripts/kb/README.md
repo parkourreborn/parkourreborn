@@ -9,6 +9,7 @@ Reborn AI answers game questions from the markdown in `knowledge/`. `scripts/kb/
 | `npm run kb:build` | Builds `kb.json` and fails on broken docs. |
 | `npm run kb:check` | Same, plus warnings (shared aliases, very short docs). |
 | `npm run kb:wiki` | Pulls parkourreborn.wiki into `knowledge/`, then builds. |
+| `npm run kb:physics` | Splits `docs/parkour-reborn-physics.md` into the `mechanics/physics-*.md` pages, then builds. |
 | `npm run kb:eval` | Checks that known questions still find the right docs. Needs Node 22.18+. |
 
 ## Syncing from the wiki
@@ -39,6 +40,8 @@ Anything a Reborn AI tool fetches live stays out of `knowledge/`, because it cha
 ## Answer rules worth knowing
 
 - Search results often only mention the subject in passing. The prompt tells the model to use only facts that help answer the question. Jev's relevance check ignores passing mentions, and Jev's answer check triggers one rewrite when an answer adds unasked rules, warnings or side notes. This is what stops "techs aren't bugs" from showing up in a Wumpy answer.
-- A tech-list lookup (`search_techs` in `src/lib/reborn-ai/tools.ts`) gives the model only the tech's steps in order, with each step's marker spelled out: `*` becomes "(optional)", `+` "(advanced version only)" and `-` "(not in the advanced version)". The model answers with a plain numbered list and describes nothing else, since the tech card shows the rest. Changing a tech on the tech list is enough; nothing in the KB or code describes techs.
+- A tech-list lookup (`search_techs` in `src/lib/reborn-ai/tools.ts`) gives the model the tech's steps in order, with each step's marker spelled out: `*` becomes "(optional)", `+` "(advanced version only)" and `-` "(not in the advanced version)". It also adds notes on how each step leads into the next and which finish the tech uses (`src/lib/reborn-ai/movement-model.ts`), plus a moves fact with what every step does. The model lists the steps exactly and only explains them when asked how or why. Changing a tech on the tech list is enough; its explanation follows from its steps.
+- The full movement physics guide is `docs/parkour-reborn-physics.md`. `npm run kb:physics` (`scripts/kb/split-physics.mjs`) splits it into the `mechanics/physics-*.md` pages search uses, one topic per page, with "section N" references turned into page names. Edit the guide and rerun the script; the generated pages say so at the top.
+- Movement physics also lives in two docs the build compiles into `kb.json`: `mechanics/physics-core.md` (numbered rules, sent to the model as physics notes on every movement or mechanics question) and `mechanics/moves.md` (one entry per tech-list step, in a fixed field format; the build fails on an unknown state, vertical or rule). Every step name on the tech list needs an entry there; a step without one is flagged to the model as unknown instead of explained. Sequences a player types ("mag bounce > wall bounce > ct") are explained through `explain_sequence` the same way.
 - When nothing narrower answers a question, the model gets a large slice of the guide: the docs the question touches first, capped at 160,000 characters so it fits free models' context windows.
 - Jev's page catalog leaves out patch notes and people pages. Search finds those reliably by version number or name, and every catalog page is one more Jev question.

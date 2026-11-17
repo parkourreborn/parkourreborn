@@ -12,6 +12,7 @@ import type { JevQuestion } from '@/lib/reborn-ai/jev';
 export { hasJev };
 
 const factsLimit = 24_000;
+const referenceLimit = 20_000;
 const candidateChars = 700;
 
 // Keeps the state Jev reads well inside its 32k-token-per-question window.
@@ -33,10 +34,11 @@ export type EvidenceVerdict = {
   model: string;
 };
 
-export async function judgeEvidence({ question, history, facts, candidates = [], catalog = [], cards = [], signal }: {
+export async function judgeEvidence({ question, history, facts, reference, candidates = [], catalog = [], cards = [], signal }: {
   question: string;
   history: string[];
   facts: unknown;
+  reference?: string | null;
   candidates?: Candidate[];
   catalog?: CatalogEntry[];
   cards?: CardSummary[];
@@ -45,7 +47,9 @@ export async function judgeEvidence({ question, history, facts, candidates = [],
   const questions: Record<string, JevQuestion> = {
     answerable: {
       type: 'noul',
-      instructions: 'Can `question` be answered fully and correctly using only `facts` together with the relevant entries of `candidates`?',
+      instructions: reference
+        ? 'Can `question` be answered fully and correctly using only `facts` and `reference` together with the relevant entries of `candidates`?'
+        : 'Can `question` be answered fully and correctly using only `facts` together with the relevant entries of `candidates`?',
     },
   };
   candidates.forEach((_, index) => {
@@ -62,6 +66,7 @@ export async function judgeEvidence({ question, history, facts, candidates = [],
     question,
     recent_messages: history.slice(-4),
     facts: compactFacts(facts),
+    ...(reference ? { reference: compactFacts(reference, referenceLimit) } : {}),
     candidates: candidates.map((candidate) => ({ title: candidate.title, text: candidate.text.slice(0, candidateChars) })),
     catalog: catalog.map((entry) => ({ title: entry.title, summary: entry.summary })),
     cards: cards.map((card) => ({ type: card.type, title: card.title })),
@@ -80,18 +85,18 @@ export async function judgeEvidence({ question, history, facts, candidates = [],
   };
 }
 
-export async function judgeAnswerable(question: string, facts: unknown, signal?: AbortSignal) {
-  const reply = await askJev({ question, facts: compactFacts(facts, 60_000) }, {
-    answerable: { type: 'noul', instructions: 'Can `question` be answered fully and correctly using only `facts`?' },
+export async function judgeAnswerable(question: string, facts: unknown, signal?: AbortSignal, reference?: string | null) {
+  const reply = await askJev({ question, facts: compactFacts(facts, 60_000), ...(reference ? { reference: compactFacts(reference, referenceLimit) } : {}) }, {
+    answerable: { type: 'noul', instructions: reference ? 'Can `question` be answered fully and correctly using only `facts` and `reference`?' : 'Can `question` be answered fully and correctly using only `facts`?' },
   }, { timeoutMs: 2500, signal });
   return yes(reply, 'answerable');
 }
 
-export async function judgeAnswer(question: string, facts: unknown, answer: string, signal?: AbortSignal) {
-  const reply = await askJev({ question, facts: compactFacts(facts), answer }, {
+export async function judgeAnswer(question: string, facts: unknown, answer: string, signal?: AbortSignal, reference?: string | null) {
+  const reply = await askJev({ question, facts: compactFacts(facts), ...(reference ? { reference: compactFacts(reference, referenceLimit) } : {}), answer }, {
     grounded: {
       type: 'noul',
-      instructions: 'Is every claim about Parkour Reborn in `answer` (names, numbers, dates, steps) supported by `facts`? Saying that something is unknown counts as supported. A role-play voice, jokes, greetings and in-character lines (like "I\'m Harper, take a look at my stock") are not claims; only check the game facts.',
+      instructions: 'Is every claim about Parkour Reborn in `answer` (names, numbers, dates, steps, how movement works) supported by `facts` or, when present, `reference`? Saying that something is unknown counts as supported. A role-play voice, jokes, greetings and in-character lines (like "I\'m Harper, take a look at my stock") are not claims; only check the game facts.',
     },
     internals: {
       type: 'noul',

@@ -6,9 +6,10 @@ import { formatTime } from '@/lib/pages/time';
 import { wrVideoURL } from '@/lib/pages/timetrials';
 import { scoreForTime, tierInfo, timeGaps, timeNeededForScore, xpProgress } from '@/lib/reborn-ai/calculators';
 import { focusVersions, matchRecipes } from '@/lib/reborn-ai/kb-search';
-import type { KbRecipe } from '@/lib/reborn-ai/kb-search';
-import { knowledge } from '@/lib/reborn-ai/knowledge-retriever';
+import type { KbMove, KbRecipe } from '@/lib/reborn-ai/kb-search';
+import { knowledge, movement } from '@/lib/reborn-ai/knowledge-retriever';
 import { limits } from '@/lib/reborn-ai/limits';
+import type { MoveFact } from '@/lib/reborn-ai/movement-model';
 import type { ToolName } from '@/lib/reborn-ai/planner';
 import { recipeBlock } from '@/lib/reborn-ai/recipes';
 import type { AssistantBlock } from '@/lib/reborn-ai/types';
@@ -31,6 +32,7 @@ const range = z.enum(['7d', '30d', '90d', '1y', 'all']).optional();
 const schemas = {
   search_knowledge: z.object({ query: term, limit: count }),
   search_techs: z.object({ query: term, kind: z.enum(['tech', 'concept', 'basic']).optional(), exact: z.boolean().optional(), limit: count }),
+  explain_sequence: z.object({ steps: z.array(term).min(2).max(12) }),
   get_time_trials: z.object({ query: term.optional(), district: term.optional(), limit: count }),
   get_world_records: z.object({ trial: trialName.optional(), query: term.optional(), limit: count, summary: z.boolean().optional() }),
   get_wr_history: z.object({ trial: trialName }),
@@ -167,6 +169,12 @@ export function createToolkit(viewer: Viewer = null) {
   // Matched recipes go to the model as facts as well as cards, so it never
   // has to piece a recipe together from guide chunks.
   const recipesFound: KbRecipe[] = [];
+  const movesFound: MoveFact[] = [];
+  const noteMoves = (moves: KbMove[]) => {
+    for (const move of moves) {
+      if (!movesFound.some((item) => item.name === move.name && item.kind === move.kind)) movesFound.push(movement.fact(move));
+    }
+  };
   function suggestRecipes(query: string) {
     const recipes = matchRecipes(query, knowledge.recipes);
     if (recipes.length) suggest(recipes.map(recipeBlock));
@@ -217,20 +225,33 @@ export function createToolkit(viewer: Viewer = null) {
       videoUrl: entry.videoUrl,
       tutorialUrl: entry.tutorialUrl,
     })));
-    // Only the steps, in order, with what their markers mean spelled out.
-    // The card shows the rest, and the list is the only source for techs.
-    return found.map((entry) => ({
-      name: entry.name,
-      kind: entry.kind,
-      aliases: entry.aliases,
-      steps: entry.steps.map((step) => {
-        const item = parseStep(step);
-        const note = item.optional ? ' (optional)' : item.add ? ' (advanced version only)' : item.remove ? ' (not in the advanced version)' : '';
-        return `${item.label}${note}`;
-      }),
-      videoUrl: entry.videoUrl,
-      tutorialUrl: entry.tutorialUrl,
-    }));
+    // The steps in order, with what their markers mean spelled out, plus how
+    // each step leads into the next. What every step does goes to the model
+    // once, as the move list.
+    return found.map((entry) => {
+      const own = entry.kind === 'tech' ? null : movement.find(entry.name);
+      const { result, moves } = movement.breakdown(entry.steps, entry.kind !== 'tech');
+      noteMoves(own ? [own, ...moves] : moves);
+      return {
+        name: entry.name,
+        kind: entry.kind,
+        aliases: entry.aliases,
+        steps: entry.steps.map((step) => {
+          const item = parseStep(step);
+          const note = item.optional ? ' (optional)' : item.add ? ' (advanced version only)' : item.remove ? ' (not in the advanced version)' : '';
+          return `${item.label}${note}`;
+        }),
+        videoUrl: entry.videoUrl,
+        tutorialUrl: entry.tutorialUrl,
+        ...result,
+      };
+    });
+  }
+
+  function runSequence(args: z.infer<typeof schemas.explain_sequence>) {
+    const { result, moves } = movement.breakdown(args.steps);
+    noteMoves(moves);
+    return { steps: args.steps, ...result };
   }
 
   async function runTrials(args: z.infer<typeof schemas.get_time_trials>) {
@@ -612,6 +633,7 @@ export function createToolkit(viewer: Viewer = null) {
     switch (name) {
       case 'search_knowledge': return runKnowledge(schemas.search_knowledge.parse(args));
       case 'search_techs': return runTechs(schemas.search_techs.parse(args));
+      case 'explain_sequence': return runSequence(schemas.explain_sequence.parse(args));
       case 'get_time_trials': return runTrials(schemas.get_time_trials.parse(args));
       case 'get_world_records': return runRecords(schemas.get_world_records.parse(args));
       case 'get_wr_history': return runWrHistory(schemas.get_wr_history.parse(args));
@@ -636,6 +658,7 @@ export function createToolkit(viewer: Viewer = null) {
   return {
     autoBlocks,
     recipes: recipesFound,
+    moves: movesFound,
     async lookup(name: ToolName, args: unknown) {
       try {
         const result = await execute(name, args);
