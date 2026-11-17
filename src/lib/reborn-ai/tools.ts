@@ -6,6 +6,7 @@ import { formatTime } from '@/lib/pages/time';
 import { wrVideoURL } from '@/lib/pages/timetrials';
 import { scoreForTime, tierInfo, timeGaps, timeNeededForScore, xpProgress } from '@/lib/reborn-ai/calculators';
 import { focusVersions, matchRecipes } from '@/lib/reborn-ai/kb-search';
+import type { KbRecipe } from '@/lib/reborn-ai/kb-search';
 import { knowledge } from '@/lib/reborn-ai/knowledge-retriever';
 import { limits } from '@/lib/reborn-ai/limits';
 import type { ToolName } from '@/lib/reborn-ai/planner';
@@ -163,9 +164,13 @@ export function createToolkit(viewer: Viewer = null) {
     return found ? { ok: true, uuid: found.uuid, name: found.name } : { ok: false, note: `No Wasans player is named "${who}".` };
   }
 
+  // Matched recipes go to the model as facts as well as cards, so it never
+  // has to piece a recipe together from guide chunks.
+  const recipesFound: KbRecipe[] = [];
   function suggestRecipes(query: string) {
     const recipes = matchRecipes(query, knowledge.recipes);
     if (recipes.length) suggest(recipes.map(recipeBlock));
+    for (const recipe of recipes) if (!recipesFound.includes(recipe)) recipesFound.push(recipe);
   }
 
   async function runKnowledge(args: z.infer<typeof schemas.search_knowledge>) {
@@ -630,6 +635,7 @@ export function createToolkit(viewer: Viewer = null) {
 
   return {
     autoBlocks,
+    recipes: recipesFound,
     async lookup(name: ToolName, args: unknown) {
       try {
         const result = await execute(name, args);

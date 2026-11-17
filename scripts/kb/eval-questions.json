@@ -42,5 +42,17 @@
     { "q": "how do spawn regions work", "docs": ["gameplay/spawn-regions.md"] },
     { "q": "what is the yank grappler recipe", "docs": ["crafting/grappler-recipes.md"] },
     { "q": "where is mantras hideout", "docs": ["npcs/mantra.md"] }
+  ],
+  "recipes": [
+    { "q": "how do i make yank grappler 3, i only have base grappler", "items": ["Yank Grappler I", "Yank Grappler II"] },
+    { "q": "okay how to make yank 2", "items": ["Yank Grappler I", "Yank Grappler II"] },
+    { "q": "ok so how do i craft yank grappler, i have base grappler", "items": ["Yank Grappler I", "Yank Grappler II"] },
+    { "q": "yank grappler 1 recipe", "items": ["Yank Grappler I"] },
+    { "q": "grappler recipe", "items": ["Base Grappler"] },
+    { "q": "mag rail recipe", "items": ["Base Mag Rail"] },
+    { "q": "launch rail 2", "items": ["Launch Rail I", "Launch Rail II"] },
+    { "q": "how do i craft climber glove ii", "items": ["Climber Glove I", "Climber Glove II"] },
+    { "q": "glove recipe", "items": ["Base Glove"] },
+    { "q": "i need the swing grappler two recipe", "items": ["Swing Grappler I", "Swing Grappler II"] }
   ]
 }

@@ -101,33 +101,38 @@ function recipeWords(text: string) {
   return tokenize(text).map((word) => numerals[word] ?? word);
 }
 
-// Which recipes a question is about. "yank grappler 2" -> Yank Grappler II,
-// "grappler recipe" -> Base Grappler, "yank grappler" -> both Yank tiers.
+// Which recipes a question is about. An upgrade path named by its own word
+// wins, with every tier up to the one asked so the whole chain shows:
+// "yank 2" or "yank grappler ii, i have base grappler" -> Yank Grappler I and
+// II; "yank grappler 3" (no such tier) -> both Yank tiers. Naming only the
+// gear ("grappler recipe") means its base version.
 export function matchRecipes(query: string, recipes: KbRecipe[]) {
   const asked = recipeWords(query);
-  const askedText = ` ${asked.join(' ')} `;
-  const askedSet = new Set(asked.filter((word) => !numeralWords.has(word)));
+  const askedSet = new Set(asked);
+  const parts = recipes.map((recipe) => {
+    const words = recipeWords(recipe.item);
+    const tier = words.find((word) => numeralWords.has(word)) ?? '';
+    const names = words.filter((word) => !numeralWords.has(word));
+    const base = names[0] === 'base';
+    return { recipe, tier, base, path: base ? '' : names[0], gear: base ? names.slice(1) : names.slice(-1) };
+  });
 
-  const exact = recipes.filter((recipe) => askedText.includes(` ${recipeWords(recipe.item).join(' ')} `));
-  if (exact.length) {
-    const longest = Math.max(...exact.map((recipe) => recipe.item.length));
-    return exact.filter((recipe) => recipe.item.length === longest);
+  const paths = new Set(parts.filter((part) => part.path && askedSet.has(part.path)).map((part) => part.path));
+  if (paths.size) {
+    return Array.from(paths).flatMap((path) => {
+      const chain = parts.filter((part) => part.path === path);
+      // Only a numeral right after the path or gear word, in the same clause,
+      // is a tier ("yank 2", "yank grappler ii"). A lone "i" followed by more
+      // words is the pronoun ("yank grappler i have base") and isn't tier I.
+      const gear = chain[0].gear.join('\\s+');
+      const said = query.toLowerCase().match(new RegExp(`\\b${path}(?:\\s+${gear})?\\s+(iii|ii|i(?!\\s+[a-z])|[123]|one|two|three)\\b`));
+      const next = said ? numerals[said[1]] ?? said[1] : '';
+      const rank = (tier: string) => ['', 'i', 'ii', 'iii'].indexOf(tier);
+      const upTo = chain.filter((part) => rank(part.tier) <= rank(next));
+      return (next && upTo.length ? upTo : chain).map((part) => part.recipe);
+    });
   }
-
-  const scored = recipes.map((recipe) => {
-    const words = recipeWords(recipe.item).filter((word) => !numeralWords.has(word));
-    const matched = words.filter((word) => askedSet.has(word)).length;
-    return { recipe, matched, extra: words.length - matched, gearNamed: askedSet.has(words[words.length - 1]) };
-  }).filter((entry) => entry.matched > 0 && entry.gearNamed);
-  if (!scored.length) return [];
-
-  const most = Math.max(...scored.map((entry) => entry.matched));
-  const top = scored.filter((entry) => entry.matched === most);
-  const fewest = Math.min(...top.map((entry) => entry.extra));
-  const best = top.filter((entry) => entry.extra === fewest).map((entry) => entry.recipe);
-  // Naming only the gear ("grappler recipe") means its base version.
-  const base = best.filter((recipe) => /^base\s/i.test(recipe.item));
-  return base.length ? base : best;
+  return parts.filter((part) => part.base && part.gear.every((word) => askedSet.has(word))).map((part) => part.recipe);
 }
 
 const boosts = { title: 4, aliases: 4, section: 2.5, questions: 2, tags: 1.2, text: 1 };

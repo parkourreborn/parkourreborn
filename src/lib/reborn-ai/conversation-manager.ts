@@ -22,6 +22,7 @@ import { planTools, ruleRoutes } from '@/lib/reborn-ai/planner';
 import type { RouteName, ToolName } from '@/lib/reborn-ai/planner';
 import { buildSystemPrompt } from '@/lib/reborn-ai/prompt';
 import type { PromptOptions } from '@/lib/reborn-ai/prompt';
+import { recipeFact } from '@/lib/reborn-ai/recipes';
 import { routeMessage } from '@/lib/reborn-ai/router';
 import { createToolkit } from '@/lib/reborn-ai/tools';
 import type { Viewer } from '@/lib/reborn-ai/tools';
@@ -54,7 +55,7 @@ export type ConversationOptions = {
 };
 
 type Evidence = {
-  tool: ToolName | 'guide_full';
+  tool: ToolName | 'guide_full' | 'recipes';
   route: RouteName;
   source: string;
   status: 'ok' | 'empty' | 'unavailable';
@@ -119,7 +120,7 @@ function references(history: ChatMessage[], question: string) {
 const hasItems = (value: unknown): value is unknown[] => Array.isArray(value) && value.length > 0;
 const hasContent = (value: unknown) => (Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined);
 
-function sourceFor(tool: ToolName | 'guide_full') {
+function sourceFor(tool: ToolName | 'guide_full' | 'recipes') {
   if (tool === 'get_world_records' || tool === 'get_wr_history') return 'Wasans world records';
   if (tool === 'get_trial_leaderboard' || tool === 'get_overall_leaderboard' || tool === 'get_combo_leaderboard') return 'Wasans leaderboards';
   if (tool === 'get_player' || tool === 'get_player_analytics') return 'Wasans player profiles';
@@ -129,6 +130,7 @@ function sourceFor(tool: ToolName | 'guide_full') {
   if (tool === 'search_techs') return 'Parkour Reborn movement list';
   if (tool === 'search_community') return 'Parkour Reborn community library';
   if (tool === 'guide_full') return 'Parkour Reborn guide (complete)';
+  if (tool === 'recipes') return 'Parkour Reborn crafting recipes';
   return 'Parkour Reborn guide';
 }
 
@@ -264,6 +266,9 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
         ? { tool: call.name, route: call.routes[0], source: sourceFor(call.name), status: hasContent(outcome.result) ? 'ok' : 'empty', checkedAt: outcome.checkedAt, result: outcome.result }
         : { tool: call.name, route: call.routes[0], source: sourceFor(call.name), status: 'unavailable', checkedAt: outcome.checkedAt, result: null, error: outcome.error });
     }
+  }
+  if (toolkit.recipes.length) {
+    evidence.push({ tool: 'recipes', route: 'crafting', source: sourceFor('recipes'), status: 'ok', checkedAt: null, result: toolkit.recipes.map(recipeFact) });
   }
   const fetchedAt = performance.now();
 

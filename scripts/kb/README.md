@@ -34,7 +34,7 @@ Anything a Reborn AI tool fetches live stays out of `knowledge/`, because it cha
 
 ## Retrieval eval
 
-`scripts/kb/eval-questions.json` lists questions with the doc (and optionally the section) the search has to return in its top 5. It runs offline with no API keys. When Reborn AI misses something it should know, add the question here, fix the KB or search, and rerun `npm run kb:eval -- -v` to see the top results for every question.
+`scripts/kb/eval-questions.json` lists questions with the doc (and optionally the section) the search has to return in its top 5. It runs offline with no API keys. When Reborn AI misses something it should know, add the question here, fix the KB or search, and rerun `npm run kb:eval -- -v` to see the top results for every question. Its `recipes` list checks which recipe cards a question gets: naming an upgrade path ("yank 2") gives every tier of that path up to the one asked, and naming only the gear ("grappler recipe") gives the base recipe. Matched recipes also go to the model as facts, so it never pieces one together from guide text.
 
 ## Answer rules worth knowing
 
