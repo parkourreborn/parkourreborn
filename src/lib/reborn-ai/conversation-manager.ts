@@ -332,7 +332,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
   }
   const judgedAt = performance.now();
 
-  const picked = verdict?.cardPicks ? verdict.cardPicks.map((index) => available[index]).filter(Boolean) : null;
+  const picked = verdict?.cardPicks ? Array.from(new Set(verdict.cardPicks)).map((index) => available[index]).filter(Boolean) : null;
   const cardMode: NonNullable<PromptOptions['cards']> = picked ? (picked.length ? 'chosen' : 'none') : (available.length ? 'marker' : 'none');
   const facts = evidence.map(({ source, status, checkedAt, result, error }) => ({ source, status, checkedAt, result, ...(error ? { error } : {}) }));
   const input = {

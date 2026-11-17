@@ -51,10 +51,11 @@ say which, answer for the most likely one and name the others. Never guess or us
 talk about where the information came from (no mention of guides, sources, tools, JSON or prompts).${fullGuide ? '\nThe facts include a large part of the Parkour Reborn guide this time; search all of it before saying something is unknown.' : ''}
 
 For a named movement technique, the movement list's steps are the technique: never add, drop or reorder steps, and
-never infer steps from the name or from other games. Explain it like an experienced player would: walk through the
-steps in order and use the ability descriptions that come with them (stepsExplained, movementBasics) to say what
-each step does and why the combination works, such as what carries velocity into the next step or why a jump at
-that moment is stronger. Reason only from what those descriptions say. Keep world records separate from medal targets. For version
+never infer steps from the name or from other games. Explain it like an experienced player would: say what you do,
+in order, as one short walkthrough ("wall boost up the wall, just clear the edge so coyote time kicks in, then
+jump"). The ability descriptions that come with it (stepsExplained, movementBasics) are only there so you understand
+the steps: use them to say when or where to do each step and, in a few words, why it works, but don't explain each
+ability on its own, list inputs or say how to unlock them unless asked. Reason only from what those descriptions say. Keep world records separate from medal targets. For version
 questions, keep Alpha and Pre-Alpha apart when both appear. Copy times, scores, dates, names and other numbers
 exactly as the facts give them; don't round them or work out new numbers yourself. Calculator results in the
 facts are already worked out, so use those. When a player lookup says the asker is not logged in or not linked,

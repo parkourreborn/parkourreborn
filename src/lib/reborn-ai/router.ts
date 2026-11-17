@@ -34,7 +34,7 @@ export type RouteDecision = {
 const routeInstructions: Record<RouteName, string> = {
   records: 'Does any part of `message` ask about submitted world-record times, who holds a record, how long a record has stood, or record history? Medal targets do not count.',
   trials: 'Does any part of `message` ask about time-trial medal targets (bronze, silver, gold, platinum), a trial\'s difficulty, district, location, or its run video?',
-  leaderboards: 'Does any part of `message` ask about a leaderboard, rankings, placings, the top players overall or on a trial, or combo leaderboards?',
+  leaderboards: 'Does any part of `message` ask about a leaderboard, rankings, placings, the top or best players (overall or on a trial; the only player ranking is the Wasans time-trial leaderboard), or combo leaderboards?',
   players: 'Does any part of `message` ask about a specific player\'s (or the asker\'s own) times, personal bests, rank, Wasans score, tier, or profile?',
   stats: 'Does any part of `message` ask for activity statistics: recent or latest runs, how many runs or players, most active trials, grinders, improvers, or Wasans announcements?',
   calculator: 'Does any part of `message` need a calculation: a Wasans score for a time, the time needed for a score, a score tier, gaps between times, or XP needed between levels?',

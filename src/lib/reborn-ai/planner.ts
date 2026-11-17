@@ -60,6 +60,10 @@ export function ruleRoutes(message: string, entities: Entities): { routes: Route
   if (/\b(world records?|wrs?|record holders?|fastest (?:run|time|ever)|holds? the record)\b/.test(text)) routes.add('records');
   if (/\b(time ?trials?|tts?|bronze|silver|gold|platinum|plat|medals?|trial route)\b/.test(text) && !/\b(leaderboard|lb)\b/.test(text)) routes.add('trials');
   if (/\b(leaderboards?|lb|top \d+|top players?|rankings?|ranked|placing|place on|position on|number one|#1|best players?|who'?s (?:first|best|top))\b/.test(text)) routes.add('leaderboards');
+  // "who is the best parkour reborn player": the only player ranking is the
+  // Wasans time-trial leaderboard.
+  if (/\bwho\b/.test(text) && /\b((?:best|top|greatest|fastest) (?:\w+ ){0,3}(?:players?|runners?)|goat)\b/.test(text)) routes.add('leaderboards');
+  if (/\bwho(?:'?s| is) (?:the )?(?:best|top|greatest|number one)(?: (?:in|at|on|of)\b|[?!.\s]*$)/.test(text)) routes.add('leaderboards');
   if (entities.combo || entities.place !== null || /\bcombo (?:leaderboard|lb|record|top)\b/.test(text)) routes.add('leaderboards');
   if (entities.players.length || entities.me || /\b(personal bests?|profile|player stats)\b/.test(text)) routes.add('players');
   if (/\b(stats|statistics|how many (?:runs|players|submissions)|most active|activity|recent runs|latest runs|newest runs|grinders?|announcements?|wasans news)\b/.test(text)) routes.add('stats');
@@ -186,7 +190,13 @@ export function planTools({ routes, entities, message, query, maxKnowledge }: Pl
       if (who && has(/\b(my|tier|rank|score)\b/, message) && entities.score === null) add(route, 'get_player', { player: who });
     }
 
-    if (route === 'movement' || route === 'mechanics') add(route, 'search_techs', { query, limit: 4 });
+    if (route === 'movement' || route === 'mechanics') {
+      // The broad tech search replaces an exact one a general route added,
+      // so the same tech isn't looked up (and shown) twice.
+      const exact = calls.find((call) => call.name === 'search_techs' && call.args.exact);
+      if (exact) exact.args = { query, limit: 4 };
+      add(route, 'search_techs', { query, limit: 4 });
+    }
     if (route === 'crafting' || route === 'lore' || route === 'game_knowledge' || route === 'mechanics') {
       add(route, 'search_knowledge', { query, limit: maxKnowledge });
     }

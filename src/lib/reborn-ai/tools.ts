@@ -146,9 +146,16 @@ type Resolved = { ok: true; uuid: string; name: string } | { ok: false; note: st
 export function createToolkit(viewer: Viewer = null) {
   const autoBlocks: AssistantBlock[] = [];
   const sourceTimes = new Map<string, string>();
+  // Two lookups can find the same thing (an exact and a broad tech search
+  // both finding Gumpy), so a card already suggested is skipped.
+  const suggested = new Set<string>();
   const suggest = (blocks: AssistantBlock[]) => {
-    const room = limits.maxAutoBlocks - autoBlocks.length;
-    if (room > 0) autoBlocks.push(...blocks.slice(0, room));
+    for (const block of blocks) {
+      const id = JSON.stringify(block);
+      if (autoBlocks.length >= limits.maxAutoBlocks || suggested.has(id)) continue;
+      suggested.add(id);
+      autoBlocks.push(block);
+    }
   };
   const seen = (name: string, checkedAt: string) => {
     if (!sourceTimes.has(name)) sourceTimes.set(name, checkedAt);
@@ -440,7 +447,12 @@ export function createToolkit(viewer: Viewer = null) {
       rows: top.slice(0, 10).map((row) => ({ rank: row.rank, name: row.player, value: row.wasansScore ?? '', note: row.tier })),
       url: 'https://wasans.tully.sh/leaderboard',
     }]);
-    return { players: total ?? null, top, ...(asked ? { asked } : {}) };
+    return {
+      about: 'The overall Wasans leaderboard ranks time-trial players by Wasans score. It is the only ranking of Parkour Reborn players, so #1 here is the top time-trial player; say that it is the Wasans time-trial ranking.',
+      players: total ?? null,
+      top,
+      ...(asked ? { asked } : {}),
+    };
   }
 
   async function runCombos(args: z.infer<typeof schemas.get_combo_leaderboard>) {
