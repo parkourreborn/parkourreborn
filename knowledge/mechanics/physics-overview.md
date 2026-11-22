@@ -83,7 +83,8 @@ These rules explain the large majority of advanced movement:
 | Long jump | Afterboosted jump off an edge |
 | Wall Climb Boost (WCB), wall boost | Boost straight up during a wall clutch |
 | Wall clutch | Wall climb started during air dash |
-| Wall bounce | Jump off a wall climb within 0.2 s |
+| Wall bounce | Jump off a wall climb within 0.2 s while holding W; it sends you up, not away from the wall |
+| WASDless wall bounce | A wall bounce with every movement key released; it pushes you backwards off the wall |
 | Wall jump | Jump off a wall |
 | Ledge grab | Climbing onto a ledge |
 | Climb | Climbing a pipe or ladder |

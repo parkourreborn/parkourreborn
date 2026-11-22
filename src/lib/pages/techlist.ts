@@ -2,6 +2,14 @@ export type MovementKind = 'tech' | 'concept' | 'basic';
 
 export const endings = ['Powerslide', 'Jump', 'Slide Jump'] as const;
 export type Ending = typeof endings[number];
+export type EndingChoice = Ending | 'None';
+export const endingChoices: EndingChoice[] = [...endings, 'None'];
+export const endingLabels = {
+  Powerslide: 'Powerslide',
+  Jump: 'Jump',
+  'Slide Jump': 'Slide Jump',
+  None: 'No ending',
+} satisfies Record<EndingChoice, string>;
 
 export type MovementEntry = {
   name: string;
@@ -10,6 +18,7 @@ export type MovementEntry = {
   steps: string[];
   ending?: Ending;
   videoUrl: string;
+  endingVideos?: Partial<Record<EndingChoice, string>>;
   tutorialUrl: string;
 };
 

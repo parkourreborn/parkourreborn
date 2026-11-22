@@ -1,8 +1,8 @@
 import 'server-only';
 
 import type { CommunityResource, CommunityResourceType } from '@/lib/pages/search';
-import { parseEnding } from '@/lib/pages/techlist';
-import type { MovementEntry, MovementKind } from '@/lib/pages/techlist';
+import { endingChoices, parseEnding } from '@/lib/pages/techlist';
+import type { Ending, MovementEntry, MovementKind } from '@/lib/pages/techlist';
 import type { TimeTrial, WorldRecord } from '@/lib/pages/timetrials';
 import { getAdminDb } from '@/lib/server/firebase-admin';
 import { swrCache } from '@/lib/server/swr';
@@ -17,6 +17,7 @@ type MovementData = {
   Steps?: unknown;
   Ending?: unknown;
   VideoUrl?: unknown;
+  EndingVideos?: unknown;
   TutorialUrl?: unknown;
   active?: unknown;
 };
@@ -61,6 +62,16 @@ async function cached<T>(key: string, load: () => Promise<T>): Promise<Loaded<T>
   return { data: value as T, checkedAt: new Date(at).toISOString() };
 }
 
+// Clips of the endings other than the usual one, which VideoUrl shows.
+function endingVideos(value: unknown, ending?: Ending) {
+  if (!ending || !value || typeof value !== 'object') return {};
+  const clips = Object.fromEntries(endingChoices
+    .filter((choice) => choice !== ending)
+    .map((choice) => [choice, cleanUrl((value as Record<string, unknown>)[choice])])
+    .filter(([, url]) => url));
+  return Object.keys(clips).length ? { endingVideos: clips } : {};
+}
+
 function cleanMovement(id: string, data: MovementData): MovementEntry {
   const kind = text(data.Kind).toLowerCase() as MovementKind;
   const ending = parseEnding(text(data.Ending));
@@ -71,6 +82,7 @@ function cleanMovement(id: string, data: MovementData): MovementEntry {
     steps: list(data.Steps),
     ...(ending ? { ending } : {}),
     videoUrl: cleanUrl(data.VideoUrl),
+    ...endingVideos(data.EndingVideos, ending),
     tutorialUrl: cleanUrl(data.TutorialUrl),
   };
 }

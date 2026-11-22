@@ -6,6 +6,7 @@
     ["time trial", "tt", "tts", "trial", "trials"],
     ["platinum", "plat"],
     ["wallbounce", "wall bounce", "wb"],
+    ["wasdless wall bounce", "inputless wall bounce", "moveless wall bounce", "no input wall bounce", "wasd-less wall bounce", "wasdless bounce"],
     ["wallboost", "wall climb boost", "wcb"],
     ["wall climb", "wallclimb"],
     ["wall run", "wallrun"],

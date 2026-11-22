@@ -127,10 +127,12 @@ Grapple pull, wall kick, mag bounce and zip release use: result speed = max(your
 
 ## C16. Wall bounce
 
-- A jump off a wall climb within **0.2 s** of touching the wall.
-- Result speed = the larger of (stored wall speed, with its vertical part clamped to 0 to 100) and a push (flat look direction × 42 × min(1, run speed ÷ 24) plus 26 up), pointed along their sum. Without WASD the look direction is mirrored to point away from the wall; with WASD held it is used as is, so looking at the wall pushes into it and is wasted.
+- A jump off a wall climb within **0.2 s** of touching the wall, **normally done holding W.**
+- **A wall bounce sends you up (and along the wall), not away from it.** With W held the push follows your look, so looking at the wall pushes into it and the wall cancels that part.
+- **WASDless wall bounce** (every movement key released) is a separate move: the push is mirrored away from the wall (up to 42 outward plus 26 up), launching you backwards off the wall. Wall Bounce Slide uses it; Bogo is preferably done with it, though a normal wall bounce also works.
+- Result speed = the larger of (stored wall speed, with its vertical part clamped to 0 to 100) and a push (flat look direction × 42 × min(1, run speed ÷ 24) plus 26 up), pointed along their sum.
 - **Approach angle** splits the stored speed: straight on puts it all into up speed (capped at 100, the rest lost); at an angle the extra goes along the wall, uncapped. Example, 80 flat + 40 up: 0° gives 0 along / 89 up, 20° gives 50 / 74, 45° gives 73 / 52.
-- **Flick:** looking along the wall in the direction your speed travels along it at release steers more of the result into horizontal; looking the other way steers it into vertical. The look cannot add speed when you are fast.
+- **Flick:** looking along the wall in the direction your speed travels along it at release steers more of the result into horizontal; looking the other way steers it into vertical. The look cannot add speed when you are fast. It works the same with W held or WASDless, because looking along the wall has no into-the-wall part.
 - Falling into the wall wastes the falling share (clamped to 0). Bounce while rising.
 - State after: Falling.
 

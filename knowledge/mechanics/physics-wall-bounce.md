@@ -18,14 +18,18 @@ tags:
 <!-- Generated from docs/parkour-reborn-physics.md by npm run kb:physics. Edit that file, not this one. -->
 ## Wall bounce and wall bounce flicks
 
-A wall bounce is a jump off a wall climb within 0.2 s of touching the wall. The formula has three parts:
+A wall bounce is a jump off a wall climb within 0.2 s of touching the wall. **You normally hold W (or any movement key) while doing it.** The push then follows your camera, so looking at the wall pushes into it, the wall cancels that part, and the bounce sends you **up** (and along the wall if you hit it at an angle), not away from it.
+
+**WASDless wall bounce.** Bouncing with every movement key released is a different move: the push is mirrored to point away from the wall, up to 42 outward plus 26 up, so it launches you **backwards** off the wall. Wall Bounce Slide is done this way, and Bogo is preferably done this way (a normal wall bounce also works for it).
+
+The formula has three parts:
 
 ```
 stored = (along, clamp(up, 0, 100))          from the wall entry (the Wall Movement Physics page)
 push   = flat camera direction × 42 × α  +  (0, 26, 0)
          α = run speed ÷ 24 (maximum 1)
-         without WASD: the camera direction is mirrored to point away from the wall
-         with WASD held: the camera direction is used as is (into the wall if you look at it)
+         normal (W held): the camera direction is used as is (into the wall if you look at it, which the wall cancels)
+         WASDless: the camera direction is mirrored to point away from the wall
 result = normalise(stored + push) × max(|stored|, |push|)
 ```
 
@@ -68,8 +72,8 @@ So at high speed, a small angle (around 20° here) keeps the full vertical cap *
 
 | Look at release | Horizontal | (along / outward) | Up |
 |---|---|---|---|
-| At the wall, no WASD | 49.2 | 37.8 / 31.4 out | 74.7 |
-| At the wall, WASD held | 49.2 | 37.8 / 31.4 **into the wall** | 74.7 |
+| At the wall, W held (normal) | 49.2 | 37.8 / 31.4 **into the wall** (cancelled) | 74.7 |
+| At the wall, WASDless | 49.2 | 37.8 / 31.4 out | 74.7 |
 | 45° toward your direction of travel along the wall | 58.2 | 54.6 / 20.2 | 67.9 |
 | Parallel to the wall, toward your direction of travel | 60.8 | 60.8 / 0 | 65.6 |
 | 45° against your direction of travel | 30.5 | 17.5 / 25.0 | 84.1 |
@@ -89,7 +93,8 @@ Rules that follow from this:
 
 - **To keep horizontal speed, look along the wall in the same direction your speed is travelling along it.** Looking the other way converts horizontal into vertical.
 - With a straight-on approach (0°), the look direction only decides where a fixed 30.6 of horizontal speed goes; it cannot add more.
-- **Holding WASD while looking at the wall points the push into the wall**, and the wall's collision removes that part. Without WASD the push points away from the wall, which pushes you backwards (this is Wall Bounce Slide).
+- **A normal wall bounce (W held, looking at the wall) points the push into the wall**, and the wall's collision removes that part, so you keep going up and along the wall. A **WASDless wall bounce** points the push away from the wall and pushes you backwards (Wall Bounce Slide, and preferably Bogo).
+- Looking along the wall has no into-the-wall or away-from-the-wall part, so a flick works the same with or without WASD.
 - Looking up or down shrinks the horizontal part of the push (by the cosine of the pitch), so a level camera steers the most.
 - **Falling into the wall wastes speed:** the vertical share is clamped to zero. With 60 flat and 30 down, a bounce gives only 42 to 51 horizontal and 14 to 26 up, depending on the angle. Bounce while rising (jump into the wall first, or mag bounce, which sets 40 up).
 - You must be facing within 60° of straight into the wall when you press Ascend, or you will get a wallrun instead (the Wall Movement Physics page). The flick is therefore a camera turn **after** the climb has started, inside the 0.2 s window.

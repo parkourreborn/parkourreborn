@@ -9,7 +9,8 @@ import { Card } from '@/components/ui/card';
 import { DialogClose, DialogTitle } from '@/components/ui/dialog';
 import { HubDialog, HubDialogContent } from '@/components/ui/hub-dialog';
 import {
-  endings,
+  endingChoices,
+  endingLabels,
   fetchTechs,
   filterLabels,
   findStepEntry,
@@ -19,7 +20,7 @@ import {
   searchTechs,
   youtubeEmbedUrl,
 } from '@/lib/pages/techlist';
-import type { Ending, MovementEntry, TechFilter } from '@/lib/pages/techlist';
+import type { Ending, EndingChoice, MovementEntry, TechFilter } from '@/lib/pages/techlist';
 import { useInView, useProgressiveList } from '@/lib/use-progressive-list';
 
 type Tab = 'overview' | 'tutorial';
@@ -28,13 +29,13 @@ type Tip = { text: string; x: number; y: number; arrow: number };
 const filters: TechFilter[] = ['all', 'tech', 'concept', 'basic'];
 const skeletons = Array.from({ length: 18 });
 
-function Preview({ entry }: { entry: MovementEntry }) {
-  const kind = previewKind(entry.videoUrl);
+function Preview({ name, url }: { name: string; url: string }) {
+  const kind = previewKind(url);
   if (kind === 'none') return null;
 
   return (
     <div className="tech-preview">
-      {kind === 'video' ? <video src={entry.videoUrl} autoPlay muted loop playsInline /> : <img src={entry.videoUrl} alt={`${entry.name} preview`} />}
+      {kind === 'video' ? <video src={url} autoPlay muted loop playsInline /> : <img src={url} alt={`${name} preview`} />}
     </div>
   );
 }
@@ -69,13 +70,13 @@ function CardPreview({ entry }: { entry: MovementEntry }) {
   );
 }
 
-function EndingStep({ ending, entries, open, onOpen, onPick }: { ending: Ending; entries: MovementEntry[]; open: boolean; onOpen: (open: boolean) => void; onPick: (entry: MovementEntry) => void }) {
+function EndingStep({ ending, shown, entries, open, onOpen, onShow, onPick }: { ending: Ending; shown: EndingChoice; entries: MovementEntry[]; open: boolean; onOpen: (open: boolean) => void; onShow: (ending: EndingChoice) => void; onPick: (entry: MovementEntry) => void }) {
   const id = useId();
   const wrapRef = useRef<HTMLSpanElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const [right, setRight] = useState(0);
-  const own = findStepEntry(entries, ending);
-  const options = [ending, ...endings.filter((item) => item !== ending), 'No ending'];
+  const own = findStepEntry(entries, shown);
+  const options = [ending, ...endingChoices.filter((item) => item !== ending)];
 
   useLayoutEffect(() => {
     const wrap = wrapRef.current;
@@ -107,22 +108,29 @@ function EndingStep({ ending, entries, open, onOpen, onPick }: { ending: Ending;
           if (own) onPick(own);
         }}
       >
-        <span>{ending}</span>
+        <span>{endingLabels[shown]}</span>
       </Button>
-      <Button className="tech-ending__more" type="button" aria-label="Other endings" aria-expanded={open} aria-controls={id} onClick={() => onOpen(!open)}>
+      <Button className="tech-ending__more" type="button" aria-label="Change ending" aria-expanded={open} aria-controls={id} onClick={() => onOpen(!open)}>
         <ChevronDown aria-hidden="true" />
       </Button>
       {open ? (
         <div className="tech-endings" id={id} ref={popRef} style={{ right, '--notch': `${14 - right}px` } as CSSProperties}>
           <p>Endings</p>
-          {options.map((item) => {
-            const match = findStepEntry(entries, item);
-            const usual = item === ending ? 'true' : undefined;
-            const className = `tech-endings__item${usual ? ' is-usual' : ''}`;
-            return match
-              ? <button className={className} type="button" key={item} aria-current={usual} onClick={() => onPick(match)}>{item}</button>
-              : <span className={className} key={item} aria-current={usual}>{item}</span>;
-          })}
+          {options.map((item) => (
+            <button
+              className={`tech-endings__item${item === shown ? ' is-on' : ''}`}
+              type="button"
+              key={item}
+              aria-pressed={item === shown}
+              onClick={() => {
+                onShow(item);
+                onOpen(false);
+              }}
+            >
+              {endingLabels[item]}
+              {item === ending ? <small>Usual</small> : null}
+            </button>
+          ))}
         </div>
       ) : null}
     </span>
@@ -134,6 +142,8 @@ function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; 
   const [advanced, setAdvanced] = useState(false);
   const [tip, setTip] = useState<Tip | null>(null);
   const [endingOpen, setEndingOpen] = useState(false);
+  const [shown, setShown] = useState<EndingChoice | undefined>(entry.ending);
+  const clip = (shown && entry.endingVideos?.[shown]) || entry.videoUrl;
   const tutorial = youtubeEmbedUrl(entry.tutorialUrl);
   const aliases = entry.aliases.length ? entry.aliases.join(', ') : 'No aliases';
   const hasAdvanced = useMemo(() => entry.steps.some((step) => {
@@ -263,11 +273,11 @@ function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; 
                       </span>
                     );
                   })}
-                  {entry.ending ? <EndingStep ending={entry.ending} entries={entries} open={endingOpen} onOpen={setEndingOpen} onPick={onPick} /> : null}
+                  {entry.ending && shown ? <EndingStep ending={entry.ending} shown={shown} entries={entries} open={endingOpen} onOpen={setEndingOpen} onShow={setShown} onPick={onPick} /> : null}
                 </Card>
               ) : null}
 
-              <Preview entry={entry} />
+              <Preview name={entry.name} url={clip} key={clip} />
             </div>
           ) : null}
 

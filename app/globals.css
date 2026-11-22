@@ -3182,6 +3182,7 @@ button {
   display: flex;
   min-height: 34px;
   align-items: center;
+  gap: 8px;
   padding: 0 11px;
   border: 1px solid var(--hub-border);
   border-radius: 2px;
@@ -3193,16 +3194,26 @@ button {
   transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
 }
 
-.tech-endings__item.is-usual,
-button.tech-endings__item:hover,
-button.tech-endings__item:focus-visible {
+.tech-endings__item.is-on,
+.tech-endings__item:hover,
+.tech-endings__item:focus-visible {
   border-color: var(--hub-line-strong);
   background: var(--hub-control-active-bg);
   color: var(--hub-text);
 }
 
-button.tech-endings__item {
+.tech-endings__item {
   cursor: pointer;
+}
+
+.tech-endings__item small {
+  margin-left: auto;
+  color: var(--hub-muted-soft);
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .tech-arrow {

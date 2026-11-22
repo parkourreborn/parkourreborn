@@ -14,7 +14,7 @@ tags:
 
 # Parkour Reborn Step Dictionary
 
-One entry for every step name used on the tech list (inputs, basics, concepts, the Slide Jump ending and Buffer Dash). Reborn AI uses these entries to understand a tech from its sequence of steps. Rules in brackets such as (C13) refer to `physics-core.md`.
+One entry for every step name used on the tech list (inputs, basics, concepts, the Slide Jump ending, the WASDless Wall Bounce and Buffer Dash). Reborn AI uses these entries to understand a tech from its sequence of steps. Rules in brackets such as (C13) refer to `physics-core.md`.
 
 **Format.** Every entry uses the same fields so code can read them:
 
@@ -380,16 +380,16 @@ One entry for every step name used on the tech list (inputs, basics, concepts, t
 ## Wall Bounce
 - **Aliases:** wallbounce
 - **Kind:** basic
-- **Inputs:** Ascend (released, or pressed again) within 0.2 s of starting a Wall Climb
+- **Inputs:** Ascend (released, or pressed again) within 0.2 s of starting a Wall Climb, while holding W
 - **Needs:** a Wall Climb started less than 0.2 s ago.
-- **Effect:** Returns the stored wall speed. Result = the larger of (stored speed with its vertical part clamped to 0 to 100) and a push (flat look × 42 × min(1, run speed ÷ 24) plus 26 up), pointed along their sum. Without WASD the push points away from the wall; with WASD held it follows your camera (into the wall if you look at it). The approach angle splits stored speed between up (capped at 100) and along the wall (uncapped); the look at release (the flick) steers the result toward horizontal when you look the way your speed runs along the wall.
+- **Effect:** Returns the stored wall speed and **sends you up (and along the wall), not away from it**: with W held the push follows your look, so looking at the wall pushes into it and the wall cancels that part. Result = the larger of (stored speed with its vertical part clamped to 0 to 100) and a push (flat look × 42 × min(1, run speed ÷ 24) plus 26 up), pointed along their sum. Releasing every movement key makes it a WASDless Wall Bounce instead, which pushes you backwards off the wall (used by Wall Bounce Slide, and preferred for Bogo). The approach angle splits stored speed between up (capped at 100) and along the wall (uncapped); the look at release (the flick) steers the result toward horizontal when you look the way your speed runs along the wall.
 - **Speed:** 80 flat + 40 up hitting at 20°, looking along the wall: about 61 flat, 66 up. 150 flat + 40 up at 20°: about 125 flat, 92 up.
 - **State after:** Falling
 - **Vertical after:** rising
 - **Stores / Uses:** uses the stored wall speed.
 - **Refreshes:** mag bounce.
 - **Leads into:** Coyote Time (Boing), Wall Kick with an air dash (Bounce Kick), Mag Bounce.
-- **Mistakes:** hitting the wall while falling wastes the falling share; holding WASD while looking at the wall wastes the push; facing more than 60° off the wall when pressing Ascend gives a wallrun instead of a climb.
+- **Mistakes:** hitting the wall while falling wastes the falling share; releasing every movement key turns it into a WASDless Wall Bounce that sends you away from the wall; facing more than 60° off the wall when pressing Ascend gives a wallrun instead of a climb.
 - **Rules:** C15, C16
 
 ## Wall Climb
@@ -505,6 +505,21 @@ One entry for every step name used on the tech list (inputs, basics, concepts, t
 ---
 
 ## Steps
+
+## WASDless Wall Bounce
+- **Aliases:** inputless wall bounce, moveless wall bounce, no input wall bounce, wasd-less wall bounce, wasdless bounce
+- **Kind:** step
+- **Inputs:** Wall Bounce with every movement key (WASD) released
+- **Needs:** a Wall Climb started less than 0.2 s ago, and no movement key held at release.
+- **Effect:** A Wall Bounce whose push is mirrored to point away from the wall: up to 42 outward plus 26 up, added to the stored wall speed, so it launches you backwards off the wall instead of up it. Wall Bounce Slide is done with it, and Bogo is preferably done with it (a normal Wall Bounce also works).
+- **Speed:** push up to 42 outward plus 26 up (49.4 total) at run speed 24 or more; a stored speed larger than that is kept and only steered.
+- **State after:** Falling
+- **Vertical after:** rising
+- **Stores / Uses:** uses the stored wall speed.
+- **Refreshes:** mag bounce.
+- **Leads into:** Coyote Time on a ledge behind you (Wall Bounce Slide), or off the floor on the landing frame (Bogo).
+- **Mistakes:** holding any movement key makes it a normal Wall Bounce that sends you up.
+- **Rules:** C15, C16
 
 ## Slide Jump
 - **Aliases:** slidejump
