@@ -1,10 +1,14 @@
 export type MovementKind = 'tech' | 'concept' | 'basic';
 
+export const endings = ['Powerslide', 'Jump', 'Slide Jump'] as const;
+export type Ending = typeof endings[number];
+
 export type MovementEntry = {
   name: string;
   kind: MovementKind;
   aliases: string[];
   steps: string[];
+  ending?: Ending;
   videoUrl: string;
   tutorialUrl: string;
 };
@@ -68,7 +72,7 @@ function aliasMatch(entry: MovementEntry, search: SearchKey) {
 }
 
 function stepMatch(entry: MovementEntry, search: SearchKey) {
-  return entry.steps.some((step) => hits(parseStep(step).label, search));
+  return entry.steps.some((step) => hits(parseStep(step).label, search)) || Boolean(entry.ending && hits(entry.ending, search));
 }
 
 function rankEntry(entry: MovementEntry, search: SearchKey): SearchResult | null {
@@ -111,6 +115,14 @@ export function parseStep(step: string): ParsedStep {
     add: marker === '+',
     remove: marker === '-',
   };
+}
+
+export function parseEnding(value: string): Ending | undefined {
+  const id = flatKey(value).replace(/[^a-z]/g, '');
+  if (id === 'slide' || id === 'powerslide') return 'Powerslide';
+  if (id === 'jump') return 'Jump';
+  if (id === 'slidejump') return 'Slide Jump';
+  return undefined;
 }
 
 export function searchTechs(entries: MovementEntry[], query: string, filter: TechFilter): SearchResult[] {

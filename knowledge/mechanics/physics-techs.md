@@ -24,9 +24,16 @@ tags:
 <!-- Generated from docs/parkour-reborn-physics.md by npm run kb:physics. Edit that file, not this one. -->
 ## Techs Explained
 
-Notation: official step names from the tech list, with `→` between steps. Steps marked as optional (`*` in the tech list) are usually the coyote time finish: a powerslide, a jump, a slide jump, or nothing. A tech is defined by its launcher and the coyote catch; the finish varies.
+Notation: official step names from the tech list, with `→` between steps. Steps in brackets are optional. Most techs end by catching coyote time, and what you do in it is the tech's **ending**. The tech list names each tech's usual ending (the one its clip shows), written here after a comma; every ending works on every tech that ends in coyote time. A tech is defined by its launcher and where it catches coyote time (a ledge top, or the floor on the landing frame); the ending varies.
 
-**The common finish (Coyote Time → Powerslide → Jump):** get into coyote time while rising, powerslide (the bank is your flat speed combined with your current up speed), then jump while holding a direction. You are launched horizontally at the bank, and because the jump is additive, you keep your up speed (raised toward 42 if it was lower). This converts upward speed into horizontal speed without losing the upward speed.
+**The endings.** In the final coyote time you can:
+
+- **Powerslide:** the bank is your flat speed combined with your current up speed, and the slide starts at up to 1.5 × the bank, slowing quickly after 0.2 s. Your up speed is kept, the slide lasts through coyote time and ledge grace, and you can slide jump at any point while it lasts.
+- **Jump:** adds jump power to your up speed (up to the 42 cap, or kept if already above 42) and keeps your flat speed. Hold it to float higher; tap it if you need coyote time again.
+- **Slide jump:** powerslide, then jump while holding a direction. You are launched horizontally at the bank, and because the jump is additive, you keep your up speed (raised toward 42 if it was lower). This converts upward speed into horizontal speed without losing the upward speed.
+- **Nothing:** carry your speed on, with the refills and ledge grace coyote time gives.
+
+With mostly flat speed and little up speed, a powerslide keeps you low and fast and a jump mostly adds height. With a lot of up speed, a slide jump gives the most forward speed and a held jump the most height. At run speed 32, a catch at 60 flat and 28 up (a wall kick) gives: powerslide, a bank of 66 sliding at up to 99, keeping 28 up; jump, 60 flat and 42 up; slide jump, 66 flat and 42 up. A catch at almost no flat speed and 42 up (a wall boost) gives: jump, 32 flat and 42 up; slide jump, 42 flat and 42 up; both float higher when held.
 
 ### Concepts
 
@@ -38,10 +45,10 @@ Notation: official step names from the tech list, with `→` between steps. Step
 
 ### Wall bounce family
 
-**Boing** — Wall Bounce → Coyote Time → (Powerslide → Jump). Hit a wall while rising, bounce within 0.2 s. The bounce returns your stored speed (vertical part up to 100) and sets Falling. Rise past the top of the wall or a nearby ledge, catch coyote time, then slide jump.
+**Boing** — Wall Bounce → Coyote Time, ending with a Slide Jump. Hit a wall while rising, bounce within 0.2 s. The bounce returns your stored speed (vertical part up to 100) and sets Falling. Rise past the top of the wall or a nearby ledge, catch coyote time, then slide jump.
 *Example:* hitting a wall at 50 total speed, mostly upward, gives a bounce of about 50 up. Passing the top at about 40 up, a powerslide banks about 40 plus your flat speed, and the slide jump turns that into horizontal speed while keeping about 40 up.
 
-**Bogo** — Jump → Wall Bounce → Coyote Time → (Powerslide → Jump). A wall bounce right at the ground with an instant tap, so there is essentially no climb before it. Starting a climb sets Jumping, which blocks grounding, so the climb start and the release must resolve on the landing frame (or as close to it as possible). The game then grounds you first and applies the bounce afterwards (the Coyote Time and Ledge Grace page), which gives you coyote time off the floor itself. It is frame-perfect like Kogo and easier at low FPS. If you hit the wall while falling, the bounce's vertical part comes only from the push (26 up), but your along-the-wall speed is kept.
+**Bogo** — Jump → Wall Bounce → Coyote Time, ending with a Powerslide. A wall bounce right at the ground with an instant tap, so there is essentially no climb before it. Starting a climb sets Jumping, which blocks grounding, so the climb start and the release must resolve on the landing frame (or as close to it as possible). The game then grounds you first and applies the bounce afterwards (the Coyote Time and Ledge Grace page), which gives you coyote time off the floor itself. It is frame-perfect like Kogo and easier at low FPS. If you hit the wall while falling, the bounce's vertical part comes only from the push (26 up), but your along-the-wall speed is kept.
 
 **Wall Bounce Slide (Bounce Trimp)** — Coyote Time → Wall Bounce → Coyote Time → (Powerslide → Jump). Wall bounce with no WASD held, so the push points away from the wall (up to 42 outward plus 26 up), carrying you backwards over a ledge behind you. You are Falling and rising, so you catch coyote time there. The first coyote catch refills your wall climb and clears the same-wall restriction, which is what allows bouncing off the same wall again.
 
@@ -50,7 +57,7 @@ Notation: official step names from the tech list, with `→` between steps. Step
 
 **Mag Boing** — Mag Bounce → Wall Bounce → Coyote Time → (Powerslide → Jump). The mag bounce sets 40 up and points your whole speed where you look, so in one input you choose both your approach angle and your upward entry speed. This makes it the best setup for a flick. Starting the wall climb refreshes mag bounce, so you can mag bounce again at the edge of the wall: with level look, your horizontal speed becomes roughly your full 3D speed while your vertical speed is kept (155.2 total becomes about 180 in the the Gear Physics page example).
 
-**Gumpy (Grappler Enhanced Wumpy)** — Grapple → Wall Bounce → Coyote Time → (Powerslide → Jump). Grapple toward the wall: the pull never slows you and gives at least 35 (43.75 or 52.5 with Yank) toward the point, so you hit the wall with much more speed. The wall stores it and the bounce returns it.
+**Gumpy (Grappler Enhanced Wumpy)** — Grapple → Wall Bounce → Coyote Time, ending with a Slide Jump. Grapple toward the wall: the pull never slows you and gives at least 35 (43.75 or 52.5 with Yank) toward the point, so you hit the wall with much more speed. The wall stores it and the bounce returns it.
 
 **Dropbounce** — Dropdown → Wall Bounce → Coyote Time → (Powerslide → Jump). Dropdown off an edge, then bounce off a wall below or across. Dropdown keeps you in ledge grace and sets Falling, so the bounce and coyote rules apply as usual.
 
@@ -58,28 +65,28 @@ Notation: official step names from the tech list, with `→` between steps. Step
 
 ### Wall boost family
 
-**Wumpy (Long Jump Boost)** — Wall Climb Boost → Coyote Time → (Powerslide → Jump). The wall boost launches you straight up at 40.6 to 50.5 (52 to 60 with Climber Glove I) and sets Falling. Rise past the top, catch coyote time and slide jump. **Slide Wumpy** is the same with the slide-jump finish.
-*Example:* a boost at run speed 32 (50.5 up) passing a ledge 5 studs above the boost point is still rising at about 42.4. Powerslide banks about 42.4, and the slide jump gives about 42 horizontal while keeping about 42 up.
+**Wumpy (Long Jump Boost)** — Wall Climb Boost → Coyote Time, ending with a Jump. The wall boost launches you straight up at 40.6 to 50.5 (52 to 60 with Climber Glove I) and sets Falling. Rise past the top, catch coyote time and jump; hold it to float higher. **Slide Wumpy** ends with a slide jump instead, which turns the upward speed into forward speed.
+*Example:* a boost at run speed 32 (50.5 up) passing a ledge 5 studs above the boost point is still rising at about 42.4. A jump keeps the 42.4 up and gives 32 flat while holding a direction; a slide jump banks about 42.4 and gives about 42 horizontal while keeping about 42 up.
 
 **Boost Kick** — Wall Climb Boost → Wall Kick. Boost up, air dash, kick off the wall. Example: boost at 50 up, kick with a push of 30: augment turns most of it toward your facing direction (about 41.6 flat), then up is set to 28.
 
 ### Wallrun and wall kick family
 
-**Wavedash** — Wall Run → Wall Bounce → Coyote Time → (Powerslide → Jump). A wallrun keeps your speed along the wall. Run into a second wall ahead (a corner) while the wallrun is still rising (within the first 0.6 s) and start a wall climb: your speed is now mostly into the new wall, so the entry conversion rotates it almost entirely into upward speed (up to the 100 cap). The bounce launches you up, then you catch coyote time and slide jump. If the wallrun is already falling when you hit the second wall, the vertical share is clamped to zero and lost.
+**Wavedash** — Wall Run → Wall Bounce → Coyote Time, ending with a Slide Jump. A wallrun keeps your speed along the wall. Run into a second wall ahead (a corner) while the wallrun is still rising (within the first 0.6 s) and start a wall climb: your speed is now mostly into the new wall, so the entry conversion rotates it almost entirely into upward speed (up to the 100 cap). The bounce launches you up, then you catch coyote time and slide jump. If the wallrun is already falling when you hit the second wall, the vertical share is clamped to zero and lost.
 
-**Grapple Wavedash** — Grapple → Wall Run → Wall Bounce → Coyote Time → (Powerslide → Jump). As Wavedash, using the grapple to bring more speed into the wallrun.
+**Grapple Wavedash** — Grapple → Wall Run → Wall Bounce → Coyote Time, ending with a Slide Jump. As Wavedash, using the grapple to bring more speed into the wallrun.
 
-**Mag Wavedash** — Wall Run → Mag Launch → Mag Bounce → Wall Bounce → Coyote Time → (Powerslide → Jump). A mag launch (75 or more) off the wallrun, then a mag bounce (40 up, speed aimed at the next wall), then the bounce.
+**Mag Wavedash** — Wall Run → Mag Launch → Mag Bounce → Wall Bounce → Coyote Time, ending with a Slide Jump. A mag launch (75 or more) off the wallrun, then a mag bounce (40 up, speed aimed at the next wall), then the bounce.
 
-**Pogo** — Wall Run → Coyote Time → (Powerslide → Jump). End the wallrun near the ground with a jump-out (26 up, wallrun speed horizontally, Falling). Either the jump-out happens on the frame you would touch the floor (landing-frame rule, one frame), or the wallrun has already put you on the floor and you jump out within the 0.1 s before it ends (this works at any frame rate). Either way you are grounded while rising at 26 and can jump (up to 42) or slide jump.
+**Pogo** — Wall Run → Coyote Time, ending with a Jump. End the wallrun near the ground with a jump-out (26 up, wallrun speed horizontally, Falling). Either the jump-out happens on the frame you would touch the floor (landing-frame rule, one frame), or the wallrun has already put you on the floor and you jump out within the 0.1 s before it ends (this works at any frame rate). Either way you are grounded while rising at 26 and jump (up to 42), or use another ending.
 
-**Kogo** — Wall Kick → Coyote Time → (Powerslide). Wall kick on the exact frame you would land. The kick keeps your state (Falling), so the game grounds you and then applies the kick (28 up plus the facing push): coyote time off the floor. It is a one-frame window (16.7 ms at 60 FPS, 6.9 ms at 144 FPS), which is why it is easier at low FPS.
+**Kogo** — Wall Kick → Coyote Time, ending with a Powerslide. Wall kick on the exact frame you would land. The kick keeps your state (Falling), so the game grounds you and then applies the kick (28 up plus the facing push): coyote time off the floor. It is a one-frame window (16.7 ms at 60 FPS, 6.9 ms at 144 FPS), which is why it is easier at low FPS.
 
-**Wall Kick Wumpy** — Wall Kick → Coyote Time → (Powerslide → Jump). Wall kick (28 up, state unchanged) toward a ledge in front of you, rise past it, catch coyote time.
+**Wall Kick Wumpy** — Wall Kick → Coyote Time, ending with a Jump. Wall kick (28 up, state unchanged) toward a ledge in front of you, rise past it, catch coyote time. It is Kogo caught on a ledge instead of the floor.
 
-**Wall Run Wumpy** — Wall Run → Coyote Time → (Powerslide → Jump). Wallrun jump-out (26 up, Falling) past a ledge, catch coyote time.
+**Wall Run Wumpy** — Wall Run → Coyote Time, ending with a Jump. Wallrun jump-out (26 up, Falling) past a ledge, catch coyote time. It is Pogo caught on a ledge instead of the floor.
 
-**Double Jump (tech)** — Air Dash → Wall Run → Coyote Time → (Powerslide → Jump). Air dash, then wallrun: the game automatically jumps you off the wall 0.2 s after the air dash (26 up, wallrun speed, Falling). Use that hop to rise past a ledge and catch coyote time.
+**Double Jump (tech)** — Air Dash → Wall Run → Coyote Time, ending with a Jump. Air dash, then wallrun: the game automatically jumps you off the wall 0.2 s after the air dash (26 up, wallrun speed, Falling). Use that hop to rise past a ledge and catch coyote time.
 
 **Corner Cut** — Wall Run → Wall Run. Wallrun around a corner onto the next face. The new face points a different way (so the same-wall restriction does not apply), and the wallrun entry carries your full speed onto it.
 

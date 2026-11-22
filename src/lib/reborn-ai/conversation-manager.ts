@@ -190,7 +190,7 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T) => {
   ]).finally(() => clearTimeout(timer));
 };
 
-type Draft = { outcome: AnswerOutcome; answer: string; indexes: number[] };
+type Draft = { outcome: AnswerOutcome; answer: string; indexes: number[]; next: string[] };
 
 async function writeDraft(messages: ModelMessage[], emit: Emit, signal: AbortSignal | undefined, longPrompt: boolean): Promise<Draft> {
   const stream = answerStream((delta) => emit({ type: 'text', delta }));
@@ -200,8 +200,8 @@ async function writeDraft(messages: ModelMessage[], emit: Emit, signal: AbortSig
     signal,
     longPrompt,
   });
-  const { answer, indexes } = stream.finish();
-  return { outcome, answer, indexes };
+  const { answer, indexes, next } = stream.finish();
+  return { outcome, answer, indexes, next };
 }
 
 function attemptSummary(attempts: AttemptLog[]) {
@@ -364,7 +364,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
     ...(cardMode === 'chosen' && picked ? { shownCards: picked.map((block) => ({ type: block.type, name: cardTitle(block) })) } : {}),
   };
   const messages: ModelMessage[] = [
-    { role: 'system', content: buildSystemPrompt({ style: decision.style, guard: decision.guard, cards: cardMode, fullGuide: escalated, physics: Boolean(reference) }) },
+    { role: 'system', content: buildSystemPrompt({ style: decision.style, guard: decision.guard, cards: cardMode, fullGuide: escalated, physics: Boolean(reference), deep: decision.deep }) },
     { role: 'user', content: JSON.stringify(input) },
   ];
 
@@ -408,7 +408,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
   const left = await withTimeout(quota, 800, null);
   const cacheTtl = (left?.remaining ?? 1000) < 100 ? 60 * 60_000 : 10 * 60_000;
   const cacheable = !followUp && !decision.guard;
-  const fingerprint = factsFingerprint({ routes: decision.routes, style: decision.style, cardMode, facts, cards: (picked ?? available).map(cardTitle), kb: knowledge.hash, physics: Boolean(reference) });
+  const fingerprint = factsFingerprint({ routes: decision.routes, style: decision.style, cardMode, facts, cards: (picked ?? available).map(cardTitle), kb: knowledge.hash, physics: Boolean(reference), deep: decision.deep });
   let hit = cacheable ? getCached(question.content, fingerprint, cacheTtl) : null;
   if (!hit && cacheable && hasJev()) {
     for (const entry of similarCached(question.content, fingerprint, cacheTtl)) {
@@ -421,6 +421,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
   if (hit) {
     emit({ type: 'text', delta: hit.text });
     if (hit.blocks.length) emit({ type: 'blocks', blocks: hit.blocks });
+    if (hit.next.length) emit({ type: 'suggestions', items: hit.next });
     emit({ type: 'done' });
     log('cached', { answer: hit.text, answerModel: hit.model, check: 'cached' });
     return;
@@ -534,10 +535,11 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
   else if (!verdictNow.ok && (verdictNow.reason === 'numbers' || verdictNow.reason === 'ungrounded')) note = uncheckedNote;
   if (note) emit({ type: 'text', delta: note });
   if (chosen.length) emit({ type: 'blocks', blocks: chosen });
+  if (draft.next.length && !draft.outcome.cut) emit({ type: 'suggestions', items: draft.next });
   emit({ type: 'done' });
 
   if (check !== 'flagged' && !draft.outcome.cut && cacheable && draft.answer) {
-    putCached(question.content, fingerprint, draft.answer, chosen, draft.outcome.model);
+    putCached(question.content, fingerprint, draft.answer, chosen, draft.next, draft.outcome.model);
   }
 
   log('answered', {
@@ -552,6 +554,7 @@ export async function runConversation(request: ChatRequest, emit: Emit, options:
     routes: decision.routes,
     handling: decision.handling,
     style: decision.style,
+    deep: decision.deep,
     guard: decision.guard,
     usedJev: decision.usedJev,
     answerable,

@@ -104,7 +104,7 @@ export async function judgeAnswer(question: string, facts: unknown, answer: stri
     },
     unasked: {
       type: 'noul',
-      instructions: 'Does `answer` add a remark that `question` did not ask for and that does not help answer it, such as a rule, warning, disclaimer, reassurance or unrelated side note? Details that directly explain the thing asked about, and role-play flavor the player asked for, do not count.',
+      instructions: 'Does `answer` add a remark that `question` did not ask for and that does not help answer it, such as a rule, warning, disclaimer, reassurance or unrelated side note? Details that directly explain the thing asked about or help do it (such as what to hold or tap for a technique), and role-play flavor the player asked for, do not count.',
     },
   }, { timeoutMs: 2000, signal });
   if (!reply) return null;

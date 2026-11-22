@@ -14,7 +14,7 @@ tags:
 
 # Parkour Reborn Step Dictionary
 
-One entry for every step name used on the tech list (inputs, basics, concepts and Buffer Dash). Reborn AI uses these entries to understand a tech from its sequence of steps. Rules in brackets such as (C13) refer to `physics-core.md`.
+One entry for every step name used on the tech list (inputs, basics, concepts, the Slide Jump ending and Buffer Dash). Reborn AI uses these entries to understand a tech from its sequence of steps. Rules in brackets such as (C13) refer to `physics-core.md`.
 
 **Format.** Every entry uses the same fields so code can read them:
 
@@ -482,8 +482,8 @@ One entry for every step name used on the tech list (inputs, basics, concepts an
 - **Speed:** lasts about (up speed when caught ÷ 75) s, then 0.15 s of ledge grace. Guaranteed catch below 78 rise speed at 30 FPS and 156 at 60 FPS or above (much lower if only the top of the ledge is overlapped).
 - **State after:** Ground
 - **Vertical after:** rising
-- **Leads into:** Powerslide, then Jump (the common finish: converts upward speed into horizontal speed while keeping the upward speed); Jump (Trimp); Buffer Dash.
-- **Rules:** C2, C3, C5, C7
+- **Leads into:** the tech's ending: Powerslide, Jump or Slide Jump (C20); Jump (Trimp); Buffer Dash.
+- **Rules:** C2, C3, C5, C7, C20
 
 ## Ledge Grace
 - **Aliases:** Coyote Time (classic meaning)
@@ -505,6 +505,19 @@ One entry for every step name used on the tech list (inputs, basics, concepts an
 ---
 
 ## Steps
+
+## Slide Jump
+- **Aliases:** slidejump
+- **Kind:** step
+- **Inputs:** Powerslide, then Ascend while holding a direction
+- **Needs:** a powerslide that is still going (on the ground, in coyote time or in ledge grace).
+- **Effect:** Launches you at the larger of a normal jump's flat speed and the bank, in your input direction within 60° of the slide direction, with the normal additive jump vertically. As a coyote ending it turns your upward speed into forward speed while keeping the upward speed (raised toward 42).
+- **Speed:** caught at 60 flat and 28 up with run speed 32: bank 66, launch 66 flat and 42 up.
+- **State after:** Jumping while held, then Falling
+- **Vertical after:** rising
+- **Stores / Uses:** uses the bank.
+- **Mistakes:** with no direction held only the flat part of the bank is used; once the powerslide has ended it is a normal jump.
+- **Rules:** C11, C13, C20
 
 ## Buffer Dash
 - **Aliases:** buffered dash

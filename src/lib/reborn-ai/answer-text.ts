@@ -1,17 +1,20 @@
 // Pure text helpers for streaming answers.
 
 const marker = /\[\[\s*cards?\s*:\s*([\d,\s]*)\]\]/gi;
+const nextMarker = /\[\[\s*next\s*:([^\]]*)\]\]/gi;
 
-// The model ends its answer with [[cards:0,2]]. While streaming, nothing from
-// the first "[[" on is shown, so a half written marker never flashes up.
+// The model ends its answer with [[next: a | b]] and [[cards:0,2]]. While
+// streaming, nothing from the first "[[" on is shown, so a half written
+// marker never flashes up.
 function visibleEnd(text: string) {
   const open = text.indexOf('[[');
   if (open >= 0) return open;
   return text.endsWith('[') ? text.length - 1 : text.length;
 }
 
-function splitCards(text: string) {
+function splitMarkers(text: string) {
   const indexes: number[] = [];
+  const next: string[] = [];
   const clean = text
     .replace(marker, (_, list: string) => {
       for (const part of list.split(',')) {
@@ -20,14 +23,21 @@ function splitCards(text: string) {
       }
       return '';
     })
+    .replace(nextMarker, (_, list: string) => {
+      for (const part of list.split('|')) {
+        const item = part.replace(/^[\s"'“”]+|[\s"'“”]+$/g, '').replace(/\s+/g, ' ');
+        if (item.length >= 3 && item.length <= 80 && !next.some((have) => have.toLowerCase() === item.toLowerCase())) next.push(item);
+      }
+      return '';
+    })
     .replace(/\[\[[^\]]*\]?$/, '')
     .trimEnd();
 
-  return { text: clean, indexes: Array.from(new Set(indexes)) };
+  return { text: clean, indexes: Array.from(new Set(indexes)), next: next.slice(0, 3) };
 }
 
-// Feeds model output to the user as it arrives and settles the card marker at
-// the end. finish() sends whatever was held back and returns the full answer.
+// Feeds model output to the user as it arrives and settles the markers at the
+// end. finish() sends whatever was held back and returns the full answer.
 export function answerStream(show: (delta: string) => void) {
   let full = '';
   let shown = 0;
@@ -42,10 +52,10 @@ export function answerStream(show: (delta: string) => void) {
       }
     },
     finish() {
-      const { text, indexes } = splitCards(full);
+      const { text, indexes, next } = splitMarkers(full);
       if (text.length > shown) show(text.slice(shown));
       shown = Math.max(shown, text.length);
-      return { answer: text.trim(), indexes };
+      return { answer: text.trim(), indexes, next };
     },
     get raw() {
       return full;

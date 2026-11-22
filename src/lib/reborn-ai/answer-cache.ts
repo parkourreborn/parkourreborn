@@ -8,7 +8,7 @@ import type { AssistantBlock } from '@/lib/reborn-ai/types';
 // never reused once the data it was written from has changed. Saves free
 // requests on the questions everyone asks ("wr on crystal").
 
-type Entry = { at: number; question: string; fingerprint: string; text: string; blocks: AssistantBlock[]; model: string };
+type Entry = { at: number; question: string; fingerprint: string; text: string; blocks: AssistantBlock[]; next: string[]; model: string };
 
 const entries = new Map<string, Entry>();
 const maxEntries = 300;
@@ -42,9 +42,9 @@ export function similarCached(question: string, fingerprint: string, ttlMs: numb
     .slice(-3);
 }
 
-export function putCached(question: string, fingerprint: string, text: string, blocks: AssistantBlock[], model: string) {
+export function putCached(question: string, fingerprint: string, text: string, blocks: AssistantBlock[], next: string[], model: string) {
   const key = keyFor(question, fingerprint);
   entries.delete(key);
-  entries.set(key, { at: Date.now(), question, fingerprint, text, blocks, model });
+  entries.set(key, { at: Date.now(), question, fingerprint, text, blocks, next, model });
   while (entries.size > maxEntries) entries.delete(entries.keys().next().value as string);
 }

@@ -78,7 +78,17 @@ function Feedback({ entry, onVote }: { entry: ChatEntry; onVote: (vote: 'up' | '
   );
 }
 
-function Row({ entry, who, status, onVote }: { entry: ChatEntry; who: Who; status: AssistantStatus | null; onVote?: (vote: 'up' | 'down', note?: string) => void }) {
+function Suggestions({ items, onPick }: { items: string[]; onPick: (text: string) => void }) {
+  return (
+    <div className="ai-next" aria-label="Suggested questions">
+      {items.map((item) => (
+        <button type="button" key={item} onClick={() => onPick(item)}>{item}</button>
+      ))}
+    </div>
+  );
+}
+
+function Row({ entry, who, status, onVote, onPick }: { entry: ChatEntry; who: Who; status: AssistantStatus | null; onVote?: (vote: 'up' | 'down', note?: string) => void; onPick?: (text: string) => void }) {
   const waiting = status !== null && !entry.content;
 
   return (
@@ -108,6 +118,7 @@ function Row({ entry, who, status, onVote }: { entry: ChatEntry; who: Who; statu
           ) : <RichText value={entry.content} />}
           <Blocks blocks={entry.blocks} />
           {who.bot && status === null && entry.requestId && onVote ? <Feedback entry={entry} onVote={onVote} /> : null}
+          {onPick && entry.suggestions?.length ? <Suggestions items={entry.suggestions} onPick={onPick} /> : null}
         </div>
       </div>
     </article>
@@ -179,7 +190,7 @@ export default function RebornAi() {
       await streamRebornAi(history, controller.signal, (event) => {
         if (event.type === 'meta') update((entry) => ({ ...entry, requestId: event.id }));
         if (event.type === 'status') setStatus(event.state);
-        if (event.type === 'reset') update((entry) => ({ ...entry, content: '', blocks: [] }));
+        if (event.type === 'reset') update((entry) => ({ ...entry, content: '', blocks: [], suggestions: [] }));
         if (event.type === 'text') {
           received = true;
           update((entry) => ({ ...entry, content: entry.content + event.delta }));
@@ -188,6 +199,7 @@ export default function RebornAi() {
           received = true;
           update((entry) => ({ ...entry, blocks: event.blocks }));
         }
+        if (event.type === 'suggestions') update((entry) => ({ ...entry, suggestions: event.items }));
         if (event.type === 'error') failure = { message: event.message, retryable: event.retryable === true };
       });
     } catch (issue) {
@@ -281,6 +293,7 @@ export default function RebornAi() {
               who={entry.role === 'user' ? you : bot}
               status={busy && index === entries.length - 1 && entry.role === 'assistant' ? status : null}
               onVote={(vote, note) => castVote(entry, vote, note)}
+              onPick={!busy && !error && index === entries.length - 1 && entry.role === 'assistant' ? send : undefined}
             />
           ))}
         </div>

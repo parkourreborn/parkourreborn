@@ -1,4 +1,4 @@
-import type { MovementKind } from '@/lib/pages/techlist';
+import type { Ending, MovementKind } from '@/lib/pages/techlist';
 
 export type ChatRole = 'user' | 'assistant';
 
@@ -29,6 +29,7 @@ export type AssistantBlock =
       kind: MovementKind;
       aliases: string[];
       steps: string[];
+      ending?: Ending;
       videoUrl: string;
       tutorialUrl: string;
     }
@@ -86,5 +87,7 @@ export type ChatEvent =
   // Drop the text streamed so far, a rewritten answer follows.
   | { type: 'reset' }
   | { type: 'blocks'; blocks: AssistantBlock[] }
+  // Follow-up questions the player can send with one click.
+  | { type: 'suggestions'; items: string[] }
   | { type: 'error'; message: string; retryable?: boolean }
   | { type: 'done' };

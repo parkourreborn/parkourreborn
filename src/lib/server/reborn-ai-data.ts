@@ -1,6 +1,7 @@
 import 'server-only';
 
 import type { CommunityResource, CommunityResourceType } from '@/lib/pages/search';
+import { parseEnding } from '@/lib/pages/techlist';
 import type { MovementEntry, MovementKind } from '@/lib/pages/techlist';
 import type { TimeTrial, WorldRecord } from '@/lib/pages/timetrials';
 import { getAdminDb } from '@/lib/server/firebase-admin';
@@ -14,6 +15,7 @@ type MovementData = {
   Aliases?: unknown;
   Kind?: unknown;
   Steps?: unknown;
+  Ending?: unknown;
   VideoUrl?: unknown;
   TutorialUrl?: unknown;
   active?: unknown;
@@ -61,11 +63,13 @@ async function cached<T>(key: string, load: () => Promise<T>): Promise<Loaded<T>
 
 function cleanMovement(id: string, data: MovementData): MovementEntry {
   const kind = text(data.Kind).toLowerCase() as MovementKind;
+  const ending = parseEnding(text(data.Ending));
   return {
     name: id,
     kind: movementKinds.has(kind) ? kind : 'tech',
     aliases: list(data.Aliases),
     steps: list(data.Steps),
+    ...(ending ? { ending } : {}),
     videoUrl: cleanUrl(data.VideoUrl),
     tutorialUrl: cleanUrl(data.TutorialUrl),
   };

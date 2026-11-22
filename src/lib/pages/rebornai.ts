@@ -6,6 +6,8 @@ export type ChatEntry = {
   role: 'user' | 'assistant';
   content: string;
   blocks: AssistantBlock[];
+  // Follow-up questions shown as chips under the latest answer.
+  suggestions?: string[];
   at: number;
   // The server's id for this answer, used to file feedback on it.
   requestId?: string;

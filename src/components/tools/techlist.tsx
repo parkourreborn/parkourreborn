@@ -1,14 +1,15 @@
 'use client';
 
-import { type CSSProperties, type MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type MouseEvent, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Info, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ChevronDown, Info, ToggleLeft, ToggleRight } from 'lucide-react';
 import { CardSkeleton, ScreenReaderLoading, Skeleton } from '@/components/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DialogClose, DialogTitle } from '@/components/ui/dialog';
 import { HubDialog, HubDialogContent } from '@/components/ui/hub-dialog';
 import {
+  endings,
   fetchTechs,
   filterLabels,
   findStepEntry,
@@ -18,7 +19,7 @@ import {
   searchTechs,
   youtubeEmbedUrl,
 } from '@/lib/pages/techlist';
-import type { MovementEntry, TechFilter } from '@/lib/pages/techlist';
+import type { Ending, MovementEntry, TechFilter } from '@/lib/pages/techlist';
 import { useInView, useProgressiveList } from '@/lib/use-progressive-list';
 
 type Tab = 'overview' | 'tutorial';
@@ -68,10 +69,71 @@ function CardPreview({ entry }: { entry: MovementEntry }) {
   );
 }
 
+function EndingStep({ ending, entries, open, onOpen, onPick }: { ending: Ending; entries: MovementEntry[]; open: boolean; onOpen: (open: boolean) => void; onPick: (entry: MovementEntry) => void }) {
+  const id = useId();
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  const [right, setRight] = useState(0);
+  const own = findStepEntry(entries, ending);
+  const options = [ending, ...endings.filter((item) => item !== ending), 'No ending'];
+
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    const pop = popRef.current;
+    const card = wrap?.closest('.tech-steps');
+    if (!open || !wrap || !pop || !card) return;
+    const box = card.getBoundingClientRect();
+    const at = wrap.getBoundingClientRect();
+    setRight(Math.min(Math.max(0, at.right - box.right + 12), at.right - pop.offsetWidth - box.left - 12));
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: PointerEvent) => {
+      if (!wrapRef.current?.contains(event.target as Node)) onOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [onOpen, open]);
+
+  return (
+    <span className="tech-ending" ref={wrapRef}>
+      <Button
+        className="tech-step"
+        type="button"
+        tabIndex={own ? undefined : -1}
+        aria-disabled={own ? undefined : true}
+        onClick={() => {
+          if (own) onPick(own);
+        }}
+      >
+        <span>{ending}</span>
+      </Button>
+      <Button className="tech-ending__more" type="button" aria-label="Other endings" aria-expanded={open} aria-controls={id} onClick={() => onOpen(!open)}>
+        <ChevronDown aria-hidden="true" />
+      </Button>
+      {open ? (
+        <div className="tech-endings" id={id} ref={popRef} style={{ right, '--notch': `${14 - right}px` } as CSSProperties}>
+          <p>Endings</p>
+          {options.map((item) => {
+            const match = findStepEntry(entries, item);
+            const usual = item === ending ? 'true' : undefined;
+            const className = `tech-endings__item${usual ? ' is-usual' : ''}`;
+            return match
+              ? <button className={className} type="button" key={item} aria-current={usual} onClick={() => onPick(match)}>{item}</button>
+              : <span className={className} key={item} aria-current={usual}>{item}</span>;
+          })}
+        </div>
+      ) : null}
+    </span>
+  );
+}
+
 function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; entries: MovementEntry[]; onClose: () => void; onPick: (entry: MovementEntry) => void }) {
   const [tab, setTab] = useState<Tab>('overview');
   const [advanced, setAdvanced] = useState(false);
   const [tip, setTip] = useState<Tip | null>(null);
+  const [endingOpen, setEndingOpen] = useState(false);
   const tutorial = youtubeEmbedUrl(entry.tutorialUrl);
   const aliases = entry.aliases.length ? entry.aliases.join(', ') : 'No aliases';
   const hasAdvanced = useMemo(() => entry.steps.some((step) => {
@@ -114,7 +176,15 @@ function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; 
     <HubDialog onOpenChange={(next) => {
       if (!next) onClose();
     }}>
-      <HubDialogContent className="tt-dialog tech-dialog" aria-label={entry.name}>
+      <HubDialogContent
+        className="tt-dialog tech-dialog"
+        aria-label={entry.name}
+        onEscapeKeyDown={(event) => {
+          if (!endingOpen) return;
+          event.preventDefault();
+          setEndingOpen(false);
+        }}
+      >
         <header className="tt-dialog__head">
           <DialogTitle asChild>
             <h2>{entry.name}</h2>
@@ -162,7 +232,7 @@ function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; 
 
           {tab === 'overview' ? (
             <div className="tech-overview">
-              {steps.length ? (
+              {steps.length || entry.ending ? (
                 <Card className="tech-steps">
                   {steps.map(({ step, index: stepIndex, item }, index) => {
                     const match = findStepEntry(entries, item.label);
@@ -189,10 +259,11 @@ function TechModal({ entry, entries, onClose, onPick }: { entry: MovementEntry; 
                             {stepButton}
                           </span>
                         ) : stepButton}
-                        {index < steps.length - 1 ? <span className="tech-arrow" aria-hidden="true">&rarr;</span> : null}
+                        {index < steps.length - 1 || entry.ending ? <span className="tech-arrow" aria-hidden="true">&rarr;</span> : null}
                       </span>
                     );
                   })}
+                  {entry.ending ? <EndingStep ending={entry.ending} entries={entries} open={endingOpen} onOpen={setEndingOpen} onPick={onPick} /> : null}
                 </Card>
               ) : null}
 

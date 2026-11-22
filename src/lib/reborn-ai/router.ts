@@ -23,6 +23,8 @@ export type RouteDecision = {
   entities: Entities;
   followUp: boolean;
   style: AnswerStyle;
+  // Asks how or why something works underneath, not just what it is or how to do it.
+  deep: boolean;
   guard: Guard;
   usedJev: boolean;
   jevModel?: string;
@@ -86,6 +88,10 @@ function questions(): Record<string, JevQuestion> {
         'An explanation of how or why something works',
         'A step-by-step guide, a comparison, or a list of several things',
       ],
+    },
+    deep: {
+      type: 'noul',
+      instructions: 'Does `message` ask how or why something works underneath (the physics, speeds, numbers, game states, frame rate or timing behind it), rather than only what it is or how to do it?',
     },
     guard_injection: {
       type: 'noul',
@@ -158,6 +164,10 @@ function isHandling(value: unknown): value is RouteHandling {
   return value === 'lookup' || value === 'conversation' || value === 'unclear' || value === 'unsupported';
 }
 
+function deepFrom(message: string) {
+  return /(why|how (?:does|do|did|is|are) (?:S+ ){0,5}work|physics|mechanic(?:s|ally)|technical(?:ly)?|in depth|in detail|detailed|under the hood|fps|frame ?rates?|velocity|formula|math)/i.test(message);
+}
+
 function styleFrom(value: number | undefined, message: string): AnswerStyle {
   if (value !== undefined) return value >= 1.5 ? 3 : value >= 0.6 ? 2 : 1;
   if (/\b(how (?:do|can|to)|steps?|guide|list|all|every|compare|vs|versus|difference)\b/i.test(message)) return 3;
@@ -186,6 +196,7 @@ export async function routeMessage(message: string, history: ChatMessage[], play
     entities,
     followUp: false,
     style: styleFrom(undefined, message),
+    deep: deepFrom(message),
     guard: null,
     usedJev: false,
   };
@@ -195,6 +206,7 @@ export async function routeMessage(message: string, history: ChatMessage[], play
     entities,
     followUp: (yes(reply, 'follow_up') ?? 0) >= 0.6,
     style: styleFrom(reply.answers.style?.score, message),
+    deep: deepFrom(message) || (yes(reply, 'deep') ?? 0) >= 0.6,
     guard: null,
   });
 

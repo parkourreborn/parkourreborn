@@ -1,4 +1,5 @@
 import { parseStep } from '@/lib/pages/techlist';
+import type { Ending } from '@/lib/pages/techlist';
 import type { KbMove } from '@/lib/reborn-ai/kb-search';
 
 export type MoveFact = Omit<KbMove, 'rules'>;
@@ -30,6 +31,7 @@ function link(a: KbMove, b: KbMove, before: KbMove | null): string | null {
   }
   if (from === 'Coyote Time' && to === 'Powerslide') return 'a powerslide during coyote time banks your flat speed plus your current upward speed.';
   if (from === 'Coyote Time' && to === 'Jump') return 'a jump during coyote time adds jump power to your upward speed (capped at 42, or kept if already above 42); it counts as at an edge while rising faster than 8.';
+  if (from === 'Coyote Time' && to === 'Slide Jump') return 'powersliding in coyote time banks your flat plus upward speed, and the jump launches you at the bank in your held direction while keeping your upward speed (raised toward 42).';
   if (from === 'Coyote Time' && to === 'Buffer Dash') return 'coyote time counts as the ground, so a held Dash fires as a ground dash the moment its cooldown allows.';
   if (from === 'Powerslide' && to === 'Jump') return 'this is a slide jump: you launch horizontally at the bank, in your input direction within 60° of the slide, with the normal additive jump vertically. Hold a direction.';
   if (from === 'Powerslide' && to === 'Grapple') return 'the bank stays while the grapple pulls you; jump within ledge grace (0.15 s) while the powerslide is still active to use it.';
@@ -51,8 +53,8 @@ function link(a: KbMove, b: KbMove, before: KbMove | null): string | null {
   return null;
 }
 
-const finishNote = 'Ends with the coyote time finish: catch coyote time while rising, powerslide to bank your flat plus upward speed, then jump holding a direction to launch horizontally at the bank while keeping your upward speed.';
-const optionalNote = 'Steps marked optional are the usual finish after coyote time and can vary: a powerslide, a jump, a slide jump or nothing.';
+const optionalNote = 'Steps marked optional are what is done in the final coyote time, which can vary: a powerslide, a jump, a slide jump or nothing.';
+const endingNote = (ending: Ending) => `${ending} is the usual ending; the final coyote time can also end with ${['a powerslide', 'a jump', 'a slide jump'].filter((name) => name.slice(2) !== ending.toLowerCase()).join(', ')} or nothing.`;
 
 export function createMovementModel(moves: KbMove[]) {
   const named = new Map<string, KbMove>();
@@ -74,8 +76,9 @@ export function createMovementModel(moves: KbMove[]) {
 
   const fact = (move: KbMove) => Object.fromEntries(Object.entries(move).filter(([name]) => name !== 'rules')) as MoveFact;
 
-  function breakdown(steps: string[], input = false) {
-    const parsed = steps.map((step) => parseStep(step));
+  // The ending, when the tech list names one, is read as one more step.
+  function breakdown(steps: string[], input = false, ending?: Ending) {
+    const parsed = [...steps, ...(ending ? [ending] : [])].map((step) => parseStep(step));
     const found = parsed.map((step) => find(step.label, input));
     const links: string[] = [];
     for (let index = 1; index < found.length; index++) {
@@ -84,9 +87,8 @@ export function createMovementModel(moves: KbMove[]) {
       const note = a && b ? link(a, b, found[index - 2] ?? null) : null;
       if (a && b && note) links.push(`${a.name} → ${b.name}: ${note}`);
     }
-    const chain = ` ${found.map((move) => move?.name).filter((name) => name !== 'Buffer Dash').join(' > ')} `;
     const optional = parsed.some((step) => step.optional);
-    const finish = [chain.includes('Coyote Time > Powerslide > Jump') ? finishNote.replace('Ends with', 'Uses') : '', optional ? optionalNote : ''].filter(Boolean).join(' ');
+    const finish = ending ? endingNote(ending) : optional ? optionalNote : '';
     const unknownSteps = parsed.filter((_, index) => !found[index]).map((step) => step.label);
     const result: Breakdown = { links };
     if (finish) result.finish = finish;

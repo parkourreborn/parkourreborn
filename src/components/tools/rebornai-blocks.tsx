@@ -5,7 +5,7 @@ import RichText from '@/components/tools/rebornai-text';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { images } from '@/lib/assets';
 import { craftingSlots } from '@/lib/pages/crafting';
-import { kindLabels, parseStep, previewKind, youtubeEmbedUrl } from '@/lib/pages/techlist';
+import { endings, kindLabels, parseStep, previewKind, youtubeEmbedUrl } from '@/lib/pages/techlist';
 import type { AssistantBlock, RecipeSlot } from '@/lib/reborn-ai/types';
 
 type BlockProps = {
@@ -39,14 +39,22 @@ function TechBlock({ block }: { block: Extract<AssistantBlock, { type: 'tech' }>
         {block.aliases.length ? <small>{block.aliases.join(', ')}</small> : null}
       </header>
 
-      {steps.length ? (
+      {steps.length || block.ending ? (
         <div className="ai-steps">
           {steps.map((step, index) => (
             <span className="ai-step-wrap" key={`${step.label}-${index}`}>
               <span className={`ai-step${step.optional ? ' is-optional' : ''}`}>{step.label}{step.optional ? <b aria-hidden="true">*</b> : null}</span>
-              {index < steps.length - 1 ? <span className="ai-step-arrow" aria-hidden="true">&rarr;</span> : null}
+              {index < steps.length - 1 || block.ending ? <span className="ai-step-arrow" aria-hidden="true">&rarr;</span> : null}
             </span>
           ))}
+          {block.ending ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="ai-step is-ending" type="button">{block.ending}</button>
+              </TooltipTrigger>
+              <TooltipContent>Usual ending. Also works: {[...endings.filter((item) => item !== block.ending), 'no ending'].join(', ')}</TooltipContent>
+            </Tooltip>
+          ) : null}
         </div>
       ) : null}
 

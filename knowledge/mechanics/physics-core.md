@@ -154,10 +154,18 @@ The grounding check, state changes, gravity, the jump float and the jump release
 
 ## C20. Reading a tech from its steps
 
-- Techs are sequences of basics and concepts in order (`>`). Each basic is a set of inputs. Markers: `*` optional (usually the coyote-time finish), `+` advanced version only, `-` not in the advanced version.
-- **The common finish "Coyote Time > Powerslide > Jump"**: catch coyote time while rising, powerslide (banks flat + upward speed), jump holding a direction: launched horizontally at the bank while keeping the upward speed (raised toward 42). It converts upward speed into horizontal speed.
+- Techs are sequences of basics and concepts in order (`>`). Each basic is a set of inputs. Markers: `*` optional, `+` advanced version only, `-` not in the advanced version.
 - To explain a sequence, track after each step: the state (Jumping or Falling), whether you are rising, any stored speed (bank, stored wall speed), and which charges are spent or refilled. A step can only lead into Coyote Time if it leaves you **rising in a state other than Jumping** near a ledge top, or on the landing frame for the floor.
-- A tech is defined by its launcher and the coyote catch; the finish after coyote time (powerslide, jump, slide jump or nothing) can vary.
+- A tech is defined by its launcher and where it catches coyote time (a ledge top, or the floor on the landing frame). Kogo and Wall Kick Wumpy are the same launcher caught on the floor and on a ledge; so are Pogo and Wall Run Wumpy.
+
+**Endings.** What you do in the coyote time a tech ends with is its ending: a **powerslide**, a **jump**, a **slide jump** (powerslide, then jump) or nothing. The tech list names each tech's usual ending (the one its clip shows); every ending works on every tech that ends in coyote time. What each one does with your speed:
+
+- **Powerslide:** banks your flat and upward speed together (C13) and slides you at up to 1.5 × the bank at first, slowing quickly after 0.2 s. Your upward speed is kept. The slide lasts through coyote time and ledge grace, and you can slide jump at any point while it lasts.
+- **Jump:** adds jump power to your upward speed (up to 42, or kept if already above 42) and keeps your flat speed. Hold it to float higher; tap it if you need coyote time again afterwards.
+- **Slide jump:** powerslide, then jump holding a direction. Your flat speed becomes the bank (flat and upward speed combined) and you keep your upward speed (raised toward 42), so it turns upward speed into forward speed without losing it. Holding the jump floats as usual.
+- **Nothing:** carry your speed on. You still get the refills and the ledge grace.
+- **Choosing:** with mostly flat speed and little upward speed, a powerslide keeps you low and fast, and a jump mostly adds height. With a lot of upward speed, a slide jump gives the most forward speed (the bank is much bigger than your flat speed), and a held jump gives the most height.
+- **Examples at run speed 32:** caught at 60 flat and 28 up (a wall kick): a powerslide banks 66 and slides at up to 99 at first, keeping 28 up; a jump gives 60 flat and 42 up; a slide jump gives 66 flat and 42 up. Caught at almost no flat speed and 42 up (a wall boost past a ledge): a jump gives 32 flat (holding a direction) and 42 up; a slide jump gives 42 flat and 42 up. Both float higher when held.
 
 ## C21. Truthfulness
 

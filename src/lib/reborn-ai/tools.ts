@@ -222,25 +222,29 @@ export function createToolkit(viewer: Viewer = null) {
       kind: entry.kind,
       aliases: entry.aliases,
       steps: entry.steps,
+      ...(entry.ending ? { ending: entry.ending } : {}),
       videoUrl: entry.videoUrl,
       tutorialUrl: entry.tutorialUrl,
     })));
-    // The steps in order, with what their markers mean spelled out, plus how
-    // each step leads into the next. What every step does goes to the model
-    // once, as the move list.
+    // The steps in order, with what their markers mean spelled out and the
+    // usual ending as the last step, plus how each step leads into the next.
+    // What every step does goes to the model once, as the move list.
     return found.map((entry) => {
       const own = entry.kind === 'tech' ? null : movement.find(entry.name);
-      const { result, moves } = movement.breakdown(entry.steps, entry.kind !== 'tech');
+      const { result, moves } = movement.breakdown(entry.steps, entry.kind !== 'tech', entry.ending);
       noteMoves(own ? [own, ...moves] : moves);
       return {
         name: entry.name,
         kind: entry.kind,
         aliases: entry.aliases,
-        steps: entry.steps.map((step) => {
-          const item = parseStep(step);
-          const note = item.optional ? ' (optional)' : item.add ? ' (advanced version only)' : item.remove ? ' (not in the advanced version)' : '';
-          return `${item.label}${note}`;
-        }),
+        steps: [
+          ...entry.steps.map((step) => {
+            const item = parseStep(step);
+            const note = item.optional ? ' (optional)' : item.add ? ' (advanced version only)' : item.remove ? ' (not in the advanced version)' : '';
+            return `${item.label}${note}`;
+          }),
+          ...(entry.ending ? [`${entry.ending} (usual ending)`] : []),
+        ],
         videoUrl: entry.videoUrl,
         tutorialUrl: entry.tutorialUrl,
         ...result,
