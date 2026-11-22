@@ -11,6 +11,4 @@ CLAUDE.md
 .env*
 docs/
 scripts/
-!docs/parkour-reborn-physics.md
-# built from knowledge/ by scripts/kb/build.mjs
 src/generated/
