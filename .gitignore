@@ -10,5 +10,4 @@ CLAUDE.md
 .claude
 .env*
 docs/
-scripts/
 src/generated/

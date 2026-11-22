@@ -6,7 +6,7 @@
     "kb:build": "node scripts/kb/build.mjs",
     "kb:check": "node scripts/kb/build.mjs --check",
     "kb:wiki": "node scripts/kb/sync-wiki.mjs && npm run kb:build",
-    "kb:physics": "node scripts/kb/split-physics.mjs && npm run kb:build",
+    "kb:physics": "node docs/scripts/split-physics.mjs && npm run kb:build",
     "kb:eval": "npm run kb:build && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/kb/eval.mjs",
     "predev": "npm run kb:build",
     "dev": "next dev",
